@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TestBuddy – Create Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+
+/* ─── RESET & BASE ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:       #0d1117;
+  --surface:   #f5f4f0;
+  --card:      #ffffff;
+  --accent:    #ff5c00;
+  --accent2:   #0057ff;
+  --muted:     #8a8a8a;
+  --border:    #e8e5de;
+  --green:     #00c271;
+  --yellow:    #f5a623;
+  --red:       #e03b3b;
+  --purple:    #8b5cf6;
+  --sidebar-w: 240px;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d5d2cb; border-radius: 100px; }
+
+/* ─── SIDEBAR ──────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--ink);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 100; overflow-y: auto;
+}
+.sidebar::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+  background-size: 32px 32px; pointer-events: none;
+}
+.sidebar-logo {
+  padding: 28px 24px 24px;
+  font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+  color: #fff; letter-spacing: -1px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; gap: 10px; position: relative;
+}
+.sidebar-logo span { color: var(--accent); }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.sidebar-section {
+  font-size: 10px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: rgba(255,255,255,.25); padding: 22px 24px 8px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 24px;
+  font-size: 14px; color: rgba(255,255,255,.5); cursor: pointer;
+  border-left: 3px solid transparent; transition: all .18s; text-decoration: none;
+}
+.nav-item:hover { background: rgba(255,255,255,.05); color: rgba(255,255,255,.85); }
+.nav-item.active { background: rgba(255,92,0,.1); color: #fff; border-left-color: var(--accent); }
+.nav-icon { width: 20px; text-align: center; font-size: 16px; flex-shrink: 0; }
+.nav-label { flex: 1; }
+.nav-badge { background: var(--accent); color: #fff; border-radius: 100px; font-size: 11px; font-weight: 600; padding: 2px 8px; }
+.nav-badge.green { background: var(--green); }
+.nav-sub-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 24px 8px 50px; font-size: 13px;
+  color: rgba(255,255,255,.4); cursor: pointer;
+  border-left: 3px solid transparent; transition: all .15s;
+}
+.nav-sub-item:hover { color: rgba(255,255,255,.75); background: rgba(255,255,255,.03); }
+.nav-sub-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(255,92,0,.06); }
+.nav-sub-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.sidebar-footer { margin-top: auto; padding: 20px 24px; border-top: 1px solid rgba(255,255,255,.06); }
+.admin-card {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 10px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08); cursor: pointer; transition: background .18s;
+}
+.admin-card:hover { background: rgba(255,255,255,.09); }
+.admin-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff8c00);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.admin-name { font-size: 13px; font-weight: 500; color: #fff; }
+.admin-role { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 1px; }
+.admin-more { margin-left: auto; color: rgba(255,255,255,.3); font-size: 16px; }
+
+/* ─── MAIN ─────────────────────────────────────────────── */
+.main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ─── TOPBAR ───────────────────────────────────────────── */
+.topbar {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.breadcrumb .active { color: var(--ink); font-weight: 600; font-family: 'Syne', sans-serif; }
+.breadcrumb .sep { color: var(--border); font-size: 16px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 9px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer; transition: all .15s; position: relative;
+}
+.icon-btn:hover { background: var(--surface); border-color: #ccc; }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); position: absolute; top: 4px; right: 4px; border: 2px solid var(--card); }
+.topbar-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff8c00);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* ─── BUTTONS ──────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 20px; border-radius: 9px; font-size: 14px;
+  font-family: 'DM Sans', sans-serif; font-weight: 500;
+  cursor: pointer; border: none; transition: all .18s;
+}
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 3px 12px rgba(255,92,0,.25); }
+.btn-primary:hover { background: #e04e00; box-shadow: 0 4px 16px rgba(255,92,0,.35); }
+.btn-secondary { background: var(--card); color: var(--ink); border: 1.5px solid var(--border); }
+.btn-secondary:hover { border-color: #bbb; background: var(--surface); }
+.btn-ghost { background: transparent; color: var(--accent2); border: 1.5px solid rgba(0,87,255,.2); }
+.btn-ghost:hover { background: rgba(0,87,255,.05); }
+.btn-danger { background: rgba(224,59,59,.08); color: var(--red); border: 1.5px solid rgba(224,59,59,.2); }
+.btn-danger:hover { background: rgba(224,59,59,.15); }
+.btn-sm { padding: 7px 16px; font-size: 13px; }
+.btn-xs { padding: 5px 12px; font-size: 12px; border-radius: 7px; }
+
+/* ─── CONTENT ──────────────────────────────────────────── */
+.content { padding: 32px; flex: 1; }
+
+.page-header {
+  display: flex; align-items: flex-end;
+  justify-content: space-between; margin-bottom: 28px;
+}
+.page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
+.page-sub { font-size: 14px; color: var(--muted); }
+.header-actions { display: flex; gap: 10px; }
+
+/* ─── STEP PROGRESS BAR ────────────────────────────────── */
+.step-bar {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 20px 28px;
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 28px; position: relative;
+}
+.step-item {
+  display: flex; align-items: center; gap: 12px; flex: 1;
+  cursor: pointer; position: relative;
+}
+.step-item:last-child { flex: 0; }
+.step-circle {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif;
+  color: var(--muted); flex-shrink: 0; transition: all .25s; z-index: 1;
+}
+.step-item.done   .step-circle { background: var(--green); border-color: var(--green); color: #fff; font-size: 16px; }
+.step-item.active .step-circle { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 0 0 4px rgba(255,92,0,.15); }
+.step-info { flex: 1; min-width: 0; }
+.step-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; font-weight: 600; }
+.step-name { font-size: 13px; font-weight: 600; color: var(--ink); margin-top: 2px; white-space: nowrap; }
+.step-item.done   .step-name { color: var(--green); }
+.step-item.active .step-name { color: var(--accent); }
+.step-line {
+  flex: 1; height: 2px; background: var(--border);
+  margin: 0 6px; transition: background .3s;
+}
+.step-line.done { background: var(--green); }
+
+/* ─── LAYOUT ───────────────────────────────────────────── */
+.form-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+
+/* ─── SECTION CARD ─────────────────────────────────────── */
+.section-card {
+  background: var(--card); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+  margin-bottom: 20px;
+  animation: fadeUp .4s ease both;
+}
+.section-card:nth-child(1) { animation-delay: .04s; }
+.section-card:nth-child(2) { animation-delay: .08s; }
+.section-card:nth-child(3) { animation-delay: .12s; }
+.section-card:nth-child(4) { animation-delay: .16s; }
+.section-card:last-child  { margin-bottom: 0; }
+
+.section-header {
+  padding: 18px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fafaf7;
+}
+.section-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.si-orange { background: rgba(255,92,0,.1); }
+.si-blue   { background: rgba(0,87,255,.1); }
+.si-green  { background: rgba(0,194,113,.1); }
+.si-purple { background: rgba(139,92,246,.1); }
+.si-yellow { background: rgba(245,166,35,.12); }
+.section-body { padding: 24px; }
+
+/* ─── FORM ELEMENTS ────────────────────────────────────── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-row.four  { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.form-row.full  { grid-template-columns: 1fr; }
+.form-row:last-child { margin-bottom: 0; }
+
+.form-group { display: flex; flex-direction: column; gap: 7px; }
+.form-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 5px;
+}
+.req { color: var(--red); }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  outline: none; background: var(--surface); color: var(--ink);
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--accent2); background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,87,255,.07);
+}
+.form-group input.error { border-color: var(--red); box-shadow: 0 0 0 3px rgba(224,59,59,.08); }
+.form-group textarea { resize: vertical; min-height: 88px; line-height: 1.55; }
+.form-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* number input with unit */
+.input-with-unit { position: relative; }
+.input-with-unit input { padding-right: 52px; }
+.input-unit {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 12px; color: var(--muted); font-weight: 600; pointer-events: none;
+}
+
+/* ─── MARKS CONFIG ROW ─────────────────────────────────── */
+.marks-row {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 14px;
+}
+.marks-card {
+  border: 1.5px solid var(--border); border-radius: 12px; padding: 16px;
+  text-align: center; transition: border-color .2s, background .2s;
+  cursor: default;
+}
+.marks-card.accent-card { border-color: rgba(255,92,0,.3); background: rgba(255,92,0,.03); }
+.marks-card.blue-card   { border-color: rgba(0,87,255,.25); background: rgba(0,87,255,.03); }
+.marks-card.green-card  { border-color: rgba(0,194,113,.3); background: rgba(0,194,113,.03); }
+.marks-card.red-card    { border-color: rgba(224,59,59,.25); background: rgba(224,59,59,.03); }
+.marks-card-label { font-size: 11px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.marks-card input {
+  width: 100%; text-align: center; font-family: 'Syne', sans-serif;
+  font-size: 22px; font-weight: 800; border: none !important;
+  background: transparent !important; box-shadow: none !important;
+  padding: 0 !important; outline: none;
+}
+.marks-card.accent-card input { color: var(--accent); }
+.marks-card.blue-card   input { color: var(--accent2); }
+.marks-card.green-card  input { color: var(--green); }
+.marks-card.red-card    input { color: var(--red); }
+.marks-card-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ─── TOPIC DISTRIBUTION TABLE ─────────────────────────── */
+.dist-table { width: 100%; border-collapse: collapse; }
+.dist-table th {
+  background: var(--surface); font-size: 11px; font-weight: 600;
+  letter-spacing: .7px; text-transform: uppercase;
+  color: var(--muted); padding: 10px 16px;
+  text-align: left; border-bottom: 1px solid var(--border);
+}
+.dist-table td { padding: 12px 16px; border-bottom: 1px solid #f0ede8; vertical-align: middle; font-size: 14px; }
+.dist-table tr:last-child td { border-bottom: none; }
+.dist-table tbody tr { transition: background .14s; }
+.dist-table tbody tr:hover td { background: #fafaf7; }
+
+.topic-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border-radius: 100px; font-size: 13px; font-weight: 500;
+}
+.dist-input-wrap { display: flex; align-items: center; gap: 8px; }
+.dist-num-input {
+  width: 70px; padding: 7px 10px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+  text-align: center; outline: none; background: var(--card);
+  transition: border-color .2s;
+}
+.dist-num-input:focus { border-color: var(--accent2); }
+.dist-unit { font-size: 13px; color: var(--muted); font-weight: 500; }
+.dist-calc { font-size: 13px; color: var(--muted); }
+.dist-calc strong { color: var(--ink); }
+.dist-bar { height: 4px; background: var(--border); border-radius: 100px; overflow: hidden; margin-top: 4px; }
+.dist-fill { height: 100%; border-radius: 100px; transition: width .4s; }
+
+.remove-btn {
+  width: 28px; height: 28px; border-radius: 7px; border: 1.5px solid var(--border);
+  background: var(--card); display: flex; align-items: center; justify-content: center;
+  font-size: 13px; cursor: pointer; transition: all .15s; color: var(--muted); flex-shrink: 0;
+}
+.remove-btn:hover { background: rgba(224,59,59,.08); border-color: rgba(224,59,59,.3); color: var(--red); }
+
+/* total row */
+.dist-total-row td { background: #fafaf7; font-weight: 600; border-top: 2px solid var(--border); }
+.total-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600;
+}
+.total-pill.ok  { background: rgba(0,194,113,.12); color: #008a50; }
+.total-pill.err { background: rgba(224,59,59,.1); color: var(--red); }
+
+/* add topic dashed btn */
+.add-topic-btn {
+  display: flex; align-items: center; gap: 9px;
+  padding: 11px 16px; border: 1.5px dashed var(--border);
+  border-radius: 10px; cursor: pointer; font-size: 14px; color: var(--muted);
+  transition: all .18s; background: transparent; font-family: 'DM Sans', sans-serif;
+  margin-top: 14px; width: 100%;
+}
+.add-topic-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(0,87,255,.03); }
+
+/* ─── DIFFICULTY DISTRIBUTION ──────────────────────────── */
+.diff-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.diff-card {
+  border: 1.5px solid var(--border); border-radius: 12px; padding: 18px 16px;
+  text-align: center; transition: all .2s;
+}
+.diff-card-label {
+  font-size: 12px; font-weight: 600; letter-spacing: .5px;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.diff-card.easy-card   .diff-card-label { color: var(--green); }
+.diff-card.medium-card .diff-card-label { color: var(--yellow); }
+.diff-card.hard-card   .diff-card-label { color: var(--red); }
+.diff-card.easy-card   { border-color: rgba(0,194,113,.3); background: rgba(0,194,113,.03); }
+.diff-card.medium-card { border-color: rgba(245,166,35,.3); background: rgba(245,166,35,.03); }
+.diff-card.hard-card   { border-color: rgba(224,59,59,.25); background: rgba(224,59,59,.03); }
+.diff-input-wrap { position: relative; display: inline-block; }
+.diff-input-wrap input {
+  width: 80px; text-align: center; font-family: 'Syne', sans-serif;
+  font-size: 28px; font-weight: 800; border: none !important;
+  background: transparent !important; box-shadow: none !important;
+  padding: 0 !important; outline: none;
+}
+.diff-card.easy-card   input { color: var(--green); }
+.diff-card.medium-card input { color: var(--yellow); }
+.diff-card.hard-card   input { color: var(--red); }
+.diff-percent { position: absolute; right: -18px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 700; color: var(--muted); }
+.diff-sub { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.diff-bar { height: 5px; background: var(--border); border-radius: 100px; overflow: hidden; margin-top: 10px; }
+.diff-fill { height: 100%; border-radius: 100px; transition: width .4s; }
+.easy-card   .diff-fill { background: var(--green); }
+.medium-card .diff-fill { background: var(--yellow); }
+.hard-card   .diff-fill { background: var(--red); }
+.diff-total-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; font-size: 13px; color: var(--muted); }
+
+/* ─── QUESTION TYPE DISTRIBUTION ───────────────────────── */
+.type-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+.type-card {
+  border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 16px 14px; text-align: center; cursor: pointer;
+  transition: all .2s; position: relative;
+}
+.type-card:hover { border-color: #bbb; background: var(--surface); }
+.type-card.selected { border-color: var(--accent2); background: rgba(0,87,255,.04); }
+.type-card-icon { font-size: 22px; margin-bottom: 8px; }
+.type-card-name { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+.type-card-count { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent2); }
+.type-card-sub  { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.type-check {
+  position: absolute; top: 8px; right: 8px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent2); color: #fff;
+  font-size: 10px; display: none;
+  align-items: center; justify-content: center;
+}
+.type-card.selected .type-check { display: flex; }
+
+/* ─── TOGGLE ROW ───────────────────────────────────────── */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+.toggle-row:first-child { padding-top: 0; }
+.toggle-info { flex: 1; padding-right: 20px; }
+.toggle-label { font-size: 14px; font-weight: 500; color: var(--ink); }
+.toggle-sub { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+.toggle {
+  width: 42px; height: 24px; border-radius: 100px;
+  background: var(--border); cursor: pointer; position: relative;
+  transition: background .22s; flex-shrink: 0;
+}
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  transition: transform .22s;
+}
+.toggle.on { background: var(--accent); }
+.toggle.on::after { transform: translateX(18px); }
+.toggle.blue.on { background: var(--accent2); }
+
+/* ─── RIGHT PANEL ──────────────────────────────────────── */
+.right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+.info-panel {
+  background: var(--card); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+  animation: fadeUp .4s ease both .06s;
+}
+.info-panel-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.info-panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+.info-panel-body { padding: 16px 20px; }
+
+/* summary card */
+.summary-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.summary-row:last-child { border-bottom: none; }
+.summary-key { color: var(--muted); }
+.summary-val { font-weight: 600; color: var(--ink); text-align: right; }
+
+/* live score preview */
+.score-preview {
+  background: var(--ink); border-radius: 14px; padding: 20px;
+  text-align: center; margin-bottom: 14px; position: relative; overflow: hidden;
+}
+.score-preview::before {
+  content: ''; position: absolute; top: -30px; right: -30px;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,92,0,.25), transparent 70%);
+}
+.score-big { font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 800; color: #fff; letter-spacing: -2px; line-height: 1; }
+.score-label { font-size: 12px; color: rgba(255,255,255,.45); margin-top: 6px; }
+.score-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.score-item { background: rgba(255,255,255,.07); border-radius: 9px; padding: 10px; border: 1px solid rgba(255,255,255,.08); text-align: center; }
+.score-item-num { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: #fff; }
+.score-item-label { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 2px; }
+
+/* question preview mini */
+.q-preview-mini { display: flex; flex-direction: column; gap: 8px; }
+.q-mini-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: var(--surface); border-radius: 9px; border: 1px solid var(--border);
+  font-size: 13px; cursor: pointer; transition: all .15s;
+}
+.q-mini-item:hover { border-color: var(--accent2); background: #fff; }
+.q-mini-num { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; color: var(--muted); flex-shrink: 0; width: 22px; }
+.q-mini-text { flex: 1; color: var(--ink); font-size: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.q-mini-remove { color: var(--muted); cursor: pointer; font-size: 13px; transition: color .15s; flex-shrink: 0; }
+.q-mini-remove:hover { color: var(--red); }
+
+/* checklist */
+.checklist { display: flex; flex-direction: column; gap: 8px; }
+.check-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.check-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0;
+}
+.check-dot.done { background: rgba(0,194,113,.15); color: var(--green); }
+.check-dot.pending { background: var(--surface); border: 1.5px solid var(--border); color: var(--muted); }
+.check-item.done-item span { color: var(--ink); }
+.check-item.pending-item span { color: var(--muted); }
+
+/* ─── BADGES ───────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 100px; font-size: 12px; font-weight: 500;
+}
+.bdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge-easy    { background: rgba(0,194,113,.12);   color: #008a50; }
+.badge-medium  { background: rgba(245,166,35,.14);  color: #a06800; }
+.badge-hard    { background: rgba(224,59,59,.1);    color: #c0392b; }
+.badge-mcq     { background: rgba(0,87,255,.1);     color: #0040bb; }
+.badge-js      { background: rgba(255,92,0,.1);     color: var(--accent); }
+.badge-html    { background: rgba(224,59,59,.1);    color: #c0392b; }
+.badge-css     { background: rgba(139,92,246,.1);   color: #6d28d9; }
+.badge-active  { background: rgba(0,194,113,.12);   color: #008a50; }
+.badge-draft   { background: rgba(138,138,138,.1);  color: #666; }
+
+/* section divider */
+.sec-divider {
+  display: flex; align-items: center; gap: 12px; margin: 20px 0 18px;
+}
+.sec-divider-line { flex: 1; height: 1px; background: var(--border); }
+.sec-divider-text { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+
+/* ─── TOAST ────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  background: var(--ink); color: #fff;
+  padding: 13px 20px; border-radius: 12px; font-size: 14px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s cubic-bezier(.4,0,.2,1); z-index: 400;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ─── ANIMATIONS ───────────────────────────────────────── */
+@keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.step-bar    { animation: fadeUp .35s ease both .02s; }
+.form-layout { animation: fadeUp .4s ease both .08s; }
+
+/* ─── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width: 1180px) { .form-layout { grid-template-columns: 1fr; } .type-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 960px)  { :root { --sidebar-w: 0px; } .sidebar { transform: translateX(-240px); } .main { margin-left: 0; } }
+@media (max-width: 680px)  { .content { padding: 16px; } .form-row { grid-template-columns: 1fr; } .marks-row { grid-template-columns: 1fr 1fr; } .diff-grid { grid-template-columns: 1fr; } }
+
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">Test<span>Buddy</span><div class="logo-dot"></div></div>
+  <div class="sidebar-section">Main Menu</div>
+  <a class="nav-item" href="#"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">📚</span><span class="nav-label">Questionnaire</span></a>
+  <div>
+    <div class="nav-sub-item"><div class="nav-sub-dot"></div>Topics</div>
+    <div class="nav-sub-item"><div class="nav-sub-dot"></div>Questions</div>
+    <div class="nav-sub-item"><div class="nav-sub-dot"></div>AI Generator</div>
+  </div>
+  <a class="nav-item active" href="#"><span class="nav-icon">📝</span><span class="nav-label">Assessments</span><span class="nav-badge">8</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">🔗</span><span class="nav-label">Exam Links</span><span class="nav-badge green">3</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">👥</span><span class="nav-label">Attempts</span></a>
+  <div class="sidebar-section">System</div>
+  <a class="nav-item" href="#"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">🚪</span><span class="nav-label">Logout</span></a>
+  <div class="sidebar-footer">
+    <div class="admin-card">
+      <div class="admin-avatar">A</div>
+      <div><div class="admin-name">Admin</div><div class="admin-role">Super Administrator</div></div>
+      <div class="admin-more">⋯</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="breadcrumb">
+      <span>Dashboard</span><span class="sep">›</span>
+      <span>Assessments</span><span class="sep">›</span>
+      <span class="active">Create Assessment</span>
+    </div>
+    <div class="topbar-right">
+      <div class="icon-btn">🔔<div class="notif-dot"></div></div>
+      <div class="icon-btn">❓</div>
+      <div class="topbar-avatar">A</div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <div class="page-title">Create Assessment</div>
+        <div class="page-sub">Build a new exam by configuring topics, marks, distribution and settings.</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" onclick="showToast('info','Draft saved.')">💾 Save as Draft</button>
+        <button class="btn btn-primary btn-sm" onclick="handleCreate()">✅ Create Assessment</button>
+      </div>
+    </div>
+
+    <!-- ─── STEP BAR ──────────────────────────────────── -->
+    <div class="step-bar">
+      <div class="step-item done" onclick="goStep(1)">
+        <div class="step-circle">✓</div>
+        <div class="step-info">
+          <div class="step-label">Step 1</div>
+          <div class="step-name">Basic Info</div>
+        </div>
+      </div>
+      <div class="step-line done"></div>
+
+      <div class="step-item active" onclick="goStep(2)">
+        <div class="step-circle">2</div>
+        <div class="step-info">
+          <div class="step-label">Step 2</div>
+          <div class="step-name">Questions & Distribution</div>
+        </div>
+      </div>
+      <div class="step-line"></div>
+
+      <div class="step-item" onclick="goStep(3)">
+        <div class="step-circle">3</div>
+        <div class="step-info">
+          <div class="step-label">Step 3</div>
+          <div class="step-name">Settings & Proctoring</div>
+        </div>
+      </div>
+      <div class="step-line"></div>
+
+      <div class="step-item" onclick="goStep(4)">
+        <div class="step-circle">4</div>
+        <div class="step-info">
+          <div class="step-label">Step 4</div>
+          <div class="step-name">Review & Publish</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── FORM LAYOUT ───────────────────────────────── -->
+    <div class="form-layout">
+
+      <!-- ══ LEFT COLUMN ══ -->
+      <div>
+
+        <!-- SECTION 1 — Basic Info -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-orange">📋</div>
+              Basic Information
+            </div>
+            <span class="badge badge-active" style="font-size:11px;">Step 1 — Done</span>
+          </div>
+          <div class="section-body">
+            <div class="form-row full" style="margin-bottom:18px;">
+              <div class="form-group">
+                <label class="form-label">Assessment Title <span class="req">*</span></label>
+                <input id="f_title" type="text" value="Web Development Fundamentals Test" oninput="syncSummary()"/>
+                <div class="form-hint">Give a clear, descriptive name students will see.</div>
+              </div>
+            </div>
+            <div class="form-row full" style="margin-bottom:18px;">
+              <div class="form-group">
+                <label class="form-label">Description <span style="color:var(--muted);font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+                <textarea id="f_desc" placeholder="Briefly describe the purpose or scope of this assessment…">This assessment tests students on core web development skills including HTML structure, CSS styling, and JavaScript fundamentals.</textarea>
+              </div>
+            </div>
+            <div class="form-row three">
+              <div class="form-group">
+                <label class="form-label">Category / Subject <span class="req">*</span></label>
+                <select id="f_cat" onchange="syncSummary()">
+                  <option>Web Development</option>
+                  <option>Computer Science</option>
+                  <option>Database Management</option>
+                  <option>Programming</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Difficulty Level</label>
+                <select id="f_level" onchange="syncSummary()">
+                  <option>Medium</option>
+                  <option>Easy</option>
+                  <option>Hard</option>
+                  <option>Mixed</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select id="f_status">
+                  <option>Draft</option>
+                  <option>Published</option>
+                  <option>Scheduled</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2 — Marks Configuration -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-blue">⭐</div>
+              Marks Configuration
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="marks-row" style="margin-bottom:20px;">
+              <div class="marks-card accent-card">
+                <div class="marks-card-label">Total Questions</div>
+                <input id="f_total" type="number" value="20" min="1" oninput="syncAll()"/>
+                <div class="marks-card-sub">questions in exam</div>
+              </div>
+              <div class="marks-card blue-card">
+                <div class="marks-card-label">Duration</div>
+                <input id="f_duration" type="number" value="30" min="1" oninput="syncSummary()"/>
+                <div class="marks-card-sub">minutes total</div>
+              </div>
+              <div class="marks-card green-card">
+                <div class="marks-card-label">Marks / Question</div>
+                <input id="f_marks" type="number" value="1" min="0" step="0.25" oninput="syncAll()"/>
+                <div class="marks-card-sub">marks per correct</div>
+              </div>
+              <div class="marks-card red-card">
+                <div class="marks-card-label">Negative Marks</div>
+                <input id="f_neg" type="number" value="0.25" min="0" step="0.25" oninput="syncAll()"/>
+                <div class="marks-card-sub">per wrong answer</div>
+              </div>
+            </div>
+
+            <!-- Pass mark -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Passing Score (%)</label>
+                <div class="input-with-unit">
+                  <input id="f_pass" type="number" value="60" min="0" max="100"/>
+                  <span class="input-unit">%</span>
+                </div>
+                <div class="form-hint">Students must score at or above this to pass.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max Attempts Allowed</label>
+                <select id="f_attempts">
+                  <option>1 attempt</option>
+                  <option>2 attempts</option>
+                  <option>3 attempts</option>
+                  <option>Unlimited</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3 — Topic Distribution -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-green">🗂</div>
+              Topic Distribution
+            </div>
+            <span class="total-pill ok" id="totalPill">✓ 100%</span>
+          </div>
+          <div class="section-body" style="padding-bottom:16px;">
+            <div style="overflow-x:auto;">
+              <table class="dist-table">
+                <thead>
+                  <tr>
+                    <th>Topic</th>
+                    <th>Distribution</th>
+                    <th style="width:100px;">Value</th>
+                    <th style="width:130px;">Questions</th>
+                    <th style="width:36px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="topicBody">
+                  <!-- rows injected by JS -->
+                </tbody>
+                <tfoot>
+                  <tr class="dist-total-row">
+                    <td colspan="2"><strong>Total</strong></td>
+                    <td><span class="total-pill ok" id="totalBadge">✓ 100%</span></td>
+                    <td><strong id="totalQ">20 questions</strong></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <button class="add-topic-btn" onclick="addTopic()">+ Add Topic</button>
+          </div>
+        </div>
+
+        <!-- SECTION 4 — Difficulty Distribution -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-yellow">📊</div>
+              Difficulty Distribution
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="diff-grid">
+              <div class="diff-card easy-card">
+                <div class="diff-card-label">Easy</div>
+                <div class="diff-input-wrap">
+                  <input id="d_easy" type="number" value="40" min="0" max="100" oninput="syncDiff()"/>
+                  <span class="diff-percent">%</span>
+                </div>
+                <div class="diff-sub" id="ds_easy">8 questions</div>
+                <div class="diff-bar"><div class="diff-fill" id="df_easy" style="width:40%;"></div></div>
+              </div>
+              <div class="diff-card medium-card">
+                <div class="diff-card-label">Medium</div>
+                <div class="diff-input-wrap">
+                  <input id="d_medium" type="number" value="40" min="0" max="100" oninput="syncDiff()"/>
+                  <span class="diff-percent">%</span>
+                </div>
+                <div class="diff-sub" id="ds_medium">8 questions</div>
+                <div class="diff-bar"><div class="diff-fill" id="df_medium" style="width:40%;"></div></div>
+              </div>
+              <div class="diff-card hard-card">
+                <div class="diff-card-label">Hard</div>
+                <div class="diff-input-wrap">
+                  <input id="d_hard" type="number" value="20" min="0" max="100" oninput="syncDiff()"/>
+                  <span class="diff-percent">%</span>
+                </div>
+                <div class="diff-sub" id="ds_hard">4 questions</div>
+                <div class="diff-bar"><div class="diff-fill" id="df_hard" style="width:20%;"></div></div>
+              </div>
+            </div>
+            <div class="diff-total-note">
+              <span id="diffTotalNote" style="color:var(--green);font-weight:600;">✓ Total: 100%</span>
+              <span>— must sum to 100%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 5 — Question Type Distribution -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-purple">🎯</div>
+              Question Type Distribution
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="type-grid">
+              <div class="type-card selected" onclick="toggleType(this)">
+                <div class="type-check">✓</div>
+                <div class="type-card-icon">🔘</div>
+                <div class="type-card-name">MCQ</div>
+                <div class="type-card-count" id="tc_mcq">16</div>
+                <div class="type-card-sub">questions</div>
+              </div>
+              <div class="type-card" onclick="toggleType(this)">
+                <div class="type-check">✓</div>
+                <div class="type-card-icon">☑️</div>
+                <div class="type-card-name">Multi-Select</div>
+                <div class="type-card-count" id="tc_multi" style="color:var(--purple);">0</div>
+                <div class="type-card-sub">questions</div>
+              </div>
+              <div class="type-card selected" onclick="toggleType(this)">
+                <div class="type-check">✓</div>
+                <div class="type-card-icon">✍️</div>
+                <div class="type-card-name">Text Answer</div>
+                <div class="type-card-count" id="tc_text" style="color:var(--yellow);">4</div>
+                <div class="type-card-sub">questions</div>
+              </div>
+              <div class="type-card" onclick="toggleType(this)">
+                <div class="type-check">✓</div>
+                <div class="type-card-icon">🖼️</div>
+                <div class="type-card-name">Image-Based</div>
+                <div class="type-card-count" id="tc_img" style="color:var(--green);">0</div>
+                <div class="type-card-sub">questions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 6 — Settings -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-orange">⚙️</div>
+              Exam Settings
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="sec-divider">
+              <div class="sec-divider-line"></div>
+              <div class="sec-divider-text">General</div>
+              <div class="sec-divider-line"></div>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Shuffle Questions</div>
+                <div class="toggle-sub">Randomise the question order for each student to minimise cheating.</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Shuffle Answer Options</div>
+                <div class="toggle-sub">Randomise MCQ option order for each student.</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Show Result Immediately</div>
+                <div class="toggle-sub">Students see their score as soon as they submit the exam.</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Allow Back Navigation</div>
+                <div class="toggle-sub">Students can revisit previous questions during the exam.</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+
+            <div class="sec-divider">
+              <div class="sec-divider-line"></div>
+              <div class="sec-divider-text">Access Control</div>
+              <div class="sec-divider-line"></div>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Credential-Based Access</div>
+                <div class="toggle-sub">Only students with registered emails and access codes can attempt.</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Require Email Verification</div>
+                <div class="toggle-sub">Students must verify their email before starting the exam.</div>
+              </div>
+              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+
+            <div class="sec-divider">
+              <div class="sec-divider-line"></div>
+              <div class="sec-divider-text">Proctoring</div>
+              <div class="sec-divider-line"></div>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Web Proctoring</div>
+                <div class="toggle-sub">Detect tab switches, DevTools access, and copy-paste actions.</div>
+              </div>
+              <div class="toggle blue on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Image Proctoring</div>
+                <div class="toggle-sub">Capture webcam snapshots every 10 seconds throughout the exam.</div>
+              </div>
+              <div class="toggle blue on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Video Proctoring</div>
+                <div class="toggle-sub">Continuously record webcam video stream during the exam.</div>
+              </div>
+              <div class="toggle blue" onclick="this.classList.toggle('on')"></div>
+            </div>
+
+            <div class="sec-divider">
+              <div class="sec-divider-line"></div>
+              <div class="sec-divider-text">Instructions</div>
+              <div class="sec-divider-line"></div>
+            </div>
+
+            <div class="form-row full" style="margin-bottom:16px;">
+              <div class="form-group">
+                <label class="form-label">Startup Instructions</label>
+                <textarea>Please ensure you are in a quiet room with good lighting. Keep your camera on throughout the exam. Do not switch browser tabs — it will be flagged.</textarea>
+              </div>
+            </div>
+            <div class="form-row full">
+              <div class="form-group">
+                <label class="form-label">Completion Message</label>
+                <textarea>Thank you for completing the assessment. Your results will be reviewed and shared within 24 hours.</textarea>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /left -->
+
+      <!-- ══ RIGHT PANEL ══ -->
+      <div class="right-panel">
+
+        <!-- Live Score Preview -->
+        <div class="info-panel">
+          <div class="info-panel-header">
+            <div class="info-panel-title">🧮 Score Preview</div>
+          </div>
+          <div class="info-panel-body">
+            <div class="score-preview">
+              <div class="score-big" id="r_total">20</div>
+              <div class="score-label">Total Marks</div>
+            </div>
+            <div class="score-breakdown">
+              <div class="score-item">
+                <div class="score-item-num" id="r_pass">12</div>
+                <div class="score-item-label">Pass Score</div>
+              </div>
+              <div class="score-item">
+                <div class="score-item-num" id="r_dur">30m</div>
+                <div class="score-item-label">Duration</div>
+              </div>
+              <div class="score-item">
+                <div class="score-item-num" id="r_mpp">1</div>
+                <div class="score-item-label">Marks / Q</div>
+              </div>
+              <div class="score-item">
+                <div class="score-item-num" id="r_neg">−0.25</div>
+                <div class="score-item-label">Negative</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="info-panel">
+          <div class="info-panel-header">
+            <div class="info-panel-title">📋 Summary</div>
+          </div>
+          <div class="info-panel-body">
+            <div class="summary-row"><span class="summary-key">Title</span><span class="summary-val" id="s_title" style="max-width:160px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Web Dev Fundamentals Test</span></div>
+            <div class="summary-row"><span class="summary-key">Category</span><span class="summary-val" id="s_cat">Web Development</span></div>
+            <div class="summary-row"><span class="summary-key">Difficulty</span><span class="summary-val" id="s_level">Medium</span></div>
+            <div class="summary-row"><span class="summary-key">Questions</span><span class="summary-val" id="s_q">20</span></div>
+            <div class="summary-row"><span class="summary-key">Duration</span><span class="summary-val" id="s_dur">30 min</span></div>
+            <div class="summary-row"><span class="summary-key">Topics</span><span class="summary-val" id="s_topics">3 topics</span></div>
+            <div class="summary-row"><span class="summary-key">Total Marks</span><span class="summary-val" id="s_marks">20</span></div>
+            <div class="summary-row"><span class="summary-key">Pass Score</span><span class="summary-val" id="s_pass">12 (60%)</span></div>
+          </div>
+        </div>
+
+        <!-- Completion checklist -->
+        <div class="info-panel">
+          <div class="info-panel-header">
+            <div class="info-panel-title">✅ Completion</div>
+          </div>
+          <div class="info-panel-body">
+            <div class="checklist">
+              <div class="check-item done-item"><div class="check-dot done">✓</div><span>Assessment title added</span></div>
+              <div class="check-item done-item"><div class="check-dot done">✓</div><span>Marks configured</span></div>
+              <div class="check-item done-item"><div class="check-dot done">✓</div><span>Topic distribution set</span></div>
+              <div class="check-item done-item"><div class="check-dot done">✓</div><span>Difficulty distribution set</span></div>
+              <div class="check-item pending-item"><div class="check-dot pending">○</div><span>Publish & create exam link</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Difficulty breakdown visual -->
+        <div class="info-panel">
+          <div class="info-panel-header">
+            <div class="info-panel-title">📈 Difficulty Mix</div>
+          </div>
+          <div class="info-panel-body">
+            <div style="margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--green);font-weight:500;">Easy</span><span id="sp_easy" style="font-family:'Syne',sans-serif;font-weight:700;">8</span></div>
+              <div style="height:6px;background:var(--border);border-radius:100px;overflow:hidden;"><div id="sb_easy" style="height:100%;width:40%;background:var(--green);border-radius:100px;transition:width .4s;"></div></div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--yellow);font-weight:500;">Medium</span><span id="sp_medium" style="font-family:'Syne',sans-serif;font-weight:700;">8</span></div>
+              <div style="height:6px;background:var(--border);border-radius:100px;overflow:hidden;"><div id="sb_medium" style="height:100%;width:40%;background:var(--yellow);border-radius:100px;transition:width .4s;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--red);font-weight:500;">Hard</span><span id="sp_hard" style="font-family:'Syne',sans-serif;font-weight:700;">4</span></div>
+              <div style="height:6px;background:var(--border);border-radius:100px;overflow:hidden;"><div id="sb_hard" style="height:100%;width:20%;background:var(--red);border-radius:100px;transition:width .4s;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="info-panel">
+          <div class="info-panel-body">
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;" onclick="handleCreate()">✅ Create Assessment</button>
+            <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:10px;" onclick="showToast('info','Draft saved successfully.')">💾 Save as Draft</button>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="showToast('info','Preview will open in a new tab.')">👁 Preview Exam</button>
+          </div>
+        </div>
+
+      </div><!-- /right-panel -->
+    </div><!-- /form-layout -->
+
+  </main>
+</div>
+
+<!-- ─── TOAST ──────────────────────────────────────────── -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg">Done!</span>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   TOPIC DATA
+══════════════════════════════════════════════════════ */
+const TOPIC_COLORS = {
+  JavaScript: { badge: 'background:rgba(255,92,0,.1);color:var(--accent)',   bar: '#ff5c00' },
+  HTML:       { badge: 'background:rgba(224,59,59,.1);color:#c0392b',        bar: '#e03b3b' },
+  CSS:        { badge: 'background:rgba(139,92,246,.1);color:#6d28d9',       bar: '#8b5cf6' },
+  DBMS:       { badge: 'background:rgba(245,166,35,.12);color:#a06800',      bar: '#f5a623' },
+  React:      { badge: 'background:rgba(6,182,212,.12);color:#0891b2',       bar: '#06b6d4' },
+  'C#':       { badge: 'background:rgba(0,87,255,.1);color:#0040bb',         bar: '#0057ff' },
+  Python:     { badge: 'background:rgba(0,194,113,.12);color:#008a50',       bar: '#00c271' },
+};
+const ALL_TOPICS = Object.keys(TOPIC_COLORS);
+
+let topics = [
+  { name: 'HTML',       pct: 50 },
+  { name: 'CSS',        pct: 30 },
+  { name: 'JavaScript', pct: 20 },
+];
+
+/* ══════════════════════════════════════════════════════
+   RENDER TOPIC TABLE
+══════════════════════════════════════════════════════ */
+function renderTopics() {
+  const total = parseInt(document.getElementById('f_total').value) || 20;
+  const body  = document.getElementById('topicBody');
+
+  body.innerHTML = topics.map((t, i) => {
+    const col   = TOPIC_COLORS[t.name] || TOPIC_COLORS['JavaScript'];
+    const qCount = Math.round((t.pct / 100) * total);
+    const fillW  = Math.min(t.pct, 100);
+    return `
+    <tr>
+      <td>
+        <select class="topic-pill" style="${col.badge};border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border-radius:100px;padding:5px 12px;"
+          onchange="changeTopic(${i}, this.value)">
+          ${ALL_TOPICS.map(tp => `<option${tp === t.name ? ' selected' : ''}>${tp}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <div class="dist-input-wrap" style="flex-direction:column;align-items:flex-start;gap:4px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input class="dist-num-input" type="number" value="${t.pct}" min="0" max="100"
+              oninput="changePct(${i}, this.value)" style="width:70px;"/>
+            <span class="dist-unit">%</span>
+          </div>
+          <div class="dist-bar" style="width:120px;">
+            <div class="dist-fill" style="width:${fillW}%;background:${col.bar};"></div>
+          </div>
+        </div>
+      </td>
+      <td style="font-size:13px;color:var(--muted);">${t.pct}%</td>
+      <td class="dist-calc"><strong>${qCount}</strong> questions</td>
+      <td>
+        <div class="remove-btn" onclick="removeTopic(${i})" title="Remove topic">✕</div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  updateTotals();
+}
+
+function changeTopic(i, val) { topics[i].name = val; renderTopics(); }
+function changePct(i, val)   { topics[i].pct = parseInt(val) || 0; renderTopics(); }
+function removeTopic(i)      { topics.splice(i, 1); renderTopics(); syncSummary(); }
+
+function addTopic() {
+  const used = topics.map(t => t.name);
+  const next = ALL_TOPICS.find(t => !used.includes(t));
+  if (!next) { showToast('info', 'All available topics already added.'); return; }
+  topics.push({ name: next, pct: 0 });
+  renderTopics();
+}
+
+function updateTotals() {
+  const total = parseInt(document.getElementById('f_total').value) || 20;
+  const sum   = topics.reduce((a, t) => a + (t.pct || 0), 0);
+  const ok    = sum === 100;
+  const pillTxt = ok ? `✓ ${sum}%` : `⚠ ${sum}%`;
+  const pillCls = ok ? 'total-pill ok' : 'total-pill err';
+
+  document.getElementById('totalPill').className  = pillCls;
+  document.getElementById('totalPill').textContent = pillTxt;
+  document.getElementById('totalBadge').className  = pillCls;
+  document.getElementById('totalBadge').textContent = pillTxt;
+  document.getElementById('totalQ').textContent    = total + ' questions';
+  syncSummary();
+}
+
+/* ══════════════════════════════════════════════════════
+   DIFFICULTY SYNC
+══════════════════════════════════════════════════════ */
+function syncDiff() {
+  const total = parseInt(document.getElementById('f_total').value) || 20;
+  const e = parseInt(document.getElementById('d_easy').value)   || 0;
+  const m = parseInt(document.getElementById('d_medium').value) || 0;
+  const h = parseInt(document.getElementById('d_hard').value)   || 0;
+  const sum = e + m + h;
+  const ok  = sum === 100;
+
+  document.getElementById('ds_easy').textContent   = Math.round(e / 100 * total) + ' questions';
+  document.getElementById('ds_medium').textContent = Math.round(m / 100 * total) + ' questions';
+  document.getElementById('ds_hard').textContent   = Math.round(h / 100 * total) + ' questions';
+
+  document.getElementById('df_easy').style.width   = e + '%';
+  document.getElementById('df_medium').style.width = m + '%';
+  document.getElementById('df_hard').style.width   = h + '%';
+
+  const note = document.getElementById('diffTotalNote');
+  note.innerHTML = ok
+    ? `<span style="color:var(--green);font-weight:600;">✓ Total: ${sum}%</span><span>— must sum to 100%</span>`
+    : `<span style="color:var(--red);font-weight:600;">⚠ Total: ${sum}%</span><span>— must sum to 100%</span>`;
+
+  // right panel bars
+  document.getElementById('sp_easy').textContent   = Math.round(e / 100 * total);
+  document.getElementById('sp_medium').textContent = Math.round(m / 100 * total);
+  document.getElementById('sp_hard').textContent   = Math.round(h / 100 * total);
+  document.getElementById('sb_easy').style.width   = e + '%';
+  document.getElementById('sb_medium').style.width = m + '%';
+  document.getElementById('sb_hard').style.width   = h + '%';
+}
+
+/* ══════════════════════════════════════════════════════
+   SCORE PREVIEW & SUMMARY SYNC
+══════════════════════════════════════════════════════ */
+function syncAll() {
+  renderTopics();
+  syncDiff();
+  syncSummary();
+}
+
+function syncSummary() {
+  const total  = parseInt(document.getElementById('f_total').value)    || 0;
+  const dur    = parseInt(document.getElementById('f_duration').value) || 0;
+  const marks  = parseFloat(document.getElementById('f_marks').value)  || 0;
+  const neg    = parseFloat(document.getElementById('f_neg').value)    || 0;
+  const pass   = parseInt(document.getElementById('f_pass').value)     || 60;
+  const title  = document.getElementById('f_title').value || '—';
+  const cat    = document.getElementById('f_cat').value;
+  const level  = document.getElementById('f_level').value;
+
+  const totalMarks = total * marks;
+  const passScore  = Math.round((pass / 100) * totalMarks);
+
+  // score preview
+  document.getElementById('r_total').textContent = totalMarks;
+  document.getElementById('r_pass').textContent  = passScore;
+  document.getElementById('r_dur').textContent   = dur + 'm';
+  document.getElementById('r_mpp').textContent   = marks;
+  document.getElementById('r_neg').textContent   = '−' + neg;
+
+  // summary panel
+  document.getElementById('s_title').textContent  = title.length > 22 ? title.slice(0,20)+'…' : title;
+  document.getElementById('s_cat').textContent    = cat;
+  document.getElementById('s_level').textContent  = level;
+  document.getElementById('s_q').textContent      = total + ' questions';
+  document.getElementById('s_dur').textContent    = dur + ' min';
+  document.getElementById('s_topics').textContent = topics.length + ' topics';
+  document.getElementById('s_marks').textContent  = totalMarks + ' marks';
+  document.getElementById('s_pass').textContent   = passScore + ' (' + pass + '%)';
+}
+
+/* ══════════════════════════════════════════════════════
+   TYPE CARDS
+══════════════════════════════════════════════════════ */
+function toggleType(card) {
+  card.classList.toggle('selected');
+}
+
+/* ══════════════════════════════════════════════════════
+   STEP BAR
+══════════════════════════════════════════════════════ */
+function goStep(n) {
+  showToast('info', 'Step ' + n + ' — navigating…');
+}
+
+/* ══════════════════════════════════════════════════════
+   CREATE
+══════════════════════════════════════════════════════ */
+function handleCreate() {
+  const title = document.getElementById('f_title').value.trim();
+  if (!title) { showToast('error', 'Please enter an assessment title.'); return; }
+  const sum = topics.reduce((a, t) => a + (t.pct || 0), 0);
+  if (sum !== 100) { showToast('error', 'Topic distribution must sum to 100%.'); return; }
+  const dSum = (parseInt(document.getElementById('d_easy').value)||0)
+             + (parseInt(document.getElementById('d_medium').value)||0)
+             + (parseInt(document.getElementById('d_hard').value)||0);
+  if (dSum !== 100) { showToast('error', 'Difficulty distribution must sum to 100%.'); return; }
+  showToast('success', 'Assessment created successfully! Redirecting…');
+}
+
+/* ══════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════ */
+function showToast(type, msg) {
+  const toast  = document.getElementById('toast');
+  const icons  = { success:'✅', error:'❌', info:'ℹ️' };
+  const colors = { success:'#0d1117', error:'#c0392b', info:'#1a2540' };
+  document.getElementById('toastIcon').textContent = icons[type] || '✅';
+  document.getElementById('toastMsg').textContent  = msg;
+  toast.style.background = colors[type] || '#0d1117';
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), 3200);
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+renderTopics();
+syncDiff();
+syncSummary();
+</script>
+</body>
+</html>

@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TestBuddy – AI Question Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+
+/* ─── RESET & BASE ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:       #0d1117;
+  --surface:   #f5f4f0;
+  --card:      #ffffff;
+  --accent:    #ff5c00;
+  --accent2:   #0057ff;
+  --muted:     #8a8a8a;
+  --border:    #e8e5de;
+  --green:     #00c271;
+  --yellow:    #f5a623;
+  --red:       #e03b3b;
+  --purple:    #8b5cf6;
+  --sidebar-w: 240px;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d5d2cb; border-radius: 100px; }
+
+/* ─── SIDEBAR ──────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--ink);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 100; overflow-y: auto;
+}
+.sidebar::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+  background-size: 32px 32px; pointer-events: none;
+}
+.sidebar-logo {
+  padding: 28px 24px 24px;
+  font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+  color: #fff; letter-spacing: -1px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; gap: 10px; position: relative;
+}
+.sidebar-logo span { color: var(--accent); }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.sidebar-section {
+  font-size: 10px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: rgba(255,255,255,.25); padding: 22px 24px 8px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 24px;
+  font-size: 14px; color: rgba(255,255,255,.5); cursor: pointer;
+  border-left: 3px solid transparent; transition: all .18s; text-decoration: none;
+}
+.nav-item:hover { background: rgba(255,255,255,.05); color: rgba(255,255,255,.85); }
+.nav-item.active { background: rgba(255,92,0,.1); color: #fff; border-left-color: var(--accent); }
+.nav-icon { width: 20px; text-align: center; font-size: 16px; flex-shrink: 0; }
+.nav-label { flex: 1; }
+.nav-badge {
+  background: var(--accent); color: #fff;
+  border-radius: 100px; font-size: 11px; font-weight: 600; padding: 2px 8px;
+}
+.nav-badge.green { background: var(--green); }
+.nav-sub-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 24px 8px 50px; font-size: 13px;
+  color: rgba(255,255,255,.4); cursor: pointer;
+  border-left: 3px solid transparent; transition: all .15s;
+}
+.nav-sub-item:hover { color: rgba(255,255,255,.75); background: rgba(255,255,255,.03); }
+.nav-sub-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(255,92,0,.06); }
+.nav-sub-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.sidebar-footer {
+  margin-top: auto; padding: 20px 24px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.admin-card {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 10px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08); cursor: pointer; transition: background .18s;
+}
+.admin-card:hover { background: rgba(255,255,255,.09); }
+.admin-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff8c00);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.admin-name { font-size: 13px; font-weight: 500; color: #fff; }
+.admin-role { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 1px; }
+.admin-more { margin-left: auto; color: rgba(255,255,255,.3); font-size: 16px; }
+
+/* ─── MAIN ─────────────────────────────────────────────── */
+.main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ─── TOPBAR ───────────────────────────────────────────── */
+.topbar {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.breadcrumb .active { color: var(--ink); font-weight: 600; font-family: 'Syne', sans-serif; }
+.breadcrumb .sep { color: var(--border); font-size: 16px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 9px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer; transition: all .15s; position: relative;
+}
+.icon-btn:hover { background: var(--surface); border-color: #ccc; }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); position: absolute; top: 4px; right: 4px; border: 2px solid var(--card); }
+.topbar-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff8c00);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* ─── BUTTONS ──────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 20px; border-radius: 9px; font-size: 14px;
+  font-family: 'DM Sans', sans-serif; font-weight: 500;
+  cursor: pointer; border: none; transition: all .18s;
+}
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 3px 12px rgba(255,92,0,.25); }
+.btn-primary:hover { background: #e04e00; box-shadow: 0 4px 16px rgba(255,92,0,.35); }
+.btn-secondary { background: var(--card); color: var(--ink); border: 1.5px solid var(--border); }
+.btn-secondary:hover { border-color: #bbb; background: var(--surface); }
+.btn-ghost { background: transparent; color: var(--accent2); border: 1.5px solid rgba(0,87,255,.2); }
+.btn-ghost:hover { background: rgba(0,87,255,.05); }
+.btn-sm { padding: 7px 16px; font-size: 13px; }
+.btn-xs { padding: 5px 12px; font-size: 12px; border-radius: 7px; }
+
+/* ─── CONTENT ──────────────────────────────────────────── */
+.content { padding: 32px; flex: 1; }
+
+.page-header {
+  display: flex; align-items: flex-end;
+  justify-content: space-between; margin-bottom: 28px;
+}
+.page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
+.page-sub { font-size: 14px; color: var(--muted); }
+.header-actions { display: flex; gap: 10px; }
+
+/* ─── AI HERO BANNER ───────────────────────────────────── */
+.ai-banner {
+  background: linear-gradient(135deg, #0d1117 0%, #1a2540 60%, #0a1a35 100%);
+  border-radius: 20px; padding: 36px 40px;
+  position: relative; overflow: hidden; margin-bottom: 28px;
+}
+.ai-banner::before {
+  content: ''; position: absolute; top: -60px; right: -60px;
+  width: 280px; height: 280px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,92,0,.22), transparent 68%);
+  pointer-events: none;
+}
+.ai-banner::after {
+  content: ''; position: absolute; bottom: -50px; left: 38%;
+  width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,87,255,.16), transparent 68%);
+  pointer-events: none;
+}
+.ai-banner-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 30px; position: relative; z-index: 1;
+}
+.ai-banner-left { flex: 1; }
+.ai-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,92,0,.15); border: 1px solid rgba(255,92,0,.3);
+  border-radius: 100px; padding: 5px 14px;
+  font-size: 12px; color: #ff8c42; letter-spacing: .5px; margin-bottom: 16px;
+}
+.ai-pulse {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(1.5)} }
+.ai-banner-title {
+  font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+  color: #fff; letter-spacing: -1px; margin-bottom: 10px;
+}
+.ai-banner-sub { font-size: 15px; color: rgba(255,255,255,.5); line-height: 1.6; max-width: 500px; }
+.ai-banner-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 16px; flex-shrink: 0; }
+.ai-bstat {
+  text-align: right;
+}
+.ai-bstat-num { font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1; }
+.ai-bstat-label { font-size: 12px; color: rgba(255,255,255,.4); margin-top: 3px; }
+
+/* ─── AI FORM ──────────────────────────────────────────── */
+.ai-form { position: relative; z-index: 1; }
+.ai-form-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 0.8fr auto;
+  gap: 14px; align-items: end;
+}
+.ai-field { display: flex; flex-direction: column; gap: 7px; }
+.ai-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 1.2px;
+  text-transform: uppercase; color: rgba(255,255,255,.38);
+}
+.ai-input {
+  padding: 11px 14px; border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.07);
+  color: #fff; font-size: 14px; font-family: 'DM Sans', sans-serif;
+  outline: none; transition: border-color .2s, background .2s;
+  width: 100%;
+}
+.ai-input:focus { border-color: rgba(255,92,0,.55); background: rgba(255,255,255,.11); }
+.ai-input option { color: var(--ink); background: #fff; }
+.btn-generate {
+  background: var(--accent); color: #fff; border: none;
+  padding: 11px 26px; border-radius: 10px;
+  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+  cursor: pointer; white-space: nowrap; letter-spacing: .3px;
+  box-shadow: 0 4px 20px rgba(255,92,0,.38);
+  transition: all .2s; display: flex; align-items: center; gap: 8px;
+}
+.btn-generate:hover { background: #e04e00; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(255,92,0,.5); }
+.btn-generate:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.ai-adv-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: rgba(255,255,255,.38); cursor: pointer;
+  margin-top: 14px; transition: color .15s; user-select: none;
+  position: relative; z-index: 1;
+}
+.ai-adv-toggle:hover { color: rgba(255,255,255,.65); }
+.adv-panel {
+  display: none; margin-top: 16px; padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,.07);
+  position: relative; z-index: 1;
+}
+.adv-panel.open { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; }
+
+/* ─── LAYOUT MAIN ──────────────────────────────────────── */
+.layout-main { display: grid; grid-template-columns: 1fr 300px; gap: 22px; align-items: start; }
+
+/* ─── RESULTS CARD ─────────────────────────────────────── */
+.results-card {
+  background: var(--card); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+}
+.card-header {
+  padding: 16px 22px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fafaf7;
+}
+.card-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; gap: 8px;
+}
+.result-count {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 100px; font-size: 12px; padding: 2px 10px;
+  color: var(--muted); font-weight: 500;
+}
+.card-header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ─── EMPTY STATE ──────────────────────────────────────── */
+.empty-state-wrap { padding: 70px 30px; text-align: center; }
+.empty-icon { font-size: 52px; margin-bottom: 18px; }
+.empty-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.empty-sub { font-size: 14px; color: var(--muted); line-height: 1.65; max-width: 340px; margin: 0 auto 24px; }
+
+/* ─── LOADING SKELETON ─────────────────────────────────── */
+.loading-header { padding: 20px 22px; border-bottom: 1px solid var(--border); }
+.loading-label { font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.spinner {
+  width: 16px; height: 16px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.progress-track { height: 6px; background: var(--border); border-radius: 100px; overflow: hidden; }
+.progress-bar {
+  height: 100%; background: var(--accent); border-radius: 100px;
+  width: 0; transition: width .4s cubic-bezier(.4,0,.2,1);
+}
+.skeleton-list { padding: 16px 22px; display: flex; flex-direction: column; gap: 16px; }
+.skel-card { background: var(--surface); border-radius: 12px; padding: 18px; border: 1px solid var(--border); }
+.skel { background: linear-gradient(90deg, #ebe8e2 25%, #e2dfd8 50%, #ebe8e2 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+@keyframes shimmer { 0%{background-position:200%} 100%{background-position:-200%} }
+.skel-line { height: 13px; margin-bottom: 9px; }
+.skel-sm { width: 35%; }
+.skel-md { width: 65%; }
+.skel-lg { width: 85%; }
+.skel-full { width: 100%; }
+.skel-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.skel-opt { height: 40px; border-radius: 9px; }
+
+/* ─── QUESTION CARDS ───────────────────────────────────── */
+.q-list { padding: 16px 22px; display: flex; flex-direction: column; gap: 14px; }
+
+.q-card {
+  border: 1.5px solid var(--border); border-radius: 14px;
+  padding: 20px 22px; transition: all .18s;
+  animation: fadeUp .35s ease both;
+}
+.q-card:nth-child(1) { animation-delay: .04s; }
+.q-card:nth-child(2) { animation-delay: .09s; }
+.q-card:nth-child(3) { animation-delay: .14s; }
+.q-card:nth-child(4) { animation-delay: .19s; }
+.q-card:nth-child(5) { animation-delay: .24s; }
+.q-card:hover { border-color: #ccc; box-shadow: 0 4px 20px rgba(0,0,0,.07); }
+.q-card.saved-card { border-color: rgba(0,194,113,.3); background: rgba(0,194,113,.02); }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+.q-card-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+.q-num-badge {
+  width: 30px; height: 30px; border-radius: 8px; background: var(--surface);
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+  color: var(--muted); flex-shrink: 0;
+}
+.q-card-body { flex: 1; }
+.q-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.q-card-text { font-size: 15px; font-weight: 500; line-height: 1.55; color: var(--ink); }
+.q-card-text code {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 1px 6px; font-size: 13px; color: #c0392b;
+  font-family: 'Courier New', monospace;
+}
+.q-card-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.act-btn {
+  width: 30px; height: 30px; border-radius: 7px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; cursor: pointer; transition: all .15s;
+}
+.act-btn:hover { background: var(--surface); border-color: #bbb; }
+.act-btn.del:hover { background: rgba(224,59,59,.08); border-color: rgba(224,59,59,.3); }
+.act-btn.regen:hover { background: rgba(0,87,255,.07); border-color: rgba(0,87,255,.3); }
+
+/* options */
+.q-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.q-option {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px;
+  border: 1.5px solid var(--border); font-size: 13px; color: var(--ink);
+  transition: all .15s;
+}
+.q-option.correct {
+  border-color: var(--green); background: rgba(0,194,113,.06);
+  color: #008a50; font-weight: 500;
+}
+.q-radio {
+  width: 17px; height: 17px; border-radius: 50%;
+  border: 2px solid currentColor; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.q-option.correct .q-radio::after {
+  content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+}
+.correct-tag { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--green); }
+
+/* text answer */
+.text-answer-box {
+  margin-top: 14px; background: rgba(0,194,113,.05);
+  border: 1.5px solid rgba(0,194,113,.2); border-radius: 10px; padding: 14px 16px;
+}
+.ta-label { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; font-weight: 600; color: var(--green); margin-bottom: 6px; }
+.ta-text { font-size: 14px; line-height: 1.6; color: var(--ink); }
+
+/* card footer */
+.q-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.q-meta { display: flex; gap: 16px; font-size: 12px; color: var(--muted); }
+.q-meta span { display: flex; align-items: center; gap: 4px; }
+.save-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  border: 1.5px solid var(--border); background: var(--card);
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  color: var(--ink); transition: all .18s;
+}
+.save-btn:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+.save-btn.is-saved { background: rgba(0,194,113,.1); color: #008a50; border-color: rgba(0,194,113,.3); cursor: default; }
+
+/* results footer */
+.results-footer {
+  padding: 14px 22px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fafaf7;
+}
+.footer-info { font-size: 13px; color: var(--muted); }
+
+/* badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 100px; font-size: 12px; font-weight: 500;
+}
+.bdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge-easy    { background: rgba(0,194,113,.12);   color: #008a50; }
+.badge-medium  { background: rgba(245,166,35,.14);  color: #a06800; }
+.badge-hard    { background: rgba(224,59,59,.1);    color: #c0392b; }
+.badge-mcq     { background: rgba(0,87,255,.1);     color: #0040bb; }
+.badge-multi   { background: rgba(139,92,246,.1);   color: #6d28d9; }
+.badge-text    { background: rgba(245,166,35,.12);  color: #a06800; }
+.badge-js      { background: rgba(255,92,0,.1);     color: var(--accent); }
+.badge-html    { background: rgba(224,59,59,.1);    color: #c0392b; }
+.badge-css     { background: rgba(139,92,246,.1);   color: #6d28d9; }
+.badge-dbms    { background: rgba(245,166,35,.12);  color: #a06800; }
+.badge-csharp  { background: rgba(0,87,255,.1);     color: #0040bb; }
+.badge-react   { background: rgba(6,182,212,.12);   color: #0891b2; }
+.badge-ai { background: rgba(255,92,0,.1); color: var(--accent); }
+
+/* ─── RIGHT PANEL ──────────────────────────────────────── */
+.right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+.info-panel {
+  background: var(--card); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+}
+.info-panel-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.info-panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+.info-panel-body { padding: 16px 20px; }
+
+/* type bars */
+.type-bar-row { margin-bottom: 12px; }
+.type-bar-row:last-child { margin-bottom: 0; }
+.type-label-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+.type-name { color: var(--ink); font-weight: 500; }
+.type-val { font-family: 'Syne', sans-serif; font-weight: 700; }
+.type-bar { height: 6px; background: var(--border); border-radius: 100px; overflow: hidden; }
+.type-fill { height: 100%; border-radius: 100px; transition: width .65s cubic-bezier(.4,0,.2,1); }
+
+/* quick stats */
+.quick-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.qs-item {
+  background: var(--surface); border-radius: 10px; padding: 13px;
+  border: 1px solid var(--border); text-align: center;
+}
+.qs-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+.qs-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* history list */
+.history-list { display: flex; flex-direction: column; }
+.history-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 20px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .15s;
+}
+.history-item:last-child { border-bottom: none; }
+.history-item:hover { background: var(--surface); }
+.h-icon { font-size: 20px; flex-shrink: 0; }
+.h-info { flex: 1; }
+.h-title { font-size: 13px; font-weight: 500; color: var(--ink); }
+.h-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.h-restore { font-size: 12px; color: var(--accent2); font-weight: 500; cursor: pointer; white-space: nowrap; }
+.h-restore:hover { text-decoration: underline; }
+
+/* tips panel */
+.tip-list { display: flex; flex-direction: column; gap: 10px; }
+.tip-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.tip-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* ─── TOAST ────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  background: var(--ink); color: #fff;
+  padding: 13px 20px; border-radius: 12px; font-size: 14px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s cubic-bezier(.4,0,.2,1); z-index: 400;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ─── ANIMATIONS ───────────────────────────────────────── */
+@keyframes fadeUpPage { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.ai-banner    { animation: fadeUpPage .4s ease both .04s; }
+.layout-main  { animation: fadeUpPage .4s ease both .1s; }
+
+/* ─── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width: 1150px) { .ai-form-row { grid-template-columns: 1fr 1fr 1fr; } .adv-panel.open { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 1050px) { .layout-main { grid-template-columns: 1fr; } .ai-banner-stats { display: none; } }
+@media (max-width: 960px)  { :root { --sidebar-w: 0px; } .sidebar { transform: translateX(-240px); } .main { margin-left: 0; } }
+@media (max-width: 640px)  { .content { padding: 16px; } .ai-form-row { grid-template-columns: 1fr 1fr; } .q-options { grid-template-columns: 1fr; } }
+
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">Test<span>Buddy</span><div class="logo-dot"></div></div>
+  <div class="sidebar-section">Main Menu</div>
+  <a class="nav-item" href="#"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+  <a class="nav-item active" href="#"><span class="nav-icon">📚</span><span class="nav-label">Questionnaire</span></a>
+  <div>
+    <div class="nav-sub-item"><div class="nav-sub-dot"></div>Topics</div>
+    <div class="nav-sub-item"><div class="nav-sub-dot"></div>Questions</div>
+    <div class="nav-sub-item active"><div class="nav-sub-dot"></div>AI Generator</div>
+  </div>
+  <a class="nav-item" href="#"><span class="nav-icon">📝</span><span class="nav-label">Assessments</span><span class="nav-badge">8</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">🔗</span><span class="nav-label">Exam Links</span><span class="nav-badge green">3</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">👥</span><span class="nav-label">Attempts</span></a>
+  <div class="sidebar-section">System</div>
+  <a class="nav-item" href="#"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">🚪</span><span class="nav-label">Logout</span></a>
+  <div class="sidebar-footer">
+    <div class="admin-card">
+      <div class="admin-avatar">A</div>
+      <div><div class="admin-name">Admin</div><div class="admin-role">Super Administrator</div></div>
+      <div class="admin-more">⋯</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="breadcrumb">
+      <span>Dashboard</span><span class="sep">›</span>
+      <span>Questionnaire</span><span class="sep">›</span>
+      <span class="active">AI Generator</span>
+    </div>
+    <div class="topbar-right">
+      <div class="icon-btn">🔔<div class="notif-dot"></div></div>
+      <div class="icon-btn">❓</div>
+      <div class="topbar-avatar">A</div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <div class="page-title">AI Question Generator</div>
+        <div class="page-sub">Generate high-quality questions instantly using AI. Save them directly to your bank.</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" onclick="showToast('info','Viewing question bank…')">← Question Bank</button>
+        <button class="btn btn-primary btn-sm" id="saveAllBtn" onclick="saveAll()" style="display:none;">💾 Save All to Bank</button>
+      </div>
+    </div>
+
+    <!-- ─── AI GENERATOR BANNER ─────────────────────────── -->
+    <div class="ai-banner">
+      <div class="ai-banner-top">
+        <div class="ai-banner-left">
+          <div class="ai-pill"><div class="ai-pulse"></div> Powered by AI</div>
+          <div class="ai-banner-title">🤖 Generate Questions with AI</div>
+          <div class="ai-banner-sub">Configure topic, difficulty, type and count below — then let AI create curriculum-aligned questions for your question bank in seconds.</div>
+        </div>
+        <div class="ai-banner-stats">
+          <div class="ai-bstat">
+            <div class="ai-bstat-num">2,480</div>
+            <div class="ai-bstat-label">Questions Generated</div>
+          </div>
+          <div class="ai-bstat">
+            <div class="ai-bstat-num">94%</div>
+            <div class="ai-bstat-label">Accuracy Rate</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORM -->
+      <div class="ai-form">
+        <div class="ai-form-row">
+          <div class="ai-field">
+            <div class="ai-label">Topic</div>
+            <select class="ai-input" id="sel-topic">
+              <option value="JavaScript">JavaScript</option>
+              <option value="HTML">HTML</option>
+              <option value="CSS">CSS</option>
+              <option value="React">React</option>
+              <option value="DBMS">DBMS</option>
+              <option value="C#">C#</option>
+              <option value="Python">Python</option>
+            </select>
+          </div>
+          <div class="ai-field">
+            <div class="ai-label">Difficulty</div>
+            <select class="ai-input" id="sel-diff">
+              <option value="Medium">Medium</option>
+              <option value="Easy">Easy</option>
+              <option value="Hard">Hard</option>
+              <option value="Mixed">Mixed</option>
+            </select>
+          </div>
+          <div class="ai-field">
+            <div class="ai-label">Question Type</div>
+            <select class="ai-input" id="sel-type">
+              <option value="MCQ">MCQ</option>
+              <option value="Multi-Select">Multi-Select</option>
+              <option value="Text">Text (Short Answer)</option>
+              <option value="True/False">True / False</option>
+            </select>
+          </div>
+          <div class="ai-field">
+            <div class="ai-label">Count</div>
+            <input class="ai-input" id="inp-count" type="number" value="5" min="1" max="20"/>
+          </div>
+          <div class="ai-field">
+            <button class="btn-generate" id="genBtn" onclick="handleGenerate()">
+              <span id="genLabel">Generate ✨</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Advanced toggle -->
+        <div class="ai-adv-toggle" onclick="toggleAdv(this)">
+          <span id="advArrow">▸</span> Advanced options
+        </div>
+        <div class="adv-panel" id="advPanel">
+          <div class="ai-field">
+            <div class="ai-label">Sub-Topic / Focus</div>
+            <input class="ai-input" placeholder="e.g. Closures, Promises…"/>
+          </div>
+          <div class="ai-field">
+            <div class="ai-label">Language / Framework</div>
+            <select class="ai-input">
+              <option>Any</option><option>ES6+</option><option>TypeScript</option><option>Node.js</option>
+            </select>
+          </div>
+          <div class="ai-field">
+            <div class="ai-label">Bloom's Level</div>
+            <select class="ai-input">
+              <option>Any</option><option>Remember</option><option>Understand</option><option>Apply</option><option>Analyze</option>
+            </select>
+          </div>
+          <div class="ai-field">
+            <div class="ai-label">Avoid Duplicates</div>
+            <select class="ai-input">
+              <option>Yes – check bank</option><option>No</option>
+            </select>
+          </div>
+        </div>
+      </div><!-- /ai-form -->
+    </div><!-- /ai-banner -->
+
+    <!-- ─── MAIN LAYOUT ────────────────────────────────── -->
+    <div class="layout-main">
+
+      <!-- ── LEFT: RESULTS CARD ── -->
+      <div class="results-card">
+
+        <!-- Card header (always visible) -->
+        <div class="card-header">
+          <div class="card-title">
+            🧾 Generated Questions
+            <span class="result-count" id="resultCount">0 questions</span>
+          </div>
+          <div class="card-header-actions" id="headerActions" style="display:none;">
+            <button class="btn btn-secondary btn-sm" onclick="handleGenerate()">↻ Regenerate</button>
+            <button class="btn btn-primary btn-sm" onclick="saveAll()">💾 Save All</button>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div id="stateEmpty" class="empty-state-wrap">
+          <div class="empty-icon">🧠</div>
+          <div class="empty-title">Ready to Generate</div>
+          <div class="empty-sub">Pick a topic, set difficulty and count above, then hit <strong>Generate</strong> to create questions with AI instantly.</div>
+          <button class="btn btn-primary" onclick="handleGenerate()">Generate Questions ✨</button>
+        </div>
+
+        <!-- LOADING STATE -->
+        <div id="stateLoading" style="display:none;">
+          <div class="loading-header">
+            <div class="loading-label">
+              <div class="spinner"></div>
+              <span id="loadingText">Generating questions… <strong id="loadProgress">0 / 5</strong></span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+          </div>
+          <div class="skeleton-list" id="skeletonList"></div>
+        </div>
+
+        <!-- RESULTS LIST -->
+        <div id="stateResults" style="display:none;">
+          <div class="q-list" id="qList"></div>
+          <div class="results-footer">
+            <div class="footer-info" id="footerInfo">5 questions generated</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="handleGenerate()">↻ Regenerate</button>
+              <button class="btn btn-primary btn-sm" onclick="saveAll()">💾 Save All to Bank</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /results-card -->
+
+      <!-- ── RIGHT PANEL ── -->
+      <div class="right-panel">
+
+        <!-- Generation Stats -->
+        <div class="info-panel">
+          <div class="info-panel-header">
+            <div class="info-panel-title">📊 This Session</div>
+          </div>
+          <div class="info-panel-body">
+            <div class="quick-stats">
+              <div class="qs-item"><div class="qs-num" id="statGenerated" style="color:var(--accent);">0</div><div class="qs-label">Generated</div></div>
+              <div class="qs-item"><div class="qs-num" id="statSaved" style="color:var(--green);">0</div><div class="qs-label">Saved</div></div>
+              <div class="qs-item"><div class="qs-num" id="statDiscarded" style="color:var(--red);">0</div><div class="qs-label">Discarded</div></div>
+              <div class="qs-item"><div class="qs-num" id="statTotal" style="color:var(--accent2);">68</div><div class="qs-label">Bank Total</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Difficulty mix -->
+        <div class="info-panel">
+          <div class="info-panel-header"><div class="info-panel-title">📈 Difficulty Mix</div></div>
+          <div class="info-panel-body">
+            <div class="type-bar-row">
+              <div class="type-label-row"><span class="type-name">Easy</span><span class="type-val" style="color:var(--green);" id="countEasy">0</span></div>
+              <div class="type-bar"><div class="type-fill" id="barEasy" style="width:0%;background:var(--green);" data-w="0"></div></div>
+            </div>
+            <div class="type-bar-row">
+              <div class="type-label-row"><span class="type-name">Medium</span><span class="type-val" style="color:var(--yellow);" id="countMedium">0</span></div>
+              <div class="type-bar"><div class="type-fill" id="barMedium" style="width:0%;background:var(--yellow);" data-w="0"></div></div>
+            </div>
+            <div class="type-bar-row">
+              <div class="type-label-row"><span class="type-name">Hard</span><span class="type-val" style="color:var(--red);" id="countHard">0</span></div>
+              <div class="type-bar"><div class="type-fill" id="barHard" style="width:0%;background:var(--red);" data-w="0"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent history -->
+        <div class="info-panel">
+          <div class="info-panel-header"><div class="info-panel-title">🕓 Recent Sessions</div></div>
+          <div class="history-list">
+            <div class="history-item" onclick="showToast('info','Restoring session…')">
+              <div class="h-icon">🤖</div>
+              <div class="h-info">
+                <div class="h-title">JavaScript · Medium · MCQ</div>
+                <div class="h-sub">5 questions · Saved 4 · 2 hrs ago</div>
+              </div>
+              <div class="h-restore">Restore</div>
+            </div>
+            <div class="history-item" onclick="showToast('info','Restoring session…')">
+              <div class="h-icon">🤖</div>
+              <div class="h-info">
+                <div class="h-title">HTML · Easy · MCQ</div>
+                <div class="h-sub">10 questions · Saved 10 · Yesterday</div>
+              </div>
+              <div class="h-restore">Restore</div>
+            </div>
+            <div class="history-item" onclick="showToast('info','Restoring session…')">
+              <div class="h-icon">🤖</div>
+              <div class="h-info">
+                <div class="h-title">DBMS · Hard · Text</div>
+                <div class="h-sub">3 questions · Saved 2 · 3 days ago</div>
+              </div>
+              <div class="h-restore">Restore</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tips -->
+        <div class="info-panel">
+          <div class="info-panel-header"><div class="info-panel-title">💡 Pro Tips</div></div>
+          <div class="info-panel-body">
+            <div class="tip-list">
+              <div class="tip-item"><div class="tip-icon">🎯</div><span>Use <strong>Advanced options</strong> to focus on a specific sub-topic like "Promises" or "Closures".</span></div>
+              <div class="tip-item"><div class="tip-icon">🔁</div><span>Regenerate individual questions you're not satisfied with using the ↻ button.</span></div>
+              <div class="tip-item"><div class="tip-icon">⭐</div><span>Save questions you like before regenerating — unsaved ones are lost on next generation.</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right-panel -->
+    </div><!-- /layout-main -->
+
+  </main>
+</div>
+
+<!-- ─── TOAST ──────────────────────────────────────────── -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg">Done!</span>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   QUESTION DATA
+══════════════════════════════════════════════════════ */
+const BANK = [
+  {
+    text: 'What is the difference between <code>==</code> and <code>===</code> in JavaScript?',
+    level: 'Medium', type: 'MCQ',
+    options: [
+      { text: '== checks value only; === checks value and type', correct: true },
+      { text: 'Both behave identically', correct: false },
+      { text: '=== only works with numbers', correct: false },
+      { text: '== is stricter than ===', correct: false }
+    ],
+    bloom: 'Understand'
+  },
+  {
+    text: 'Which method adds an element to the <strong>end</strong> of an array?',
+    level: 'Easy', type: 'MCQ',
+    options: [
+      { text: 'array.append()', correct: false },
+      { text: 'array.push()', correct: true },
+      { text: 'array.insert()', correct: false },
+      { text: 'array.add()', correct: false }
+    ],
+    bloom: 'Remember'
+  },
+  {
+    text: 'Which of the following best describes a <strong>closure</strong> in JavaScript?',
+    level: 'Medium', type: 'MCQ',
+    options: [
+      { text: 'A function that runs automatically when defined', correct: false },
+      { text: 'A function that retains access to its outer scope after the outer function returns', correct: true },
+      { text: 'A method used only for async operations', correct: false },
+      { text: 'A way to declare private variables using the <code>private</code> keyword', correct: false }
+    ],
+    bloom: 'Understand'
+  },
+  {
+    text: 'Explain how <code>async/await</code> differs from chaining <code>.then()</code>. What problem does it solve?',
+    level: 'Hard', type: 'Text',
+    textAnswer: 'async/await is syntactic sugar over Promises that lets you write asynchronous code in a synchronous style. It eliminates "promise chaining hell" making async flows easier to read and reason about. Under the hood async functions still return Promises.',
+    bloom: 'Analyze'
+  },
+  {
+    text: 'What does <code>typeof null</code> return in JavaScript?',
+    level: 'Easy', type: 'MCQ',
+    options: [
+      { text: '"null"', correct: false },
+      { text: '"undefined"', correct: false },
+      { text: '"object"', correct: true },
+      { text: '"boolean"', correct: false }
+    ],
+    bloom: 'Remember'
+  },
+  {
+    text: 'Which CSS property controls the stacking order of overlapping elements?',
+    level: 'Easy', type: 'MCQ',
+    options: [
+      { text: 'stack-order', correct: false },
+      { text: 'z-index', correct: true },
+      { text: 'layer', correct: false },
+      { text: 'depth', correct: false }
+    ],
+    bloom: 'Remember'
+  },
+  {
+    text: 'What is the purpose of database normalisation? Describe up to 3NF.',
+    level: 'Hard', type: 'Text',
+    textAnswer: '1NF: Eliminate repeating groups, ensure atomic values. 2NF: Eliminate partial dependencies (non-key attributes must depend on the whole primary key). 3NF: Eliminate transitive dependencies (non-key attributes must not depend on other non-key attributes).',
+    bloom: 'Analyze'
+  }
+];
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+let questions    = [];
+let savedCount   = 0;
+let discarded    = 0;
+let totalInBank  = 68;
+let loadTimer    = null;
+
+const topicBadge = {
+  JavaScript:'badge-js', HTML:'badge-html', CSS:'badge-css',
+  DBMS:'badge-dbms', 'C#':'badge-csharp', React:'badge-react', Python:'badge-js'
+};
+
+/* ══════════════════════════════════════════════════════
+   ADVANCED PANEL
+══════════════════════════════════════════════════════ */
+function toggleAdv(el) {
+  const panel = document.getElementById('advPanel');
+  const arrow = document.getElementById('advArrow');
+  panel.classList.toggle('open');
+  arrow.textContent = panel.classList.contains('open') ? '▾' : '▸';
+}
+
+/* ══════════════════════════════════════════════════════
+   GENERATE
+══════════════════════════════════════════════════════ */
+function handleGenerate() {
+  const btn   = document.getElementById('genBtn');
+  const label = document.getElementById('genLabel');
+  btn.disabled = true;
+  label.textContent = 'Generating…';
+
+  const count = Math.min(parseInt(document.getElementById('inp-count').value) || 5, 7);
+
+  /* hide everything, show loading */
+  document.getElementById('stateEmpty').style.display   = 'none';
+  document.getElementById('stateResults').style.display = 'none';
+  document.getElementById('headerActions').style.display = 'none';
+  document.getElementById('saveAllBtn').style.display   = 'none';
+
+  const loadEl = document.getElementById('stateLoading');
+  loadEl.style.display = 'block';
+
+  /* build skeletons */
+  const skList = document.getElementById('skeletonList');
+  skList.innerHTML = Array.from({ length: Math.min(count, 4) }).map(() => `
+    <div class="skel-card">
+      <div style="display:flex;gap:12px;margin-bottom:12px;">
+        <div class="skel" style="width:30px;height:30px;border-radius:8px;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div class="skel skel-line skel-sm" style="margin-bottom:8px;"></div>
+          <div class="skel skel-line skel-lg"></div>
+          <div class="skel skel-line skel-md"></div>
+        </div>
+      </div>
+      <div class="skel-opts">
+        <div class="skel skel-opt"></div><div class="skel skel-opt"></div>
+        <div class="skel skel-opt"></div><div class="skel skel-opt"></div>
+      </div>
+    </div>`).join('');
+
+  /* progress animation */
+  let progress = 0;
+  const bar = document.getElementById('progressBar');
+  const prog = document.getElementById('loadProgress');
+  clearInterval(loadTimer);
+  loadTimer = setInterval(() => {
+    progress += Math.random() * 20;
+    if (progress > 92) progress = 92;
+    bar.style.width = progress + '%';
+    prog.innerHTML = `<strong>${Math.floor((progress / 100) * count)} / ${count}</strong>`;
+  }, 280);
+
+  setTimeout(() => {
+    clearInterval(loadTimer);
+    bar.style.width = '100%';
+    prog.innerHTML = `<strong>${count} / ${count}</strong>`;
+    setTimeout(() => finishGenerate(count), 350);
+  }, 2000);
+}
+
+function finishGenerate(count) {
+  /* reset button */
+  document.getElementById('genBtn').disabled = false;
+  document.getElementById('genLabel').textContent = 'Generate ✨';
+  document.getElementById('stateLoading').style.display = 'none';
+
+  /* build questions array */
+  questions = Array.from({ length: count }, (_, i) => ({
+    ...BANK[i % BANK.length],
+    id: Date.now() + i,
+    saved: false,
+    topic: document.getElementById('sel-topic').value
+  }));
+
+  savedCount = 0; discarded = 0;
+  updateStats();
+  renderQuestions();
+
+  document.getElementById('stateResults').style.display  = 'block';
+  document.getElementById('headerActions').style.display = 'flex';
+  document.getElementById('saveAllBtn').style.display    = 'inline-flex';
+  document.getElementById('resultCount').textContent     = count + ' questions';
+  document.getElementById('footerInfo').textContent      = count + ' questions generated';
+
+  showToast('success', `${count} questions generated successfully!`);
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════════════════ */
+function renderQuestions() {
+  const list  = document.getElementById('qList');
+  const topic = document.getElementById('sel-topic').value;
+  const tBadge = topicBadge[topic] || 'badge-js';
+
+  list.innerHTML = questions.map((q, i) => {
+    const lBadge  = q.level === 'Easy' ? 'badge-easy' : q.level === 'Medium' ? 'badge-medium' : 'badge-hard';
+    const tyBadge = q.type  === 'MCQ'  ? 'badge-mcq'  : q.type === 'Multi-Select' ? 'badge-multi' : 'badge-text';
+
+    const optionsHTML = q.type !== 'Text'
+      ? `<div class="q-options">
+          ${(q.options||[]).map(o => `
+            <div class="q-option ${o.correct ? 'correct' : ''}">
+              <div class="q-radio"></div>
+              <span>${o.text}</span>
+              ${o.correct ? '<span class="correct-tag">✓ Correct</span>' : ''}
+            </div>`).join('')}
+         </div>`
+      : `<div class="text-answer-box">
+           <div class="ta-label">Model Answer</div>
+           <div class="ta-text">${q.textAnswer}</div>
+         </div>`;
+
+    const savedClass = q.saved ? 'is-saved' : '';
+    const savedLabel = q.saved ? '⭐ Saved to Bank' : '+ Save to Bank';
+
+    return `
+    <div class="q-card ${q.saved ? 'saved-card' : ''}" id="qcard-${q.id}">
+      <div class="q-card-top">
+        <div class="q-num-badge">${i + 1}</div>
+        <div class="q-card-body">
+          <div class="q-badges">
+            <span class="badge ${tBadge}"><span class="bdot"></span>${topic}</span>
+            <span class="badge ${lBadge}"><span class="bdot"></span>${q.level}</span>
+            <span class="badge ${tyBadge}">${q.type}</span>
+            <span class="badge" style="background:rgba(139,92,246,.1);color:#6d28d9;font-size:11px;">🧠 ${q.bloom||'Understand'}</span>
+            ${q.saved ? '<span class="badge badge-ai">⭐ Saved</span>' : ''}
+          </div>
+          <div class="q-card-text">${q.text}</div>
+          ${optionsHTML}
+        </div>
+        <div class="q-card-actions">
+          <div class="act-btn regen" title="Regenerate this question" onclick="regenOne(${q.id})">↻</div>
+          <div class="act-btn del"   title="Discard" onclick="discardOne(${q.id})">✕</div>
+        </div>
+      </div>
+      <div class="q-card-footer">
+        <div class="q-meta">
+          <span>🗂 ${topic}</span>
+          <span>⭐ 1 mark</span>
+          <span>⏱ ~1 min</span>
+        </div>
+        <button class="save-btn ${savedClass}" id="savebtn-${q.id}" onclick="saveOne(${q.id})" ${q.saved?'disabled':''}>
+          ${savedLabel}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════
+   ACTIONS
+══════════════════════════════════════════════════════ */
+function saveOne(id) {
+  const q = questions.find(x => x.id === id);
+  if (!q || q.saved) return;
+  q.saved = true;
+  savedCount++; totalInBank++;
+  updateStats();
+  renderQuestions();
+  showToast('success', 'Question saved to bank!');
+}
+
+function saveAll() {
+  const unsaved = questions.filter(q => !q.saved);
+  if (!unsaved.length) { showToast('info', 'All questions already saved.'); return; }
+  unsaved.forEach(q => { q.saved = true; savedCount++; totalInBank++; });
+  updateStats();
+  renderQuestions();
+  showToast('success', `${unsaved.length} questions saved to bank!`);
+}
+
+function discardOne(id) {
+  questions = questions.filter(q => q.id !== id);
+  discarded++;
+  updateStats();
+  if (!questions.length) {
+    document.getElementById('stateResults').style.display  = 'none';
+    document.getElementById('headerActions').style.display = 'none';
+    document.getElementById('saveAllBtn').style.display    = 'none';
+    document.getElementById('stateEmpty').style.display    = 'block';
+    document.getElementById('resultCount').textContent     = '0 questions';
+  } else {
+    document.getElementById('resultCount').textContent = questions.length + ' questions';
+    renderQuestions();
+  }
+}
+
+function regenOne(id) {
+  const idx = questions.findIndex(q => q.id === id);
+  if (idx === -1) return;
+  const card = document.getElementById('qcard-' + id);
+  card.style.opacity = '.3';
+  card.style.pointerEvents = 'none';
+  setTimeout(() => {
+    const next = (idx + 2) % BANK.length;
+    questions[idx] = { ...BANK[next], id, saved: false, topic: document.getElementById('sel-topic').value };
+    renderQuestions();
+    showToast('info', 'Question regenerated.');
+  }, 700);
+}
+
+/* ══════════════════════════════════════════════════════
+   STATS
+══════════════════════════════════════════════════════ */
+function updateStats() {
+  document.getElementById('statGenerated').textContent = questions.length;
+  document.getElementById('statSaved').textContent     = savedCount;
+  document.getElementById('statDiscarded').textContent = discarded;
+  document.getElementById('statTotal').textContent     = totalInBank;
+
+  const easy   = questions.filter(q => q.level === 'Easy').length;
+  const medium = questions.filter(q => q.level === 'Medium').length;
+  const hard   = questions.filter(q => q.level === 'Hard').length;
+  const total  = questions.length || 1;
+
+  document.getElementById('countEasy').textContent   = easy;
+  document.getElementById('countMedium').textContent = medium;
+  document.getElementById('countHard').textContent   = hard;
+
+  setTimeout(() => {
+    document.getElementById('barEasy').style.width   = (easy   / total * 100) + '%';
+    document.getElementById('barMedium').style.width = (medium / total * 100) + '%';
+    document.getElementById('barHard').style.width   = (hard   / total * 100) + '%';
+  }, 80);
+}
+
+/* ══════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════ */
+function showToast(type, msg) {
+  const toast = document.getElementById('toast');
+  const icons  = { success: '✅', error: '❌', info: 'ℹ️', delete: '🗑️' };
+  const colors = { success: '#0d1117', error: '#c0392b', info: '#1a2540', delete: '#444' };
+  document.getElementById('toastIcon').textContent = icons[type] || '✅';
+  document.getElementById('toastMsg').textContent  = msg;
+  toast.style.background = colors[type] || '#0d1117';
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

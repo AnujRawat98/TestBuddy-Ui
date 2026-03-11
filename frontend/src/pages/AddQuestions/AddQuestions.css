@@ -1,0 +1,489 @@
+/* ─── TAB SWITCHER ─────────────────────────────────────── */
+.add-questions-container .tab-bar {
+    display: flex;
+    gap: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 5px;
+    margin-bottom: 24px;
+    width: fit-content;
+    animation: fadeUp .3s ease both .04s;
+}
+
+.add-questions-container .tab-btn {
+    padding: 9px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    transition: all .18s;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.add-questions-container .tab-btn.active {
+    background: var(--ink);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+}
+
+.add-questions-container .tab-btn:not(.active):hover {
+    color: var(--ink);
+    background: var(--surface);
+}
+
+/* ─── MAIN LAYOUT ──────────────────────────────────────── */
+.add-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 22px;
+    align-items: start;
+    animation: fadeUp .4s ease both .1s;
+}
+
+/* ─── QUESTIONS BUILDER ────────────────────────────────── */
+.builder-area {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ─── QUESTION CARD ────────────────────────────────────── */
+.q-card {
+    background: var(--card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: box-shadow .2s;
+    animation: slideIn .3s ease both;
+}
+
+.q-card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .07);
+}
+
+.q-card.collapsed .q-card-body {
+    display: none;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.q-card-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fafaf7;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+}
+
+.q-card-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: 'Syne', sans-serif;
+}
+
+.q-card-preview {
+    flex: 1;
+    font-size: 14px;
+    color: var(--muted);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.q-card-preview.has-text {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.q-card-type-badge {
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.q-card-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.q-card-collapse {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.q-card-collapse:hover {
+    border-color: #bbb;
+    background: var(--surface);
+}
+
+.q-card-del {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid rgba(224, 59, 59, .2);
+    border-radius: 7px;
+    background: rgba(224, 59, 59, .04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.q-card-del:hover {
+    background: rgba(224, 59, 59, .1);
+    border-color: rgba(224, 59, 59, .35);
+}
+
+.q-card-body {
+    padding: 22px;
+}
+
+/* ─── FORM ELEMENTS ────────────────────────────────────── */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.form-row.triple {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.form-row.full {
+    grid-template-columns: 1fr;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 9px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    background: var(--surface);
+    outline: none;
+    transition: border-color .2s, background .2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--accent2);
+    background: #fff;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+}
+
+.form-group select {
+    cursor: pointer;
+}
+
+/* ─── QUESTION TYPE SELECTOR ───────────────────────────── */
+.type-selector {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.type-opt {
+    border: 2px solid var(--border);
+    border-radius: 11px;
+    padding: 12px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .18s;
+    background: var(--surface);
+}
+
+.type-opt:hover {
+    border-color: #bbb;
+    background: var(--card);
+}
+
+.type-opt.selected {
+    background: var(--card);
+}
+
+.type-opt.t-mcq.selected {
+    border-color: var(--accent2);
+    background: rgba(0, 87, 255, .05);
+}
+
+.type-opt.t-multi.selected {
+    border-color: var(--purple);
+    background: rgba(139, 92, 246, .05);
+}
+
+.type-opt.t-text.selected {
+    border-color: var(--yellow);
+    background: rgba(245, 166, 35, .06);
+}
+
+.type-opt.t-image.selected {
+    border-color: var(--green);
+    background: rgba(0, 194, 113, .05);
+}
+
+.type-opt-icon {
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+
+.type-opt-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.type-opt-desc {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* ─── DIVIDER ──────────────────────────────────────────── */
+.section-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 14px;
+}
+
+.section-divider-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.section-divider-text {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+/* ─── OPTIONS BUILDER ──────────────────────────────────── */
+.options-builder {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-bottom: 12px;
+}
+
+.option-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    transition: all .15s;
+}
+
+.option-row.is-correct {
+    border-color: var(--green);
+    background: rgba(0, 194, 113, .05);
+}
+
+.correct-toggle {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--card);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.correct-toggle:hover {
+    border-color: var(--green);
+}
+
+.option-row.is-correct .correct-toggle {
+    background: var(--green);
+    border-color: var(--green);
+}
+
+.correct-toggle-inner {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0;
+}
+
+.option-row.is-correct .correct-toggle-inner {
+    opacity: 1;
+}
+
+.opt-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+}
+
+.opt-correct-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green);
+    white-space: nowrap;
+}
+
+.opt-del {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted);
+    transition: all .12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.opt-del:hover {
+    color: var(--red);
+    background: rgba(224, 59, 59, .08);
+}
+
+.add-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1.5px dashed var(--border);
+    border-radius: 9px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--muted);
+    transition: all .15s;
+    width: 100%;
+    justify-content: center;
+}
+
+.add-option-btn:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(0, 87, 255, .03);
+}
+
+/* ─── ADD MORE QUESTION BTN ────────────────────────────── */
+.add-q-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px;
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    background: var(--card);
+    cursor: pointer;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--muted);
+    font-weight: 500;
+    transition: all .18s;
+    width: 100%;
+}
+
+.add-q-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(255, 92, 0, .02);
+}
+
+.add-q-btn span {
+    font-size: 20px;
+}
+
+/* ─── IMAGE UPLOAD ─────────────────────────────────────── */
+.img-upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .18s;
+    background: var(--surface);
+    margin-bottom: 14px;
+}
+
+... (continued in next css file if needed, but going to append basic rules here and keep short to stay under limits)

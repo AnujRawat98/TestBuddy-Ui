@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TestBuddy – Create Exam Link</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+
+/* ─── RESET & BASE ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:       #0d1117;
+  --surface:   #f5f4f0;
+  --card:      #ffffff;
+  --accent:    #ff5c00;
+  --accent2:   #0057ff;
+  --muted:     #8a8a8a;
+  --border:    #e8e5de;
+  --green:     #00c271;
+  --yellow:    #f5a623;
+  --red:       #e03b3b;
+  --purple:    #8b5cf6;
+  --sidebar-w: 240px;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d5d2cb; border-radius: 100px; }
+
+/* ─── SIDEBAR ──────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--ink);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 100; overflow-y: auto;
+}
+.sidebar::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+  background-size: 32px 32px; pointer-events: none;
+}
+.sidebar-logo {
+  padding: 28px 24px 24px;
+  font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+  color: #fff; letter-spacing: -1px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; gap: 10px; position: relative;
+}
+.sidebar-logo span { color: var(--accent); }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.sidebar-section {
+  font-size: 10px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: rgba(255,255,255,.25); padding: 22px 24px 8px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 24px;
+  font-size: 14px; color: rgba(255,255,255,.5); cursor: pointer;
+  border-left: 3px solid transparent; transition: all .18s; text-decoration: none;
+}
+.nav-item:hover { background: rgba(255,255,255,.05); color: rgba(255,255,255,.85); }
+.nav-item.active { background: rgba(255,92,0,.1); color: #fff; border-left-color: var(--accent); }
+.nav-icon { width: 20px; text-align: center; font-size: 16px; flex-shrink: 0; }
+.nav-label { flex: 1; }
+.nav-badge { background: var(--accent); color: #fff; border-radius: 100px; font-size: 11px; font-weight: 600; padding: 2px 8px; }
+.nav-badge.green { background: var(--green); }
+.sidebar-footer { margin-top: auto; padding: 20px 24px; border-top: 1px solid rgba(255,255,255,.06); }
+.admin-card {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 10px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08); cursor: pointer; transition: background .18s;
+}
+.admin-card:hover { background: rgba(255,255,255,.09); }
+.admin-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff8c00);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.admin-name { font-size: 13px; font-weight: 500; color: #fff; }
+.admin-role { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 1px; }
+.admin-more { margin-left: auto; color: rgba(255,255,255,.3); font-size: 16px; }
+
+/* ─── MAIN ─────────────────────────────────────────────── */
+.main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ─── TOPBAR ───────────────────────────────────────────── */
+.topbar {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.breadcrumb .active { color: var(--ink); font-weight: 600; font-family: 'Syne', sans-serif; }
+.breadcrumb .sep { color: var(--border); font-size: 16px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 9px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer; transition: all .15s; position: relative;
+}
+.icon-btn:hover { background: var(--surface); border-color: #ccc; }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); position: absolute; top: 4px; right: 4px; border: 2px solid var(--card); }
+.topbar-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff8c00);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* ─── BUTTONS ──────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 20px; border-radius: 9px; font-size: 14px;
+  font-family: 'DM Sans', sans-serif; font-weight: 500;
+  cursor: pointer; border: none; transition: all .18s;
+}
+.btn-primary  { background: var(--accent); color: #fff; box-shadow: 0 3px 12px rgba(255,92,0,.25); }
+.btn-primary:hover  { background: #e04e00; box-shadow: 0 4px 16px rgba(255,92,0,.35); }
+.btn-secondary { background: var(--card); color: var(--ink); border: 1.5px solid var(--border); }
+.btn-secondary:hover { border-color: #bbb; background: var(--surface); }
+.btn-ghost  { background: transparent; color: var(--accent2); border: 1.5px solid rgba(0,87,255,.2); }
+.btn-ghost:hover { background: rgba(0,87,255,.05); }
+.btn-danger { background: rgba(224,59,59,.08); color: var(--red); border: 1.5px solid rgba(224,59,59,.2); }
+.btn-danger:hover { background: rgba(224,59,59,.15); }
+.btn-sm { padding: 7px 16px; font-size: 13px; }
+.btn-xs { padding: 5px 12px; font-size: 12px; border-radius: 7px; }
+
+/* ─── CONTENT ──────────────────────────────────────────── */
+.content { padding: 32px; flex: 1; }
+
+.page-header {
+  display: flex; align-items: flex-end;
+  justify-content: space-between; margin-bottom: 28px;
+}
+.page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
+.page-sub { font-size: 14px; color: var(--muted); }
+.header-actions { display: flex; gap: 10px; }
+
+/* ─── FORM LAYOUT ──────────────────────────────────────── */
+.form-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+
+/* ─── SECTION CARD ─────────────────────────────────────── */
+.section-card {
+  background: var(--card); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+  margin-bottom: 20px;
+}
+.section-card:last-child { margin-bottom: 0; }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.section-card { animation: fadeUp .38s ease both; }
+.section-card:nth-child(1) { animation-delay: .04s; }
+.section-card:nth-child(2) { animation-delay: .08s; }
+.section-card:nth-child(3) { animation-delay: .12s; }
+.section-card:nth-child(4) { animation-delay: .16s; }
+
+.section-header {
+  padding: 18px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fafaf7;
+}
+.section-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.si-orange { background: rgba(255,92,0,.1); }
+.si-blue   { background: rgba(0,87,255,.1); }
+.si-green  { background: rgba(0,194,113,.1); }
+.si-purple { background: rgba(139,92,246,.1); }
+.si-red    { background: rgba(224,59,59,.1); }
+.si-yellow { background: rgba(245,166,35,.12); }
+.section-body { padding: 24px; }
+
+/* ─── FORM ELEMENTS ────────────────────────────────────── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.form-row.full  { grid-template-columns: 1fr; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-row:last-child { margin-bottom: 0; }
+
+.form-group { display: flex; flex-direction: column; gap: 7px; }
+.form-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 5px;
+}
+.req { color: var(--red); }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  outline: none; background: var(--surface); color: var(--ink);
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--accent2); background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,87,255,.07);
+}
+.form-group textarea { resize: vertical; min-height: 86px; line-height: 1.55; }
+.form-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* assessment selector card */
+.assessment-select-card {
+  border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden;
+  cursor: pointer; transition: all .18s; margin-bottom: 6px;
+}
+.assessment-select-card:hover { border-color: var(--accent2); box-shadow: 0 2px 12px rgba(0,87,255,.08); }
+.assessment-select-card.selected { border-color: var(--accent2); background: rgba(0,87,255,.03); }
+.asc-inner { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.asc-radio {
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.assessment-select-card.selected .asc-radio { border-color: var(--accent2); background: var(--accent2); }
+.assessment-select-card.selected .asc-radio::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+.asc-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,92,0,.1); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.asc-body { flex: 1; min-width: 0; }
+.asc-name { font-size: 14px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.asc-meta { font-size: 12px; color: var(--muted); margin-top: 2px; display: flex; gap: 12px; flex-wrap: wrap; }
+.asc-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* access code field */
+.code-field-wrap { position: relative; }
+.code-field-wrap input { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 3px; padding-right: 48px; }
+.code-refresh {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; border-radius: 7px; border: 1.5px solid var(--border);
+  background: var(--card); display: flex; align-items: center; justify-content: center;
+  font-size: 14px; cursor: pointer; transition: all .15s; color: var(--muted);
+}
+.code-refresh:hover { background: var(--surface); color: var(--ink); border-color: #bbb; }
+
+/* ─── TOGGLE ROWS ──────────────────────────────────────── */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.toggle-row:first-child { padding-top: 0; }
+.toggle-row:last-child  { border-bottom: none; padding-bottom: 0; }
+.toggle-info { flex: 1; padding-right: 24px; }
+.toggle-label { font-size: 14px; font-weight: 500; color: var(--ink); }
+.toggle-sub   { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+.toggle {
+  width: 42px; height: 24px; border-radius: 100px;
+  background: var(--border); cursor: pointer; position: relative;
+  transition: background .22s; flex-shrink: 0;
+}
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.18);
+  transition: transform .22s;
+}
+.toggle.on { background: var(--accent); }
+.toggle.on::after { transform: translateX(18px); }
+.toggle.blue.on { background: var(--accent2); }
+
+/* ─── SECTION DIVIDER ──────────────────────────────────── */
+.sec-divider {
+  display: flex; align-items: center; gap: 12px; margin: 22px 0 18px;
+}
+.sec-divider-line { flex: 1; height: 1px; background: var(--border); }
+.sec-divider-text {
+  font-size: 11px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted); white-space: nowrap;
+}
+
+/* ─── BADGES ───────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 100px; font-size: 12px; font-weight: 500;
+}
+.bdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge-easy   { background: rgba(0,194,113,.12); color: #008a50; }
+.badge-medium { background: rgba(245,166,35,.14); color: #a06800; }
+.badge-hard   { background: rgba(224,59,59,.1);  color: #c0392b; }
+.badge-active { background: rgba(0,194,113,.12); color: #008a50; }
+.badge-draft  { background: rgba(138,138,138,.1); color: #666; }
+.badge-blue   { background: rgba(0,87,255,.1);   color: #0040bb; }
+.badge-orange { background: rgba(255,92,0,.1);   color: var(--accent); }
+
+/* ─── RIGHT PANEL ──────────────────────────────────────── */
+.right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+.info-panel {
+  background: var(--card); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+  animation: fadeUp .4s ease both .06s;
+}
+.info-panel-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.info-panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+.info-panel-body  { padding: 18px 20px; }
+
+/* ─── LINK PREVIEW CARD ────────────────────────────────── */
+.link-preview-card {
+  background: linear-gradient(135deg, #0d1117 0%, #1a2540 100%);
+  border-radius: 16px; padding: 24px;
+  position: relative; overflow: hidden; margin-bottom: 20px;
+  animation: fadeUp .4s ease both .04s;
+}
+.link-preview-card::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,92,0,.22), transparent 68%);
+  pointer-events: none;
+}
+.link-preview-card::after {
+  content: ''; position: absolute; bottom: -30px; left: 20%;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,87,255,.18), transparent 68%);
+  pointer-events: none;
+}
+.lp-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  color: rgba(255,255,255,.4); margin-bottom: 8px; position: relative; z-index: 1;
+}
+.lp-url {
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+  color: #fff; word-break: break-all; margin-bottom: 16px;
+  position: relative; z-index: 1; line-height: 1.5;
+}
+.lp-url span { color: var(--accent); }
+.lp-actions { display: flex; gap: 8px; position: relative; z-index: 1; }
+.lp-btn {
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  font-family: 'DM Sans', sans-serif; cursor: pointer; border: none;
+  display: inline-flex; align-items: center; gap: 6px; transition: all .18s;
+}
+.lp-btn-copy { background: var(--accent); color: #fff; box-shadow: 0 2px 10px rgba(255,92,0,.35); }
+.lp-btn-copy:hover { background: #e04e00; }
+.lp-btn-qr { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.15); }
+.lp-btn-qr:hover { background: rgba(255,255,255,.18); }
+.lp-divider { height: 1px; background: rgba(255,255,255,.08); margin: 16px 0; position: relative; z-index: 1; }
+.lp-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; position: relative; z-index: 1; }
+.lp-stat { text-align: center; }
+.lp-stat-num { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: #fff; line-height: 1; }
+.lp-stat-label { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 3px; }
+
+/* ─── SUMMARY ROWS ─────────────────────────────────────── */
+.summary-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.summary-row:last-child { border-bottom: none; }
+.summary-key { color: var(--muted); }
+.summary-val { font-weight: 600; color: var(--ink); text-align: right; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ─── CHECKLIST ────────────────────────────────────────── */
+.checklist { display: flex; flex-direction: column; gap: 9px; }
+.check-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.check-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; flex-shrink: 0;
+}
+.check-dot.done    { background: rgba(0,194,113,.15); color: var(--green); }
+.check-dot.pending { background: var(--surface); border: 1.5px solid var(--border); color: var(--muted); }
+.check-item.done-item    span { color: var(--ink); }
+.check-item.pending-item span { color: var(--muted); }
+
+/* ─── EXISTING LINKS TABLE ─────────────────────────────── */
+.links-table { width: 100%; border-collapse: collapse; }
+.links-table th {
+  background: #fafaf7; font-size: 11px; font-weight: 600;
+  letter-spacing: .7px; text-transform: uppercase; color: var(--muted);
+  padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border);
+}
+.links-table td { padding: 13px 16px; border-bottom: 1px solid #f0ede8; font-size: 13px; vertical-align: middle; }
+.links-table tr:last-child td { border-bottom: none; }
+.links-table tbody tr { transition: background .14s; cursor: default; }
+.links-table tbody tr:hover td { background: #fafaf7; }
+
+.link-code {
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+  color: var(--accent2); letter-spacing: 1px;
+}
+.link-url-cell { color: var(--muted); font-size: 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.act-btn {
+  width: 30px; height: 30px; border-radius: 7px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; cursor: pointer; transition: all .15s;
+}
+.act-btn:hover { background: var(--surface); border-color: #bbb; }
+.act-btn.del:hover { background: rgba(224,59,59,.08); border-color: rgba(224,59,59,.3); }
+.act-btn.copy:hover { background: rgba(0,87,255,.07); border-color: rgba(0,87,255,.3); }
+.action-btns { display: flex; gap: 5px; }
+
+/* live dot */
+.live-dot {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600;
+}
+.live-dot::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green); display: block;
+  animation: blink 1.8s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ─── QR MODAL ─────────────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(13,17,23,.6); z-index: 200;
+  align-items: center; justify-content: center; backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--card); border-radius: 20px; width: 380px;
+  max-width: 95vw; box-shadow: 0 24px 80px rgba(0,0,0,.25);
+  animation: modalIn .25s ease;
+}
+@keyframes modalIn { from{opacity:0;transform:scale(.94) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.modal-header {
+  padding: 22px 24px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -.5px; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer; transition: all .15s;
+}
+.modal-close:hover { background: var(--surface); }
+.modal-body { padding: 28px 24px; text-align: center; }
+.qr-box {
+  width: 180px; height: 180px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  margin: 0 auto 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 72px;
+}
+.qr-url { font-size: 12px; color: var(--muted); word-break: break-all; margin-bottom: 20px; line-height: 1.5; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+
+/* ─── DELETE CONFIRM MODAL ─────────────────────────────── */
+.confirm-modal {
+  background: var(--card); border-radius: 18px; padding: 32px;
+  width: 420px; max-width: 95vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,.22); animation: modalIn .25s ease;
+}
+.confirm-icon {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: rgba(224,59,59,.1); display: flex; align-items: center;
+  justify-content: center; font-size: 24px; margin-bottom: 18px;
+}
+.confirm-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+.confirm-desc  { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+.confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ─── TOAST ────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  background: var(--ink); color: #fff;
+  padding: 13px 20px; border-radius: 12px; font-size: 14px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s cubic-bezier(.4,0,.2,1); z-index: 400;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ─── ANIMATIONS ───────────────────────────────────────── */
+.form-layout { animation: fadeUp .4s ease both .06s; }
+
+/* ─── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width: 1150px) { .form-layout { grid-template-columns: 1fr; } }
+@media (max-width: 960px)  { :root { --sidebar-w: 0px; } .sidebar { transform: translateX(-240px); } .main { margin-left: 0; } }
+@media (max-width: 640px)  { .content { padding: 16px; } .form-row { grid-template-columns: 1fr; } .lp-stats { grid-template-columns: 1fr 1fr; } }
+
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">Test<span>Buddy</span><div class="logo-dot"></div></div>
+  <div class="sidebar-section">Main Menu</div>
+  <a class="nav-item" href="#"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">📚</span><span class="nav-label">Questionnaire</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">📝</span><span class="nav-label">Assessments</span><span class="nav-badge">8</span></a>
+  <a class="nav-item active" href="#"><span class="nav-icon">🔗</span><span class="nav-label">Exam Links</span><span class="nav-badge green">3</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">👥</span><span class="nav-label">Attempts</span></a>
+  <div class="sidebar-section">System</div>
+  <a class="nav-item" href="#"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">🚪</span><span class="nav-label">Logout</span></a>
+  <div class="sidebar-footer">
+    <div class="admin-card">
+      <div class="admin-avatar">A</div>
+      <div><div class="admin-name">Admin</div><div class="admin-role">Super Administrator</div></div>
+      <div class="admin-more">⋯</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="breadcrumb">
+      <span>Dashboard</span><span class="sep">›</span>
+      <span>Exam Links</span><span class="sep">›</span>
+      <span class="active">Create Link</span>
+    </div>
+    <div class="topbar-right">
+      <div class="icon-btn">🔔<div class="notif-dot"></div></div>
+      <div class="icon-btn">❓</div>
+      <div class="topbar-avatar">A</div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <div class="page-title">Create Exam Link</div>
+        <div class="page-sub">Generate a shareable link for students to access an assessment.</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" onclick="showToast('info','Returning to links list…')">← All Links</button>
+        <button class="btn btn-primary btn-sm" onclick="handleGenerate()">🔗 Generate Link</button>
+      </div>
+    </div>
+
+    <!-- ─── FORM LAYOUT ───────────────────────────────── -->
+    <div class="form-layout">
+
+      <!-- ══ LEFT COLUMN ══════════════════════════════════ -->
+      <div>
+
+        <!-- SECTION 1 — Select Assessment -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-orange">📝</div>
+              Select Assessment
+            </div>
+            <span style="font-size:12px;color:var(--muted);">3 available</span>
+          </div>
+          <div class="section-body">
+
+            <div id="assessmentList">
+              <div class="assessment-select-card selected" onclick="selectAssessment(this, 'Web Development Fundamentals Test', '20 Q · 30 min · Medium')">
+                <div class="asc-inner">
+                  <div class="asc-radio"></div>
+                  <div class="asc-icon">📝</div>
+                  <div class="asc-body">
+                    <div class="asc-name">Web Development Fundamentals Test</div>
+                    <div class="asc-meta">
+                      <span>20 questions</span>
+                      <span>30 min</span>
+                      <span>20 marks</span>
+                    </div>
+                  </div>
+                  <div class="asc-badges">
+                    <span class="badge badge-medium"><span class="bdot"></span>Medium</span>
+                    <span class="badge badge-active"><span class="bdot"></span>Active</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="assessment-select-card" onclick="selectAssessment(this, 'JavaScript Basics Quiz', '15 Q · 20 min · Easy')">
+                <div class="asc-inner">
+                  <div class="asc-radio"></div>
+                  <div class="asc-icon" style="background:rgba(0,194,113,.1);">📝</div>
+                  <div class="asc-body">
+                    <div class="asc-name">JavaScript Basics Quiz</div>
+                    <div class="asc-meta">
+                      <span>15 questions</span>
+                      <span>20 min</span>
+                      <span>15 marks</span>
+                    </div>
+                  </div>
+                  <div class="asc-badges">
+                    <span class="badge badge-easy"><span class="bdot"></span>Easy</span>
+                    <span class="badge badge-active"><span class="bdot"></span>Active</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="assessment-select-card" onclick="selectAssessment(this, 'DBMS Final Exam', '30 Q · 45 min · Hard')">
+                <div class="asc-inner">
+                  <div class="asc-radio"></div>
+                  <div class="asc-icon" style="background:rgba(224,59,59,.1);">📝</div>
+                  <div class="asc-body">
+                    <div class="asc-name">DBMS Final Exam</div>
+                    <div class="asc-meta">
+                      <span>30 questions</span>
+                      <span>45 min</span>
+                      <span>30 marks</span>
+                    </div>
+                  </div>
+                  <div class="asc-badges">
+                    <span class="badge badge-hard"><span class="bdot"></span>Hard</span>
+                    <span class="badge badge-draft"><span class="bdot"></span>Draft</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SECTION 2 — Link Configuration -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-blue">🔗</div>
+              Link Configuration
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="form-row" style="margin-bottom:18px;">
+              <div class="form-group">
+                <label class="form-label">Link Name / Label <span class="req">*</span></label>
+                <input id="f_name" type="text" value="Batch A — March 2025" oninput="syncPreview()" placeholder="e.g. Batch A — March 2025"/>
+                <div class="form-hint">Internal label to identify this link.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Access Code <span class="req">*</span></label>
+                <div class="code-field-wrap">
+                  <input id="f_code" type="text" value="TB2025" oninput="syncPreview()" maxlength="10"/>
+                  <div class="code-refresh" onclick="refreshCode()" title="Generate random code">↻</div>
+                </div>
+                <div class="form-hint">Students enter this to unlock the exam.</div>
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-bottom:18px;">
+              <div class="form-group">
+                <label class="form-label">Start Date &amp; Time <span class="req">*</span></label>
+                <input id="f_start" type="datetime-local" value="2025-03-15T09:00" oninput="syncPreview()"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">End Date &amp; Time <span class="req">*</span></label>
+                <input id="f_end" type="datetime-local" value="2025-03-15T11:00" oninput="syncPreview()"/>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Max Attempts Per Student</label>
+                <select id="f_attempts" onchange="syncPreview()">
+                  <option value="1" selected>1 attempt only</option>
+                  <option value="2">2 attempts</option>
+                  <option value="3">3 attempts</option>
+                  <option value="0">Unlimited</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max Students (Cap)</label>
+                <input id="f_cap" type="number" value="100" min="1" placeholder="e.g. 100" oninput="syncPreview()"/>
+                <div class="form-hint">Leave empty for no limit.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SECTION 3 — Options -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-green">⚙️</div>
+              Options
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="sec-divider">
+              <div class="sec-divider-line"></div>
+              <div class="sec-divider-text">Access</div>
+              <div class="sec-divider-line"></div>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Credential-Based Access</div>
+                <div class="toggle-sub">Only students with registered emails and the access code can attempt.</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Require Email Verification</div>
+                <div class="toggle-sub">Send a verification OTP before allowing access to the exam.</div>
+              </div>
+              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Allow Late Entry</div>
+                <div class="toggle-sub">Students can join up to 15 minutes after the exam start time.</div>
+              </div>
+              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+
+            <div class="sec-divider">
+              <div class="sec-divider-line"></div>
+              <div class="sec-divider-text">Exam Behaviour</div>
+              <div class="sec-divider-line"></div>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Shuffle Questions</div>
+                <div class="toggle-sub">Randomise question order for each student to minimise cheating.</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Shuffle Answer Options</div>
+                <div class="toggle-sub">Randomise MCQ answer order for each student.</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Show Result Immediately</div>
+                <div class="toggle-sub">Students see their score and answers right after submitting.</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SECTION 4 — Proctoring -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-red">🔒</div>
+              Proctoring Settings
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Web Proctoring</div>
+                <div class="toggle-sub">Detect tab switches, DevTools access, copy-paste, and window blur events.</div>
+              </div>
+              <div class="toggle blue on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Image Proctoring</div>
+                <div class="toggle-sub">Capture webcam snapshots every 10 seconds throughout the exam duration.</div>
+              </div>
+              <div class="toggle blue on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Video Proctoring</div>
+                <div class="toggle-sub">Continuously record the student's webcam video stream during the exam.</div>
+              </div>
+              <div class="toggle blue" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Full-Screen Enforcement</div>
+                <div class="toggle-sub">Force students into full-screen mode and flag if they exit.</div>
+              </div>
+              <div class="toggle blue on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Face Detection Alert</div>
+                <div class="toggle-sub">Alert when no face is detected in the webcam frame for more than 5 seconds.</div>
+              </div>
+              <div class="toggle blue" onclick="this.classList.toggle('on')"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SECTION 5 — Instructions -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-yellow">📋</div>
+              Student Instructions
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="form-row full" style="margin-bottom:16px;">
+              <div class="form-group">
+                <label class="form-label">Startup Instructions</label>
+                <textarea>Please ensure you are in a quiet room with good lighting. Keep your camera on throughout the exam. Do not switch browser tabs — it will be flagged and reported.</textarea>
+                <div class="form-hint">Shown to students on the entry screen before they begin.</div>
+              </div>
+            </div>
+
+            <div class="form-row full">
+              <div class="form-group">
+                <label class="form-label">Completion Message</label>
+                <textarea>Thank you for completing the assessment. Your responses have been recorded. Results will be reviewed and shared within 24 hours.</textarea>
+                <div class="form-hint">Shown to students immediately after they submit the exam.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SECTION 6 — Existing Links -->
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <div class="section-title-icon si-purple">📋</div>
+              Existing Links
+            </div>
+            <span style="font-size:12px;color:var(--muted);">3 active</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="links-table">
+              <thead>
+                <tr>
+                  <th>Label</th>
+                  <th>Assessment</th>
+                  <th>Code</th>
+                  <th>Window</th>
+                  <th>Status</th>
+                  <th>Attempts</th>
+                  <th style="width:100px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div style="font-weight:600;font-size:13px;">Batch A — March</div><div class="link-url-cell">testbuddy.app/exam?id=a3f2x</div></td>
+                  <td style="font-size:13px;">Web Dev Fundamentals</td>
+                  <td><span class="link-code">TB2025</span></td>
+                  <td style="font-size:12px;color:var(--muted);">Mar 15 · 9am–11am</td>
+                  <td><span class="live-dot" style="color:var(--green);">Live</span></td>
+                  <td style="font-size:13px;font-weight:600;">42 / 100</td>
+                  <td>
+                    <div class="action-btns">
+                      <div class="act-btn copy" onclick="showToast('success','Link copied!')" title="Copy link">📋</div>
+                      <div class="act-btn"      onclick="openQR()"                            title="QR Code">⬛</div>
+                      <div class="act-btn del"  onclick="openDelete()"                        title="Delete">🗑️</div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:600;font-size:13px;">Batch B — March</div><div class="link-url-cell">testbuddy.app/exam?id=b8k1p</div></td>
+                  <td style="font-size:13px;">JavaScript Basics Quiz</td>
+                  <td><span class="link-code">JS2025</span></td>
+                  <td style="font-size:12px;color:var(--muted);">Mar 20 · 2pm–3pm</td>
+                  <td><span class="badge badge-blue" style="font-size:11px;">Scheduled</span></td>
+                  <td style="font-size:13px;font-weight:600;">0 / 60</td>
+                  <td>
+                    <div class="action-btns">
+                      <div class="act-btn copy" onclick="showToast('success','Link copied!')" title="Copy link">📋</div>
+                      <div class="act-btn"      onclick="openQR()"                            title="QR Code">⬛</div>
+                      <div class="act-btn del"  onclick="openDelete()"                        title="Delete">🗑️</div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:600;font-size:13px;">Mock Test — Feb</div><div class="link-url-cell">testbuddy.app/exam?id=c9z4r</div></td>
+                  <td style="font-size:13px;">DBMS Final Exam</td>
+                  <td><span class="link-code">DB2025</span></td>
+                  <td style="font-size:12px;color:var(--muted);">Feb 10 · 10am–12pm</td>
+                  <td><span class="badge badge-draft" style="font-size:11px;">Expired</span></td>
+                  <td style="font-size:13px;font-weight:600;">87 / 90</td>
+                  <td>
+                    <div class="action-btns">
+                      <div class="act-btn copy" onclick="showToast('success','Link copied!')" title="Copy link">📋</div>
+                      <div class="act-btn"      onclick="openQR()"                            title="QR Code">⬛</div>
+                      <div class="act-btn del"  onclick="openDelete()"                        title="Delete">🗑️</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /left -->
+
+      <!-- ══ RIGHT PANEL ══════════════════════════════════ -->
+      <div class="right-panel">
+
+        <!-- Link Preview -->
+        <div class="link-preview-card">
+          <div class="lp-label">Generated Link Preview</div>
+          <div class="lp-url" id="previewUrl">testbuddy.app/exam?id=<span>a3f2xTB2025</span></div>
+          <div class="lp-actions">
+            <button class="lp-btn lp-btn-copy" onclick="handleCopy()">📋 Copy Link</button>
+            <button class="lp-btn lp-btn-qr"   onclick="openQR()">⬛ QR Code</button>
+          </div>
+          <div class="lp-divider"></div>
+          <div class="lp-stats">
+            <div class="lp-stat"><div class="lp-stat-num" id="ps_q">20</div><div class="lp-stat-label">Questions</div></div>
+            <div class="lp-stat"><div class="lp-stat-num" id="ps_dur">30m</div><div class="lp-stat-label">Duration</div></div>
+            <div class="lp-stat"><div class="lp-stat-num" id="ps_cap">100</div><div class="lp-stat-label">Cap</div></div>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="info-panel">
+          <div class="info-panel-header">
+            <div class="info-panel-title">📋 Link Summary</div>
+          </div>
+          <div class="info-panel-body">
+            <div class="summary-row"><span class="summary-key">Assessment</span><span class="summary-val" id="s_assessment">Web Dev Fundamentals</span></div>
+            <div class="summary-row"><span class="summary-key">Label</span><span class="summary-val" id="s_label">Batch A — March 2025</span></div>
+            <div class="summary-row"><span class="summary-key">Access Code</span><span class="summary-val" id="s_code" style="font-family:'Syne',sans-serif;letter-spacing:2px;color:var(--accent2);">TB2025</span></div>
+            <div class="summary-row"><span class="summary-key">Window Opens</span><span class="summary-val" id="s_start">Mar 15, 9:00 AM</span></div>
+            <div class="summary-row"><span class="summary-key">Window Closes</span><span class="summary-val" id="s_end">Mar 15, 11:00 AM</span></div>
+            <div class="summary-row"><span class="summary-key">Max Attempts</span><span class="summary-val" id="s_attempts">1 attempt only</span></div>
+            <div class="summary-row"><span class="summary-key">Student Cap</span><span class="summary-val" id="s_cap">100 students</span></div>
+          </div>
+        </div>
+
+        <!-- Checklist -->
+        <div class="info-panel">
+          <div class="info-panel-header">
+            <div class="info-panel-title">✅ Ready to Generate?</div>
+          </div>
+          <div class="info-panel-body">
+            <div class="checklist" id="checklist">
+              <div class="check-item done-item"><div class="check-dot done">✓</div><span>Assessment selected</span></div>
+              <div class="check-item done-item"><div class="check-dot done">✓</div><span>Link name entered</span></div>
+              <div class="check-item done-item"><div class="check-dot done">✓</div><span>Access code set</span></div>
+              <div class="check-item done-item"><div class="check-dot done">✓</div><span>Date window configured</span></div>
+              <div class="check-item pending-item"><div class="check-dot pending">○</div><span>Link generated &amp; shared</span></div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:18px;" onclick="handleGenerate()">🔗 Generate Link</button>
+          </div>
+        </div>
+
+        <!-- Tips -->
+        <div class="info-panel">
+          <div class="info-panel-header">
+            <div class="info-panel-title">💡 Tips</div>
+          </div>
+          <div class="info-panel-body" style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;gap:10px;font-size:13px;color:var(--muted);line-height:1.5;">
+              <span style="font-size:16px;flex-shrink:0;">🔐</span>
+              <span>Share the access code separately from the link for extra security.</span>
+            </div>
+            <div style="display:flex;gap:10px;font-size:13px;color:var(--muted);line-height:1.5;">
+              <span style="font-size:16px;flex-shrink:0;">⏰</span>
+              <span>Set the window just long enough — too wide a window increases risk of sharing.</span>
+            </div>
+            <div style="display:flex;gap:10px;font-size:13px;color:var(--muted);line-height:1.5;">
+              <span style="font-size:16px;flex-shrink:0;">📲</span>
+              <span>Use the QR code for in-person exam rooms to speed up student access.</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right-panel -->
+    </div><!-- /form-layout -->
+
+  </main>
+</div>
+
+<!-- ═══ QR MODAL ══════════════════════════════════════════ -->
+<div class="modal-overlay" id="qrModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">QR Code</div>
+      <div class="modal-close" onclick="closeQR()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="qr-box">⬛</div>
+      <div class="qr-url">testbuddy.app/exam?id=a3f2xTB2025</div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;">Scan this QR code with a mobile device to open the exam entry page directly. Share with students for quick in-person access.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" onclick="showToast('info','Downloading QR…');closeQR()">⬇ Download PNG</button>
+      <button class="btn btn-primary btn-sm"   style="flex:1;justify-content:center;" onclick="showToast('success','Link copied!');closeQR()">📋 Copy Link</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DELETE CONFIRM MODAL ══════════════════════════════ -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="confirm-modal">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title">Delete this link?</div>
+    <div class="confirm-desc">This action cannot be undone. Students who have the link will no longer be able to access the exam. Existing attempt records will be preserved.</div>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeDelete()">Cancel</button>
+      <button class="btn btn-danger btn-sm"    onclick="confirmDelete()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TOAST ──────────────────────────────────────────── -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg">Done!</span>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   ASSESSMENT SELECTION
+══════════════════════════════════════════════════════ */
+const ASSESSMENTS = {
+  'Web Development Fundamentals Test': { q: 20, dur: '30m', label: 'Web Dev Fundamentals' },
+  'JavaScript Basics Quiz':            { q: 15, dur: '20m', label: 'JavaScript Basics Quiz' },
+  'DBMS Final Exam':                   { q: 30, dur: '45m', label: 'DBMS Final Exam' },
+};
+let selectedAssessment = 'Web Development Fundamentals Test';
+
+function selectAssessment(card, name, meta) {
+  document.querySelectorAll('.assessment-select-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  selectedAssessment = name;
+  const info = ASSESSMENTS[name];
+  document.getElementById('ps_q').textContent   = info.q;
+  document.getElementById('ps_dur').textContent = info.dur;
+  document.getElementById('s_assessment').textContent = info.label;
+  syncPreview();
+}
+
+/* ══════════════════════════════════════════════════════
+   PREVIEW & SUMMARY SYNC
+══════════════════════════════════════════════════════ */
+function syncPreview() {
+  const code     = document.getElementById('f_code').value.trim() || 'XXXXXX';
+  const name     = document.getElementById('f_name').value.trim() || '—';
+  const cap      = document.getElementById('f_cap').value || '∞';
+  const startRaw = document.getElementById('f_start').value;
+  const endRaw   = document.getElementById('f_end').value;
+  const attempts = document.getElementById('f_attempts');
+  const attText  = attempts.options[attempts.selectedIndex].text;
+
+  // fake unique id from code
+  const id = code.toLowerCase().replace(/\s/g,'').slice(0,5) + Math.abs(hashStr(code) % 1000);
+  document.getElementById('previewUrl').innerHTML =
+    `testbuddy.app/exam?id=<span>${id}</span>`;
+
+  document.getElementById('ps_cap').textContent = cap;
+  document.getElementById('s_label').textContent    = name;
+  document.getElementById('s_code').textContent     = code;
+  document.getElementById('s_attempts').textContent = attText;
+  document.getElementById('s_cap').textContent      = cap + (cap !== '∞' ? ' students' : ' (unlimited)');
+
+  if (startRaw) {
+    const d = new Date(startRaw);
+    document.getElementById('s_start').textContent = d.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+  }
+  if (endRaw) {
+    const d = new Date(endRaw);
+    document.getElementById('s_end').textContent = d.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+  }
+}
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return h;
+}
+
+/* ══════════════════════════════════════════════════════
+   REFRESH ACCESS CODE
+══════════════════════════════════════════════════════ */
+const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function refreshCode() {
+  let code = '';
+  for (let i = 0; i < 6; i++) code += CHARS[Math.floor(Math.random() * CHARS.length)];
+  document.getElementById('f_code').value = code;
+  syncPreview();
+  showToast('info', 'New access code generated: ' + code);
+}
+
+/* ══════════════════════════════════════════════════════
+   GENERATE LINK
+══════════════════════════════════════════════════════ */
+function handleGenerate() {
+  const name = document.getElementById('f_name').value.trim();
+  const code = document.getElementById('f_code').value.trim();
+  if (!selectedAssessment) { showToast('error', 'Please select an assessment.'); return; }
+  if (!name) { showToast('error', 'Please enter a link name / label.'); return; }
+  if (!code) { showToast('error', 'Please set an access code.'); return; }
+
+  // Mark last checklist item done
+  const items = document.querySelectorAll('#checklist .check-item');
+  const last  = items[items.length - 1];
+  last.classList.remove('pending-item');
+  last.classList.add('done-item');
+  last.querySelector('.check-dot').className = 'check-dot done';
+  last.querySelector('.check-dot').textContent = '✓';
+
+  showToast('success', 'Exam link generated successfully! Ready to share.');
+}
+
+/* ══════════════════════════════════════════════════════
+   COPY LINK
+══════════════════════════════════════════════════════ */
+function handleCopy() {
+  showToast('success', 'Link copied to clipboard!');
+}
+
+/* ══════════════════════════════════════════════════════
+   QR MODAL
+══════════════════════════════════════════════════════ */
+function openQR()   { document.getElementById('qrModal').classList.add('open'); }
+function closeQR()  { document.getElementById('qrModal').classList.remove('open'); }
+
+/* ══════════════════════════════════════════════════════
+   DELETE MODAL
+══════════════════════════════════════════════════════ */
+function openDelete()    { document.getElementById('deleteModal').classList.add('open'); }
+function closeDelete()   { document.getElementById('deleteModal').classList.remove('open'); }
+function confirmDelete() {
+  closeDelete();
+  showToast('delete', 'Link deleted successfully.');
+}
+
+/* close modals on overlay click */
+['qrModal','deleteModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════ */
+function showToast(type, msg) {
+  const toast  = document.getElementById('toast');
+  const icons  = { success:'✅', error:'❌', info:'ℹ️', delete:'🗑️' };
+  const colors = { success:'#0d1117', error:'#c0392b', info:'#1a2540', delete:'#444' };
+  document.getElementById('toastIcon').textContent = icons[type] || '✅';
+  document.getElementById('toastMsg').textContent  = msg;
+  toast.style.background = colors[type] || '#0d1117';
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), 3200);
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+syncPreview();
+</script>
+</body>
+</html>

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TestBuddy – Admin Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<style>
+
+  /* ─── RESET & BASE ─────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:      #0d1117;
+    --surface:  #f5f4f0;
+    --accent:   #ff5c00;
+    --accent2:  #0057ff;
+    --muted:    #8a8a8a;
+    --border:   #e2e0da;
+    --green:    #00c271;
+    --card:     #ffffff;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    min-height: 100vh;
+    display: flex;
+    align-items: stretch;
+  }
+
+  /* ─── LEFT PANEL ───────────────────────────────────────── */
+  .left {
+    flex: 1;
+    background: var(--ink);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 52px 64px;
+    position: relative;
+    overflow: hidden;
+    min-height: 100vh;
+  }
+
+  /* subtle grid texture */
+  .left::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 44px 44px;
+    pointer-events: none;
+  }
+
+  /* orange glow top-left */
+  .glow-orange {
+    position: absolute;
+    top: -100px; left: -100px;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,92,0,.22), transparent 65%);
+    pointer-events: none;
+  }
+
+  /* blue glow bottom-right */
+  .glow-blue {
+    position: absolute;
+    bottom: -80px; right: -80px;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,87,255,.18), transparent 65%);
+    pointer-events: none;
+  }
+
+  .left-inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    gap: 40px;
+  }
+
+  /* brand */
+  .brand {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -1px;
+  }
+  .brand span { color: var(--accent); }
+
+  /* headline */
+  .left-headline {
+    font-family: 'Syne', sans-serif;
+    font-size: 52px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.08;
+    letter-spacing: -2.5px;
+  }
+  .left-headline em {
+    color: var(--accent);
+    font-style: normal;
+  }
+  .left-sub {
+    color: rgba(255,255,255,.42);
+    font-size: 16px;
+    line-height: 1.75;
+    max-width: 360px;
+    margin-top: 18px;
+  }
+
+  /* feature list */
+  .features {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .feature {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    transition: background .2s;
+  }
+  .feature:hover { background: rgba(255,255,255,.08); }
+
+  .feature-icon {
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.07);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .feature-text  { color: rgba(255,255,255,.65); font-size: 14px; }
+  .feature-title { color: #fff; font-weight: 500; margin-bottom: 2px; font-size: 14px; }
+
+  /* testimonial chip */
+  .testimonial {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 100px;
+    padding: 8px 16px 8px 10px;
+    width: fit-content;
+  }
+  .testimonial-avatars { display: flex; }
+  .t-avatar {
+    width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ink);
+    background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin-left: -6px;
+  }
+  .t-avatar:first-child { margin-left: 0; }
+  .t-avatar.b { background: var(--accent2); }
+  .t-avatar.c { background: var(--green); }
+  .testimonial-text { color: rgba(255,255,255,.5); font-size: 12px; }
+  .testimonial-text strong { color: rgba(255,255,255,.85); }
+
+  /* ─── RIGHT PANEL ──────────────────────────────────────── */
+  .right {
+    width: 460px;
+    flex-shrink: 0;
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 64px 52px;
+    position: relative;
+  }
+
+  /* top-right corner accent */
+  .right::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle at top right, rgba(255,92,0,.07), transparent 70%);
+    pointer-events: none;
+  }
+
+  /* step indicator */
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 36px;
+  }
+  .step {
+    width: 28px; height: 4px;
+    border-radius: 100px;
+    background: var(--border);
+    transition: background .2s;
+  }
+  .step.active { background: var(--accent); width: 48px; }
+  .step.done   { background: var(--green); }
+
+  .right-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+  .right-sub { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
+
+  /* form */
+  .form-group { margin-bottom: 20px; }
+
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .input-wrapper { position: relative; }
+
+  .input-icon {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 13px 16px 13px 42px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    background: var(--surface);
+    color: var(--ink);
+    transition: border-color .2s, background .2s, box-shadow .2s;
+  }
+  .form-group input::placeholder { color: #bbb; }
+  .form-group input:focus {
+    border-color: var(--accent2);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(0,87,255,.09);
+  }
+
+  .eye-toggle {
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    user-select: none;
+    transition: color .15s;
+  }
+  .eye-toggle:hover { color: var(--ink); }
+
+  /* remember + forgot row */
+  .options-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .remember input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1.5px solid var(--border);
+    padding: 0;
+  }
+  .forgot-link {
+    font-size: 13px;
+    color: var(--accent2);
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .forgot-link:hover { opacity: .75; }
+
+  /* login button */
+  .btn-login {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: .4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background .2s, transform .1s, box-shadow .2s;
+    box-shadow: 0 4px 16px rgba(255,92,0,.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-login::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(255,255,255,.08), transparent);
+    pointer-events: none;
+  }
+  .btn-login:hover { background: #e04e00; box-shadow: 0 6px 20px rgba(255,92,0,.38); }
+  .btn-login:active { transform: scale(.99); }
+  .btn-arrow { transition: transform .2s; }
+  .btn-login:hover .btn-arrow { transform: translateX(4px); }
+
+  /* divider */
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 28px 0;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+  .divider-text { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+  /* SSO button */
+  .btn-sso {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: border-color .2s, background .2s;
+    color: var(--ink);
+  }
+  .btn-sso:hover { border-color: var(--ink); background: var(--surface); }
+  .sso-icon { width: 20px; height: 20px; }
+
+  /* footer note */
+  .right-footer {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .right-footer a { color: var(--accent2); text-decoration: none; }
+  .right-footer a:hover { text-decoration: underline; }
+
+  /* ─── ANIMATIONS ───────────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .right-title      { animation: fadeUp .45s ease both .05s; }
+  .right-sub        { animation: fadeUp .45s ease both .1s; }
+  .form-group:nth-of-type(1) { animation: fadeUp .45s ease both .14s; }
+  .form-group:nth-of-type(2) { animation: fadeUp .45s ease both .18s; }
+  .options-row      { animation: fadeUp .45s ease both .22s; }
+  .btn-login        { animation: fadeUp .45s ease both .26s; }
+  .divider          { animation: fadeUp .45s ease both .30s; }
+  .btn-sso          { animation: fadeUp .45s ease both .34s; }
+  .right-footer     { animation: fadeUp .45s ease both .38s; }
+
+  @keyframes leftIn {
+    from { opacity: 0; transform: translateX(-24px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .left-headline { animation: leftIn .6s ease both .1s; }
+  .left-sub      { animation: leftIn .6s ease both .18s; }
+  .features      { animation: leftIn .6s ease both .26s; }
+  .testimonial   { animation: leftIn .6s ease both .34s; }
+
+  /* ─── RESPONSIVE ───────────────────────────────────────── */
+  @media (max-width: 960px) {
+    .left { display: none; }
+    .right { width: 100%; padding: 48px 32px; min-height: 100vh; }
+  }
+  @media (max-width: 400px) {
+    .right { padding: 36px 24px; }
+    .right-title { font-size: 24px; }
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ═══ LEFT PANEL ═══════════════════════════════════════════ -->
+<div class="left">
+  <div class="glow-orange"></div>
+  <div class="glow-blue"></div>
+
+  <div class="left-inner">
+
+    <!-- Brand -->
+    <div class="brand">Test<span>Buddy</span></div>
+
+    <!-- Headline -->
+    <div>
+      <div class="left-headline">
+        Build.<br/>
+        Distribute.<br/>
+        <em>Evaluate.</em>
+      </div>
+      <div class="left-sub">
+        The complete platform for online assessments — from AI-generated questions to proctored exams, all in one place.
+      </div>
+    </div>
+
+    <!-- Feature cards -->
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🤖</div>
+        <div>
+          <div class="feature-title">AI Question Generation</div>
+          <div class="feature-text">Generate high-quality questions by topic, level &amp; type instantly</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <div>
+          <div class="feature-title">Smart Proctoring</div>
+          <div class="feature-text">Web, image &amp; video proctoring to ensure exam integrity</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📊</div>
+        <div>
+          <div class="feature-title">Instant Analytics</div>
+          <div class="feature-text">Track performance across topics, difficulty &amp; question types</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Social proof -->
+    <div class="testimonial">
+      <div class="testimonial-avatars">
+        <div class="t-avatar">A</div>
+        <div class="t-avatar b">B</div>
+        <div class="t-avatar c">C</div>
+      </div>
+      <div class="testimonial-text"><strong>500+ exams</strong> conducted this month</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ RIGHT PANEL ══════════════════════════════════════════ -->
+<div class="right">
+
+  <!-- Step dots -->
+  <div class="step-indicator">
+    <div class="step done"></div>
+    <div class="step active"></div>
+    <div class="step"></div>
+  </div>
+
+  <div class="right-title">Welcome back 👋</div>
+  <div class="right-sub">Sign in to your admin account to manage assessments &amp; questions.</div>
+
+  <!-- Email -->
+  <div class="form-group">
+    <label>Email Address</label>
+    <div class="input-wrapper">
+      <span class="input-icon">✉️</span>
+      <input
+        type="email"
+        id="email"
+        placeholder="admin@testbuddy.app"
+        autocomplete="email"
+        value=""
+      />
+    </div>
+  </div>
+
+  <!-- Password -->
+  <div class="form-group">
+    <label>Password</label>
+    <div class="input-wrapper">
+      <span class="input-icon">🔑</span>
+      <input
+        type="password"
+        id="password"
+        placeholder="Enter your password"
+        autocomplete="current-password"
+      />
+      <span class="eye-toggle" id="eyeToggle" title="Show / Hide">👁</span>
+    </div>
+  </div>
+
+  <!-- Options row -->
+  <div class="options-row">
+    <label class="remember">
+      <input type="checkbox" checked/>
+      Remember me
+    </label>
+    <a class="forgot-link" href="#">Forgot password?</a>
+  </div>
+
+  <!-- Login button -->
+  <button class="btn-login" id="loginBtn" onclick="handleLogin()">
+    Sign In
+    <span class="btn-arrow">→</span>
+  </button>
+
+  <!-- Divider -->
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-text">or continue with</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <!-- SSO -->
+  <button class="btn-sso">
+    <!-- Google icon inline SVG -->
+    <svg class="sso-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+    Continue with Google
+  </button>
+
+  <!-- Footer -->
+  <div class="right-footer">
+    Having trouble signing in?
+    <a href="#">Contact support</a>
+    <br/>
+    <span style="margin-top:6px;display:inline-block;">
+      By signing in, you agree to our
+      <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a>
+    </span>
+  </div>
+
+</div>
+
+<!-- ═══ SCRIPT ════════════════════════════════════════════════ -->
+<script>
+  // Eye toggle
+  const eyeToggle = document.getElementById('eyeToggle');
+  const passwordInput = document.getElementById('password');
+  let visible = false;
+  eyeToggle.addEventListener('click', () => {
+    visible = !visible;
+    passwordInput.type = visible ? 'text' : 'password';
+    eyeToggle.textContent = visible ? '🙈' : '👁';
+  });
+
+  // Login handler (UI only — wire to POST /api/admin/login)
+  function handleLogin() {
+    const email = document.getElementById('email').value.trim();
+    const pass  = document.getElementById('password').value;
+    const btn   = document.getElementById('loginBtn');
+
+    if (!email || !pass) {
+      shake(btn);
+      return;
+    }
+
+    btn.textContent = 'Signing in…';
+    btn.style.opacity = '.8';
+    btn.disabled = true;
+
+    // Simulate API call — replace with:
+    // fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'},
+    //   body: JSON.stringify({ email, password: pass }) })
+    setTimeout(() => {
+      btn.innerHTML = '✅ Success! Redirecting…';
+      btn.style.background = 'var(--green)';
+      setTimeout(() => {
+        btn.innerHTML = 'Sign In <span class="btn-arrow">→</span>';
+        btn.style.opacity = '1';
+        btn.style.background = '';
+        btn.disabled = false;
+      }, 2000);
+    }, 1400);
+  }
+
+  // Shake animation for validation
+  function shake(el) {
+    el.style.animation = 'none';
+    el.offsetHeight; // reflow
+    el.style.animation = 'shake .4s ease';
+  }
+
+  // Enter key support
+  document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+</script>
+
+<style>
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%     { transform: translateX(-8px); }
+    40%     { transform: translateX(8px); }
+    60%     { transform: translateX(-5px); }
+    80%     { transform: translateX(5px); }
+  }
+</style>
+
+</body>
+</html>

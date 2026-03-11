@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TestBuddy – Student Entry</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+
+/* ─── RESET & BASE ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:     #0d1117;
+  --surface: #f5f4f0;
+  --card:    #ffffff;
+  --accent:  #ff5c00;
+  --accent2: #0057ff;
+  --muted:   #8a8a8a;
+  --border:  #e8e5de;
+  --green:   #00c271;
+  --yellow:  #f5a623;
+  --red:     #e03b3b;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d5d2cb; border-radius: 100px; }
+
+/* ─── PAGE WRAPPER ─────────────────────────────────────── */
+.page-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--surface);
+}
+
+/* ─── ENTRY CARD ───────────────────────────────────────── */
+.entry-card {
+  background: var(--card);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 520px;
+  padding: 48px 48px 44px;
+  box-shadow: 0 8px 48px rgba(0,0,0,.09);
+  animation: fadeUp .4s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── LOGO ─────────────────────────────────────────────── */
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--ink);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+.logo span { color: var(--accent); }
+
+.logo-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+
+/* ─── DIVIDER ──────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 24px 0;
+}
+
+/* ─── EXAM TITLE ───────────────────────────────────────── */
+.exam-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  color: var(--ink);
+  line-height: 1.25;
+  margin-bottom: 16px;
+}
+
+/* ─── META ROW ─────────────────────────────────────────── */
+.meta-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.meta-icon-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+}
+.meta-icon { font-size: 15px; }
+.meta-sub  {
+  font-size: 13px;
+  color: var(--muted);
+  padding-left: 20px;
+}
+
+/* ─── FORM LABELS & INPUTS ─────────────────────────────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.form-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.form-input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+}
+.form-input:focus {
+  border-color: var(--accent2);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,87,255,.07);
+}
+.form-input.error {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(224,59,59,.08);
+}
+.form-input::placeholder { color: #bbb; }
+
+/* ─── INSTRUCTIONS BOX ─────────────────────────────────── */
+.instructions {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 28px;
+  border: 1px solid var(--border);
+}
+.instructions-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 13px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.instructions-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.instructions-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.5;
+}
+.bullet {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* ─── ERROR MESSAGE ────────────────────────────────────── */
+.err-msg {
+  background: rgba(224,59,59,.08);
+  border: 1px solid rgba(224,59,59,.2);
+  border-radius: 9px;
+  padding: 11px 15px;
+  font-size: 13px;
+  color: var(--red);
+  margin-bottom: 18px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+.err-msg.show { display: flex; }
+
+/* ─── START BUTTON ─────────────────────────────────────── */
+.start-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(255,92,0,.32);
+  transition: background .2s, box-shadow .2s, transform .18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.start-btn:hover {
+  background: #e04e00;
+  box-shadow: 0 6px 28px rgba(255,92,0,.44);
+  transform: translateY(-1px);
+}
+.start-btn:active { transform: translateY(0); }
+
+/* ─── SUCCESS OVERLAY ──────────────────────────────────── */
+.success-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(13,17,23,.65);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+}
+.success-overlay.open { display: flex; }
+.success-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 52px 44px;
+  text-align: center;
+  width: 400px;
+  max-width: 95vw;
+  box-shadow: 0 24px 80px rgba(0,0,0,.25);
+  animation: popIn .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes popIn {
+  from { opacity:0; transform: scale(.85); }
+  to   { opacity:1; transform: scale(1); }
+}
+.success-icon  { font-size: 56px; margin-bottom: 18px; }
+.success-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 24px; font-weight: 800;
+  margin-bottom: 8px; color: var(--ink);
+}
+.success-sub {
+  font-size: 14px; color: var(--muted);
+  line-height: 1.6; margin-bottom: 22px;
+}
+.success-student {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 13px 20px;
+  font-size: 14px; color: var(--ink); font-weight: 500;
+  margin-bottom: 24px; border: 1px solid var(--border);
+}
+.success-proceed {
+  width: 100%; padding: 14px;
+  background: var(--green); color: #fff;
+  border: none; border-radius: 11px;
+  font-size: 15px; font-family: 'Syne', sans-serif; font-weight: 700;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(0,194,113,.3);
+  transition: all .2s;
+}
+.success-proceed:hover { background: #00a85e; }
+
+/* ─── TOAST ────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  background: var(--ink); color: #fff;
+  padding: 13px 20px; border-radius: 12px; font-size: 14px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s cubic-bezier(.4,0,.2,1);
+  z-index: 400; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ─── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width: 560px) {
+  .entry-card  { padding: 32px 24px; }
+  .meta-row    { gap: 18px; }
+  .exam-title  { font-size: 20px; }
+  .logo        { font-size: 24px; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="entry-card">
+
+    <!-- Logo -->
+    <div class="logo">Test<span>Buddy</span></div>
+    <div class="logo-sub">Online Assessment Platform</div>
+
+    <div class="divider"></div>
+
+    <!-- Exam title -->
+    <div class="exam-title">Web Development Fundamentals</div>
+
+    <!-- Meta info — matches screenshot layout exactly -->
+    <div class="meta-row">
+      <div class="meta-item">
+        <div class="meta-icon-label"><span class="meta-icon">⏱</span> 30</div>
+        <div class="meta-sub">minutes</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-icon-label"><span class="meta-icon">❓</span> 20</div>
+        <div class="meta-sub">questions</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-icon-label"><span class="meta-icon">⭐</span> 1 mark</div>
+        <div class="meta-sub">each</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-icon-label"><span class="meta-icon">➖</span> −0.25</div>
+        <div class="meta-sub">negative</div>
+      </div>
+    </div>
+
+    <!-- Error box -->
+    <div class="err-msg" id="errMsg">⚠️ <span id="errText">Invalid email or access code.</span></div>
+
+    <!-- Email -->
+    <div class="form-group">
+      <label class="form-label">Your Email Address</label>
+      <input
+        class="form-input"
+        id="f_email"
+        type="email"
+        placeholder="student@example.com"
+        oninput="clearErr()"
+      />
+    </div>
+
+    <!-- Access Code -->
+    <div class="form-group">
+      <label class="form-label">Access Code</label>
+      <input
+        class="form-input"
+        id="f_code"
+        type="text"
+        placeholder="Enter access code"
+        maxlength="10"
+        oninput="clearErr(); this.value = this.value.toUpperCase()"
+        style="letter-spacing:3px; font-family:'Syne',sans-serif; font-weight:700;"
+      />
+    </div>
+
+    <!-- Instructions -->
+    <div class="instructions">
+      <div class="instructions-title">📋 Instructions</div>
+      <ul class="instructions-list">
+        <li><div class="bullet"></div><span>Ensure you are in a quiet room with good lighting</span></li>
+        <li><div class="bullet"></div><span>Do not switch browser tabs — it will be flagged</span></li>
+        <li><div class="bullet"></div><span>Camera access is required for proctoring</span></li>
+        <li><div class="bullet"></div><span>Once started, the timer cannot be paused</span></li>
+      </ul>
+    </div>
+
+    <!-- CTA -->
+    <button class="start-btn" onclick="handleStart()">
+      Start Exam →
+    </button>
+
+  </div>
+</div>
+
+<!-- ═══ SUCCESS OVERLAY ═══════════════════════════════════ -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Access Verified!</div>
+    <div class="success-sub">Your identity has been confirmed. The exam is about to begin. Make sure your camera and audio are ready.</div>
+    <div class="success-student" id="successStudent">student@example.com</div>
+    <button class="success-proceed" onclick="proceedToExam()">🚀 Proceed to Exam</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg">Done!</span>
+</div>
+
+<script>
+const VALID_CODE = 'TB2024'; // demo access code
+
+function clearErr() {
+  document.getElementById('errMsg').classList.remove('show');
+  document.getElementById('f_email').classList.remove('error');
+  document.getElementById('f_code').classList.remove('error');
+}
+
+function handleStart() {
+  clearErr();
+  const email = document.getElementById('f_email').value.trim();
+  const code  = document.getElementById('f_code').value.trim().toUpperCase();
+
+  if (!email || !email.includes('@')) {
+    document.getElementById('f_email').classList.add('error');
+    showErr('Please enter a valid email address.');
+    return;
+  }
+  if (!code) {
+    document.getElementById('f_code').classList.add('error');
+    showErr('Please enter the access code.');
+    return;
+  }
+  if (code !== VALID_CODE) {
+    document.getElementById('f_code').classList.add('error');
+    showErr('Invalid access code. Please check and try again.');
+    return;
+  }
+
+  document.getElementById('successStudent').textContent = email;
+  document.getElementById('successOverlay').classList.add('open');
+  showToast('success', 'Access verified!');
+}
+
+function showErr(msg) {
+  document.getElementById('errText').textContent = msg;
+  document.getElementById('errMsg').classList.add('show');
+}
+
+function proceedToExam() {
+  document.getElementById('successOverlay').classList.remove('open');
+  showToast('info', 'Starting exam… good luck! 🚀');
+}
+
+document.getElementById('successOverlay').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
+
+function showToast(type, msg) {
+  const toast  = document.getElementById('toast');
+  const icons  = { success:'✅', error:'❌', info:'ℹ️' };
+  const colors = { success:'#0d1117', error:'#c0392b', info:'#1a2540' };
+  document.getElementById('toastIcon').textContent = icons[type] || 'ℹ️';
+  document.getElementById('toastMsg').textContent  = msg;
+  toast.style.background = colors[type] || '#0d1117';
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), 3200);
+}
+</script>
+</body>
+</html>

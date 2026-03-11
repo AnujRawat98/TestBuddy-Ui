@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TestBuddy – Question Bank</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+
+/* ─── RESET & BASE ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:       #0d1117;
+  --surface:   #f5f4f0;
+  --card:      #ffffff;
+  --accent:    #ff5c00;
+  --accent2:   #0057ff;
+  --muted:     #8a8a8a;
+  --border:    #e8e5de;
+  --green:     #00c271;
+  --yellow:    #f5a623;
+  --red:       #e03b3b;
+  --purple:    #8b5cf6;
+  --sidebar-w: 240px;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d5d2cb; border-radius: 100px; }
+
+/* ─── SIDEBAR ──────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--ink);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 100; overflow-y: auto;
+}
+.sidebar::before {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+  background-size: 32px 32px; pointer-events: none;
+}
+.sidebar-logo {
+  padding: 28px 24px 24px;
+  font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+  color: #fff; letter-spacing: -1px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; gap: 10px; position: relative;
+}
+.sidebar-logo span { color: var(--accent); }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+.sidebar-section {
+  font-size: 10px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: rgba(255,255,255,.25); padding: 22px 24px 8px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 24px;
+  font-size: 14px; color: rgba(255,255,255,.5); cursor: pointer;
+  border-left: 3px solid transparent; transition: all .18s; text-decoration: none;
+}
+.nav-item:hover { background: rgba(255,255,255,.05); color: rgba(255,255,255,.85); }
+.nav-item.active { background: rgba(255,92,0,.1); color: #fff; border-left-color: var(--accent); }
+.nav-icon { width: 20px; text-align: center; font-size: 16px; flex-shrink: 0; }
+.nav-label { flex: 1; }
+.nav-badge {
+  background: var(--accent); color: #fff;
+  border-radius: 100px; font-size: 11px; font-weight: 600;
+  padding: 2px 8px;
+}
+.nav-badge.green { background: var(--green); }
+.nav-sub-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 24px 8px 50px; font-size: 13px;
+  color: rgba(255,255,255,.4); cursor: pointer;
+  border-left: 3px solid transparent; transition: all .15s;
+}
+.nav-sub-item:hover { color: rgba(255,255,255,.75); background: rgba(255,255,255,.03); }
+.nav-sub-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(255,92,0,.06); }
+.nav-sub-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.sidebar-footer {
+  margin-top: auto; padding: 20px 24px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.admin-card {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 10px; background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08); cursor: pointer; transition: background .18s;
+}
+.admin-card:hover { background: rgba(255,255,255,.09); }
+.admin-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff8c00);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.admin-name { font-size: 13px; font-weight: 500; color: #fff; }
+.admin-role { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 1px; }
+.admin-more { margin-left: auto; color: rgba(255,255,255,.3); font-size: 16px; }
+
+/* ─── MAIN ─────────────────────────────────────────────── */
+.main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ─── TOPBAR ───────────────────────────────────────────── */
+.topbar {
+  background: var(--card); border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.breadcrumb .active { color: var(--ink); font-weight: 600; font-family: 'Syne', sans-serif; }
+.breadcrumb .sep { color: var(--border); font-size: 16px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 9px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer; transition: all .15s; position: relative;
+}
+.icon-btn:hover { background: var(--surface); border-color: #ccc; }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); position: absolute; top: 4px; right: 4px; border: 2px solid var(--card); }
+.topbar-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #ff8c00);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* ─── BUTTONS ──────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 20px; border-radius: 9px; font-size: 14px;
+  font-family: 'DM Sans', sans-serif; font-weight: 500;
+  cursor: pointer; border: none; transition: all .18s;
+}
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 3px 12px rgba(255,92,0,.25); }
+.btn-primary:hover { background: #e04e00; box-shadow: 0 4px 16px rgba(255,92,0,.35); }
+.btn-secondary { background: var(--card); color: var(--ink); border: 1.5px solid var(--border); }
+.btn-secondary:hover { border-color: #bbb; background: var(--surface); }
+.btn-ghost { background: transparent; color: var(--accent2); border: 1.5px solid rgba(0,87,255,.2); }
+.btn-ghost:hover { background: rgba(0,87,255,.05); }
+.btn-danger { background: rgba(224,59,59,.08); color: var(--red); border: 1.5px solid rgba(224,59,59,.2); }
+.btn-danger:hover { background: rgba(224,59,59,.15); }
+.btn-sm { padding: 7px 16px; font-size: 13px; }
+.btn-xs { padding: 5px 12px; font-size: 12px; border-radius: 7px; }
+
+/* ─── CONTENT ──────────────────────────────────────────── */
+.content { padding: 32px; flex: 1; }
+
+.page-header {
+  display: flex; align-items: flex-end;
+  justify-content: space-between; margin-bottom: 28px;
+}
+.page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
+.page-sub { font-size: 14px; color: var(--muted); }
+.header-actions { display: flex; gap: 10px; }
+
+/* ─── STAT CARDS ───────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; margin-bottom: 28px; }
+.stat-card {
+  background: var(--card); border-radius: 16px; padding: 22px;
+  border: 1px solid var(--border); position: relative; overflow: hidden;
+  transition: transform .2s, box-shadow .2s; cursor: default;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.07); }
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; border-radius: 16px 16px 0 0;
+}
+.sc1::before { background: var(--accent); }
+.sc2::before { background: var(--accent2); }
+.sc3::before { background: var(--green); }
+.sc4::before { background: var(--purple); }
+.stat-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.stat-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.sc1 .stat-icon { background: rgba(255,92,0,.1); }
+.sc2 .stat-icon { background: rgba(0,87,255,.1); }
+.sc3 .stat-icon { background: rgba(0,194,113,.1); }
+.sc4 .stat-icon { background: rgba(139,92,246,.1); }
+.stat-trend {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+  padding: 3px 9px; border-radius: 100px; background: rgba(0,194,113,.1); color: var(--green);
+}
+.stat-num { font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; }
+.stat-label { font-size: 13px; color: var(--muted); margin-top: 5px; }
+
+/* ─── FILTER PANEL ─────────────────────────────────────── */
+.filter-panel {
+  background: var(--card); border-radius: 14px; border: 1px solid var(--border);
+  padding: 18px 22px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.search-box {
+  flex: 1; min-width: 220px; display: flex; align-items: center; gap: 9px;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 9px 16px; transition: border-color .2s;
+}
+.search-box:focus-within { border-color: var(--accent2); background: #fff; }
+.search-box input {
+  border: none; outline: none; background: transparent;
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  color: var(--ink); width: 100%;
+}
+.search-box input::placeholder { color: #bbb; }
+.search-icon { color: var(--muted); font-size: 16px; flex-shrink: 0; }
+
+.filter-select {
+  padding: 9px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 13px; font-family: 'DM Sans', sans-serif;
+  background: var(--surface); outline: none; cursor: pointer;
+  color: var(--ink); transition: border-color .2s;
+}
+.filter-select:focus { border-color: var(--accent2); background: #fff; }
+
+.filter-divider { width: 1px; height: 32px; background: var(--border); }
+
+.bulk-actions {
+  display: none; align-items: center; gap: 10px;
+  padding: 8px 14px; background: rgba(0,87,255,.06);
+  border: 1.5px solid rgba(0,87,255,.15); border-radius: 10px;
+}
+.bulk-actions.visible { display: flex; }
+.bulk-count { font-size: 13px; font-weight: 600; color: var(--accent2); }
+
+/* ─── MAIN LAYOUT ──────────────────────────────────────── */
+.layout-main { display: grid; grid-template-columns: 1fr 300px; gap: 22px; align-items: start; }
+
+/* ─── QUESTIONS CARD ───────────────────────────────────── */
+.questions-card {
+  background: var(--card); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+}
+.card-header {
+  padding: 16px 22px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fafaf7;
+}
+.card-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
+  display: flex; align-items: center; gap: 8px;
+}
+.result-count {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 100px; font-size: 12px; padding: 2px 10px;
+  color: var(--muted); font-weight: 500;
+}
+
+/* ─── TABLE ────────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; }
+th {
+  background: #fafaf7; font-size: 11px; font-weight: 600;
+  letter-spacing: .8px; text-transform: uppercase;
+  color: var(--muted); padding: 12px 18px;
+  text-align: left; border-bottom: 1px solid var(--border);
+  white-space: nowrap; user-select: none;
+}
+th.sortable { cursor: pointer; }
+th.sortable:hover { color: var(--ink); }
+th .si { margin-left: 4px; opacity: .35; font-size: 10px; }
+th.sorted .si { opacity: 1; color: var(--accent2); }
+
+td { padding: 0; border-bottom: 1px solid #f5f3ee; vertical-align: middle; }
+.td-inner { padding: 14px 18px; display: flex; align-items: center; }
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: background .14s; }
+tbody tr:hover td { background: #fafaf7; }
+tbody tr.selected td { background: rgba(0,87,255,.04); }
+
+/* checkbox */
+.cb-wrap { display: flex; align-items: center; justify-content: center; }
+.cb-wrap input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent2); cursor: pointer; }
+
+/* question cell */
+.q-cell { display: flex; flex-direction: column; gap: 5px; }
+.q-text {
+  font-size: 14px; font-weight: 500; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; max-width: 380px;
+}
+.q-options-preview { display: flex; gap: 6px; flex-wrap: wrap; }
+.q-opt-chip {
+  font-size: 11px; padding: 2px 8px; border-radius: 4px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+}
+.q-opt-chip.correct { background: rgba(0,194,113,.1); border-color: rgba(0,194,113,.25); color: #008a50; font-weight: 600; }
+
+/* badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 100px; font-size: 12px; font-weight: 500;
+}
+.bdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge-easy    { background: rgba(0,194,113,.12);   color: #008a50; }
+.badge-medium  { background: rgba(245,166,35,.14);  color: #a06800; }
+.badge-hard    { background: rgba(224,59,59,.1);    color: #c0392b; }
+.badge-mcq     { background: rgba(0,87,255,.1);     color: #0040bb; }
+.badge-multi   { background: rgba(139,92,246,.1);   color: #6d28d9; }
+.badge-text    { background: rgba(245,166,35,.12);  color: #a06800; }
+.badge-image   { background: rgba(6,182,212,.12);   color: #0891b2; }
+.badge-active  { background: rgba(0,194,113,.12);   color: #008a50; }
+.badge-draft   { background: rgba(138,138,138,.1);  color: #666; }
+.badge-js      { background: rgba(255,92,0,.1);     color: var(--accent); }
+.badge-html    { background: rgba(224,59,59,.1);    color: #c0392b; }
+.badge-css     { background: rgba(139,92,246,.1);   color: #6d28d9; }
+.badge-dbms    { background: rgba(245,166,35,.12);  color: #a06800; }
+.badge-csharp  { background: rgba(0,87,255,.1);     color: #0040bb; }
+.badge-react   { background: rgba(6,182,212,.12);   color: #0891b2; }
+
+/* actions */
+.action-btns { display: flex; gap: 5px; }
+.act-btn {
+  width: 30px; height: 30px; border-radius: 7px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; cursor: pointer; transition: all .15s;
+}
+.act-btn:hover { background: var(--surface); border-color: #bbb; }
+.act-btn.del:hover { background: rgba(224,59,59,.08); border-color: rgba(224,59,59,.3); }
+.act-btn.view:hover { background: rgba(0,87,255,.06); border-color: rgba(0,87,255,.3); }
+
+/* table footer */
+.table-footer {
+  padding: 14px 22px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fafaf7;
+}
+.footer-info { font-size: 13px; color: var(--muted); }
+.pagination { display: flex; gap: 4px; }
+.page-btn {
+  width: 32px; height: 32px; border-radius: 7px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; cursor: pointer; transition: all .15s;
+  font-family: 'DM Sans', sans-serif; color: var(--ink);
+}
+.page-btn:hover { background: var(--surface); border-color: #bbb; }
+.page-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ─── RIGHT PANEL ──────────────────────────────────────── */
+.right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+.info-panel {
+  background: var(--card); border-radius: 16px;
+  border: 1px solid var(--border); overflow: hidden;
+}
+.info-panel-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.info-panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+.info-panel-body { padding: 16px 20px; }
+
+/* donut chart via conic-gradient */
+.donut-chart-wrap { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; }
+.donut {
+  width: 90px; height: 90px; border-radius: 50%; flex-shrink: 0;
+  background: conic-gradient(
+    var(--accent)  0% 28%,
+    var(--accent2) 28% 49%,
+    var(--green)   49% 64%,
+    var(--yellow)  64% 77%,
+    var(--purple)  77% 88%,
+    #e2e0da        88% 100%
+  );
+  position: relative;
+}
+.donut::after {
+  content: ''; position: absolute; inset: 20px;
+  background: var(--card); border-radius: 50%;
+}
+.legend-list { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.leg-name { flex: 1; color: var(--ink); }
+.leg-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; }
+
+/* type distribution */
+.type-bar-row { margin-bottom: 10px; }
+.type-label-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+.type-name { color: var(--ink); font-weight: 500; }
+.type-val { font-family: 'Syne', sans-serif; font-weight: 700; }
+.type-bar { height: 6px; background: var(--border); border-radius: 100px; overflow: hidden; }
+.type-fill { height: 100%; border-radius: 100px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+
+/* quick stats */
+.quick-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.qs-item {
+  background: var(--surface); border-radius: 10px; padding: 12px;
+  border: 1px solid var(--border); text-align: center;
+}
+.qs-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+.qs-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ai promo card */
+.ai-card {
+  background: linear-gradient(135deg, #0d1117 0%, #1a2540 100%);
+  border-radius: 16px; padding: 22px; position: relative; overflow: hidden;
+}
+.ai-card::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,92,0,.25), transparent 65%);
+  pointer-events: none;
+}
+.ai-card-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+.ai-card-sub { font-size: 13px; color: rgba(255,255,255,.5); line-height: 1.5; margin-bottom: 16px; }
+.ai-stat-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.ai-stat {
+  flex: 1; background: rgba(255,255,255,.07); border-radius: 9px; padding: 10px;
+  text-align: center; border: 1px solid rgba(255,255,255,.08);
+}
+.ai-stat-num { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: #fff; }
+.ai-stat-label { font-size: 10px; color: rgba(255,255,255,.45); margin-top: 2px; }
+
+/* ─── ADD/EDIT MODAL ───────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(13,17,23,.6); z-index: 200;
+  align-items: center; justify-content: center; backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--card); border-radius: 20px;
+  width: 620px; max-width: 95vw; max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,.25);
+  animation: modalIn .25s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(.94) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-header {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; background: var(--card); z-index: 1;
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer; transition: all .15s;
+}
+.modal-close:hover { background: var(--surface); }
+.modal-body { padding: 24px 28px; }
+.modal-footer {
+  padding: 16px 28px; border-top: 1px solid var(--border);
+  display: flex; gap: 10px; justify-content: flex-end;
+  position: sticky; bottom: 0; background: var(--card);
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+.form-row.full { grid-template-columns: 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 7px; }
+.form-group label { font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 14px; font-family: 'DM Sans', sans-serif;
+  outline: none; background: var(--surface); color: var(--ink);
+  transition: border-color .2s, background .2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--accent2); background: #fff; box-shadow: 0 0 0 3px rgba(0,87,255,.07); }
+.form-group textarea { resize: vertical; min-height: 90px; line-height: 1.55; }
+
+.section-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 16px; margin-top: 4px;
+}
+.section-divider-line { flex: 1; height: 1px; background: var(--border); }
+.section-divider-text { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+
+/* Options builder */
+.options-builder { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.option-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--surface);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  transition: border-color .2s;
+}
+.option-row:hover { border-color: #ccc; }
+.option-row.is-correct { border-color: var(--green); background: rgba(0,194,113,.05); }
+.opt-radio {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--border); cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.opt-radio.selected { border-color: var(--green); background: var(--green); }
+.opt-radio.selected::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+.opt-input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--ink);
+}
+.opt-input::placeholder { color: #bbb; }
+.opt-correct-label { font-size: 11px; color: var(--green); font-weight: 600; display: none; }
+.option-row.is-correct .opt-correct-label { display: block; }
+.opt-remove { color: var(--muted); cursor: pointer; font-size: 16px; transition: color .15s; }
+.opt-remove:hover { color: var(--red); }
+
+.add-option-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border: 1.5px dashed var(--border);
+  border-radius: 9px; cursor: pointer; font-size: 13px; color: var(--muted);
+  transition: all .18s; background: transparent;
+  font-family: 'DM Sans', sans-serif;
+}
+.add-option-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(0,87,255,.04); }
+
+/* ─── VIEW MODAL ───────────────────────────────────────── */
+.view-modal {
+  background: var(--card); border-radius: 20px;
+  width: 560px; max-width: 95vw;
+  box-shadow: 0 24px 80px rgba(0,0,0,.25);
+  animation: modalIn .25s ease;
+}
+.view-q-text { font-size: 17px; font-weight: 500; line-height: 1.6; margin-bottom: 20px; padding: 0 28px; }
+.view-options { display: flex; flex-direction: column; gap: 9px; padding: 0 28px 24px; }
+.view-option {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 10px; border: 1.5px solid var(--border);
+  font-size: 14px;
+}
+.view-option.correct { border-color: var(--green); background: rgba(0,194,113,.06); color: #008a50; font-weight: 500; }
+.view-opt-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid currentColor; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.view-option.correct .view-opt-dot::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+
+/* ─── DELETE CONFIRM ───────────────────────────────────── */
+.confirm-modal { background: var(--card); border-radius: 18px; padding: 32px; width: 420px; max-width: 95vw; box-shadow: 0 24px 64px rgba(0,0,0,.22); animation: modalIn .25s ease; }
+.confirm-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(224,59,59,.1); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 18px; }
+.confirm-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+.confirm-desc { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+.confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ─── TOAST ────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  background: var(--ink); color: #fff;
+  padding: 13px 20px; border-radius: 12px; font-size: 14px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s cubic-bezier(.4,0,.2,1); z-index: 400;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ─── EMPTY STATE ──────────────────────────────────────── */
+.empty-row td { padding: 52px 24px !important; }
+.empty-state { text-align: center; }
+.empty-icon { font-size: 44px; margin-bottom: 14px; }
+.empty-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.empty-sub { font-size: 13px; color: var(--muted); }
+
+/* ─── ANIMATIONS ───────────────────────────────────────── */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+.stats-row     { animation: fadeUp .4s ease both .06s; }
+.filter-panel  { animation: fadeUp .4s ease both .1s; }
+.layout-main   { animation: fadeUp .4s ease both .14s; }
+
+/* ─── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width: 1100px) { .layout-main { grid-template-columns: 1fr; } }
+@media (max-width: 960px) { :root { --sidebar-w: 0px; } .sidebar { transform: translateX(-240px); } .main { margin-left: 0; } }
+@media (max-width: 640px) { .stats-row { grid-template-columns: 1fr 1fr; } .content { padding: 16px; } .form-row { grid-template-columns: 1fr; } }
+
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">Test<span>Buddy</span><div class="logo-dot"></div></div>
+  <div class="sidebar-section">Main Menu</div>
+  <a class="nav-item" href="#"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+  <a class="nav-item active" href="#"><span class="nav-icon">📚</span><span class="nav-label">Questionnaire</span></a>
+  <div>
+    <div class="nav-sub-item"><div class="nav-sub-dot"></div>Topics</div>
+    <div class="nav-sub-item active"><div class="nav-sub-dot"></div>Questions</div>
+    <div class="nav-sub-item"><div class="nav-sub-dot"></div>AI Generator</div>
+  </div>
+  <a class="nav-item" href="#"><span class="nav-icon">📝</span><span class="nav-label">Assessments</span><span class="nav-badge">8</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">🔗</span><span class="nav-label">Exam Links</span><span class="nav-badge green">3</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">👥</span><span class="nav-label">Attempts</span></a>
+  <div class="sidebar-section">System</div>
+  <a class="nav-item" href="#"><span class="nav-icon">⚙️</span><span class="nav-label">Settings</span></a>
+  <a class="nav-item" href="#"><span class="nav-icon">🚪</span><span class="nav-label">Logout</span></a>
+  <div class="sidebar-footer">
+    <div class="admin-card">
+      <div class="admin-avatar">A</div>
+      <div><div class="admin-name">Admin</div><div class="admin-role">Super Administrator</div></div>
+      <div class="admin-more">⋯</div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="breadcrumb">
+      <span>Dashboard</span><span class="sep">›</span>
+      <span>Questionnaire</span><span class="sep">›</span>
+      <span class="active">Question Bank</span>
+    </div>
+    <div class="topbar-right">
+      <div class="icon-btn">🔔<div class="notif-dot"></div></div>
+      <div class="icon-btn">❓</div>
+      <div class="topbar-avatar">A</div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <div class="page-title">Question Bank</div>
+        <div class="page-sub">Manage, search and organise all questions across topics.</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" onclick="showToast('info','Exporting CSV…')">📥 Export</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.location.href='04-add-questions.html#ai'">🤖 AI Generate</button>
+        <button class="btn btn-primary btn-sm" onclick="window.location.href='04-add-questions.html'">+ Add Question</button>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stats-row">
+      <div class="stat-card sc1">
+        <div class="stat-top"><div class="stat-icon">❓</div><span class="stat-trend">↑ 24</span></div>
+        <div class="stat-num" id="cntTotal">348</div>
+        <div class="stat-label">Total Questions</div>
+      </div>
+      <div class="stat-card sc2">
+        <div class="stat-top"><div class="stat-icon">✅</div><span class="stat-trend">Active</span></div>
+        <div class="stat-num">304</div>
+        <div class="stat-label">Published</div>
+      </div>
+      <div class="stat-card sc3">
+        <div class="stat-top"><div class="stat-icon">📝</div></div>
+        <div class="stat-num">44</div>
+        <div class="stat-label">Drafts</div>
+      </div>
+      <div class="stat-card sc4">
+        <div class="stat-top"><div class="stat-icon">🤖</div><span class="stat-trend">↑ 12</span></div>
+        <div class="stat-num">68</div>
+        <div class="stat-label">AI Generated</div>
+      </div>
+    </div>
+
+    <!-- FILTER PANEL -->
+    <div class="filter-panel">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search questions by keyword…" oninput="applyFilters()"/>
+      </div>
+      <select class="filter-select" id="topicFilter" onchange="applyFilters()">
+        <option value="">All Topics</option>
+        <option value="JavaScript">JavaScript</option>
+        <option value="HTML">HTML</option>
+        <option value="CSS">CSS</option>
+        <option value="DBMS">DBMS</option>
+        <option value="C#">C#</option>
+        <option value="React">React</option>
+      </select>
+      <select class="filter-select" id="levelFilter" onchange="applyFilters()">
+        <option value="">All Levels</option>
+        <option value="Easy">Easy</option>
+        <option value="Medium">Medium</option>
+        <option value="Hard">Hard</option>
+      </select>
+      <select class="filter-select" id="typeFilter" onchange="applyFilters()">
+        <option value="">All Types</option>
+        <option value="MCQ">MCQ</option>
+        <option value="Multi-Select">Multi-Select</option>
+        <option value="Text">Text</option>
+        <option value="Image">Image</option>
+      </select>
+      <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+        <option value="">All Status</option>
+        <option value="Active">Published</option>
+        <option value="Draft">Draft</option>
+      </select>
+      <div class="filter-divider"></div>
+      <button class="btn btn-secondary btn-sm" onclick="clearFilters()">✕ Clear</button>
+
+      <!-- Bulk actions (shows when rows selected) -->
+      <div class="bulk-actions" id="bulkActions">
+        <span class="bulk-count" id="bulkCount">0 selected</span>
+        <button class="btn btn-secondary btn-xs" onclick="clearSelection()">Deselect</button>
+        <button class="btn btn-danger btn-xs" onclick="bulkDelete()">🗑 Delete Selected</button>
+      </div>
+    </div>
+
+    <!-- MAIN LAYOUT -->
+    <div class="layout-main">
+
+      <!-- Questions Table -->
+      <div class="questions-card">
+        <div class="card-header">
+          <div class="card-title">
+            📋 Questions
+            <span class="result-count" id="resultCount">348 results</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select class="filter-select" style="font-size:12px;padding:6px 10px;" id="sortSelect" onchange="applyFilters()">
+              <option value="">Sort: Default</option>
+              <option value="topic">Sort: Topic</option>
+              <option value="level">Sort: Difficulty</option>
+              <option value="type">Sort: Type</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="width:15px;height:15px;accent-color:var(--accent2);cursor:pointer;"/></th>
+                <th style="width:36px;">#</th>
+                <th class="sortable sorted">Question <span class="si">↑</span></th>
+                <th>Topic</th>
+                <th>Level</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th style="width:110px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="questionsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="table-footer">
+          <div class="footer-info" id="footerInfo">Showing 1–10 of 348</div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="right-panel">
+
+        <!-- Topic Distribution -->
+        <div class="info-panel">
+          <div class="info-panel-header">
+            <div class="info-panel-title">📊 By Topic</div>
+          </div>
+          <div class="info-panel-body">
+            <div class="donut-chart-wrap">
+              <div class="donut"></div>
+              <div class="legend-list">
+                <div class="legend-row"><div class="leg-dot" style="background:var(--accent);"></div><div class="leg-name">JavaScript</div><div class="leg-val">98</div></div>
+                <div class="legend-row"><div class="leg-dot" style="background:var(--accent2);"></div><div class="leg-name">HTML</div><div class="leg-val">72</div></div>
+                <div class="legend-row"><div class="leg-dot" style="background:var(--green);"></div><div class="leg-name">CSS</div><div class="leg-val">54</div></div>
+                <div class="legend-row"><div class="leg-dot" style="background:var(--yellow);"></div><div class="leg-name">DBMS</div><div class="leg-val">44</div></div>
+                <div class="legend-row"><div class="leg-dot" style="background:var(--purple);"></div><div class="leg-name">C#</div><div class="leg-val">38</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Difficulty Distribution -->
+        <div class="info-panel">
+          <div class="info-panel-header"><div class="info-panel-title">📈 By Difficulty</div></div>
+          <div class="info-panel-body">
+            <div class="type-bar-row">
+              <div class="type-label-row"><span class="type-name">Easy</span><span class="type-val" style="color:var(--green);">148</span></div>
+              <div class="type-bar"><div class="type-fill" style="width:0%;background:var(--green);" data-w="83"></div></div>
+            </div>
+            <div class="type-bar-row">
+              <div class="type-label-row"><span class="type-name">Medium</span><span class="type-val" style="color:var(--yellow);">132</span></div>
+              <div class="type-bar"><div class="type-fill" style="width:0%;background:var(--yellow);" data-w="74"></div></div>
+            </div>
+            <div class="type-bar-row">
+              <div class="type-label-row"><span class="type-name">Hard</span><span class="type-val" style="color:var(--red);">68</span></div>
+              <div class="type-bar"><div class="type-fill" style="width:0%;background:var(--red);" data-w="38"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question Type breakdown -->
+        <div class="info-panel">
+          <div class="info-panel-header"><div class="info-panel-title">🎯 By Type</div></div>
+          <div class="info-panel-body">
+            <div class="quick-stats">
+              <div class="qs-item"><div class="qs-num" style="color:var(--accent2);">196</div><div class="qs-label">MCQ</div></div>
+              <div class="qs-item"><div class="qs-num" style="color:var(--purple);">82</div><div class="qs-label">Multi-Select</div></div>
+              <div class="qs-item"><div class="qs-num" style="color:var(--yellow);">48</div><div class="qs-label">Text</div></div>
+              <div class="qs-item"><div class="qs-num" style="color:var(--green);">22</div><div class="qs-label">Image</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Promo -->
+        <div class="ai-card">
+          <div class="ai-card-title">🤖 AI Question Generator</div>
+          <div class="ai-card-sub">Generate high-quality questions instantly by topic, difficulty and type.</div>
+          <div class="ai-stat-row">
+            <div class="ai-stat"><div class="ai-stat-num">68</div><div class="ai-stat-label">Generated</div></div>
+            <div class="ai-stat"><div class="ai-stat-num">94%</div><div class="ai-stat-label">Accuracy</div></div>
+          </div>
+          <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="window.location.href='04-add-questions.html#ai'">
+            Generate Questions →
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══ ADD / EDIT MODAL ══════════════════════════════════ -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add New Question</div>
+      <div class="modal-close" onclick="closeAddModal()">✕</div>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Topic <span style="color:var(--red);">*</span></label>
+          <select id="m_topic">
+            <option value="">Select topic…</option>
+            <option>JavaScript</option><option>HTML</option><option>CSS</option>
+            <option>DBMS</option><option>C#</option><option>React</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Difficulty Level <span style="color:var(--red);">*</span></label>
+          <select id="m_level">
+            <option value="">Select level…</option>
+            <option>Easy</option><option>Medium</option><option>Hard</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Question Type <span style="color:var(--red);">*</span></label>
+          <select id="m_type" onchange="onTypeChange()">
+            <option value="">Select type…</option>
+            <option>MCQ</option><option>Multi-Select</option>
+            <option>Text</option><option>Image</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="m_status">
+            <option value="Active">Published</option>
+            <option value="Draft">Draft</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row full" style="margin-bottom:18px;">
+        <div class="form-group">
+          <label>Question Text <span style="color:var(--red);">*</span></label>
+          <textarea id="m_text" placeholder="Enter the full question text here…" rows="3"></textarea>
+        </div>
+      </div>
+
+      <!-- MCQ / Multi-Select Options -->
+      <div id="optionsSection">
+        <div class="section-divider">
+          <div class="section-divider-line"></div>
+          <div class="section-divider-text">Answer Options</div>
+          <div class="section-divider-line"></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+          Click the circle to mark the correct answer.
+        </div>
+        <div class="options-builder" id="optionsBuilder"></div>
+        <button class="add-option-btn" onclick="addOption()">+ Add Option</button>
+      </div>
+
+      <!-- Text answer -->
+      <div id="textAnswerSection" style="display:none;">
+        <div class="section-divider">
+          <div class="section-divider-line"></div>
+          <div class="section-divider-text">Expected Answer</div>
+          <div class="section-divider-line"></div>
+        </div>
+        <div class="form-group">
+          <label>Model Answer</label>
+          <textarea id="m_textAnswer" placeholder="Enter the expected/model answer…" rows="3"></textarea>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="saveAsDraft()">Save as Draft</button>
+      <button class="btn btn-primary" onclick="saveQuestion()">Save Question</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VIEW MODAL ════════════════════════════════════════ -->
+<div class="modal-overlay" id="viewModal">
+  <div class="view-modal">
+    <div class="modal-header">
+      <div style="display:flex;gap:10px;align-items:center;" id="viewBadges"></div>
+      <div class="modal-close" onclick="closeViewModal()">✕</div>
+    </div>
+    <div style="padding:20px 28px 8px;">
+      <div class="view-q-text" id="viewQText" style="padding:0;"></div>
+    </div>
+    <div class="view-options" id="viewOptions"></div>
+  </div>
+</div>
+
+<!-- ═══ DELETE CONFIRM ════════════════════════════════════ -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="confirm-modal">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title">Delete Question?</div>
+    <div class="confirm-desc">This action cannot be undone. The question will be permanently removed from the bank and any assessments using it.</div>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ══════════════════════════════════════════════ -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✅</span>
+  <span id="toastMsg">Done!</span>
+</div>
+
+<!-- ═══ SCRIPT ════════════════════════════════════════════ -->
+<script>
+
+/* ── DATA ─────────────────────────────────────────────────── */
+let questions = [
+  { id:1,  text:'What is event bubbling in JavaScript?', topic:'JavaScript', level:'Medium', type:'MCQ',    status:'Active', options:['Events propagate from child to parent','Events propagate from parent to child','Events cancel each other','None of the above'], correct:0 },
+  { id:2,  text:'Which CSS property is used to control the layout of items in a flex container?', topic:'CSS', level:'Easy', type:'MCQ', status:'Active', options:['display','flex-direction','align-items','justify-content'], correct:1 },
+  { id:3,  text:'Explain normalization in DBMS with a suitable example.', topic:'DBMS', level:'Hard', type:'Text', status:'Draft', textAnswer:'Normalization is the process of organizing data in a database to reduce redundancy…' },
+  { id:4,  text:'What is the semantic meaning of the <article> HTML tag?', topic:'HTML', level:'Easy', type:'MCQ', status:'Active', options:['Bold text','A self-contained piece of content','A navigation link','A footer element'], correct:1 },
+  { id:5,  text:'What does async/await do in JavaScript?', topic:'JavaScript', level:'Medium', type:'MCQ', status:'Active', options:['Runs code synchronously','Handles asynchronous operations in a cleaner syntax','Creates threads','None of these'], correct:1 },
+  { id:6,  text:'Which of the following are valid ways to declare variables in JavaScript?', topic:'JavaScript', level:'Easy', type:'Multi-Select', status:'Active', options:['var','let','const','define'], correct:[0,1,2] },
+  { id:7,  text:'What is a primary key in a database?', topic:'DBMS', level:'Easy', type:'MCQ', status:'Active', options:['A key that can be null','A key that uniquely identifies each record','A foreign key reference','A composite key'], correct:1 },
+  { id:8,  text:'What is the difference between == and === in JavaScript?', topic:'JavaScript', level:'Medium', type:'MCQ', status:'Active', options:['No difference','== checks type, === checks value','=== checks value and type, == checks only value','=== only works for numbers'], correct:2 },
+  { id:9,  text:'What is the purpose of the CSS box model?', topic:'CSS', level:'Easy', type:'MCQ', status:'Active', options:['To create animations','To define spacing and borders around elements','To set font sizes','To handle flexbox layouts'], correct:1 },
+  { id:10, text:'Write a SQL query to fetch all employees with salary > 50000.', topic:'DBMS', level:'Medium', type:'Text', status:'Active', textAnswer:'SELECT * FROM employees WHERE salary > 50000;' },
+  { id:11, text:'What is the Virtual DOM in React?', topic:'React', level:'Medium', type:'MCQ', status:'Active', options:['A direct copy of the browser DOM','A lightweight in-memory representation of the DOM','A CSS-in-JS library','A state management tool'], correct:1 },
+  { id:12, text:'Which HTML tags are used to create a table?', topic:'HTML', level:'Easy', type:'Multi-Select', status:'Active', options:['<table>','<tr>','<td>','<div>'], correct:[0,1,2] },
+  { id:13, text:'What is a closure in JavaScript?', topic:'JavaScript', level:'Hard', type:'MCQ', status:'Active', options:['A loop construct','A function that retains its outer scope after the outer function returns','A CSS animation','A callback function'], correct:1 },
+  { id:14, text:'What does the C# "using" statement do?', topic:'C#', level:'Easy', type:'MCQ', status:'Active', options:['Imports namespaces','Declares a variable','Starts a loop','Handles exceptions'], correct:0 },
+  { id:15, text:'Explain the difference between GET and POST HTTP methods.', topic:'DBMS', level:'Medium', type:'Text', status:'Draft', textAnswer:'GET retrieves data and parameters are in the URL. POST sends data in the request body…' },
+  { id:16, text:'What is CSS specificity?', topic:'CSS', level:'Hard', type:'MCQ', status:'Active', options:['The order of CSS rules','A measure of how specific a CSS selector is','The speed of CSS rendering','None of the above'], correct:1 },
+  { id:17, text:'What is prototype-based inheritance in JavaScript?', topic:'JavaScript', level:'Hard', type:'MCQ', status:'Draft', options:['Class-based inheritance','Objects inheriting directly from other objects via prototype chain','Multiple inheritance','None of these'], correct:1 },
+  { id:18, text:'Which of the following are CSS layout techniques?', topic:'CSS', level:'Medium', type:'Multi-Select', status:'Active', options:['Flexbox','Grid','Float','Bootstrap only'], correct:[0,1,2] },
+];
+
+let filtered = [...questions];
+let currentPage = 1;
+const PAGE_SIZE = 10;
+let deleteCandidateId = null;
+let editingId = null;
+let selectedIds = new Set();
+
+/* ── TOPIC BADGE CLASS ────────────────────────────────────── */
+const topicBadgeClass = {
+  'JavaScript':'badge-js','HTML':'badge-html','CSS':'badge-css',
+  'DBMS':'badge-dbms','C#':'badge-csharp','React':'badge-react'
+};
+
+/* ── RENDER TABLE ─────────────────────────────────────────── */
+function renderTable() {
+  const tbody = document.getElementById('questionsBody');
+  tbody.innerHTML = '';
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr class="empty-row">
+        <td colspan="8">
+          <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">No questions found</div>
+            <div class="empty-sub">Try adjusting your search or filters.</div>
+          </div>
+        </td>
+      </tr>`;
+    document.getElementById('footerInfo').textContent = '0 results';
+    document.getElementById('resultCount').textContent = '0 results';
+    renderPagination();
+    return;
+  }
+
+  pageItems.forEach((q, i) => {
+    const globalIdx = start + i + 1;
+    const isSelected = selectedIds.has(q.id);
+    const tBadge = topicBadgeClass[q.topic] || 'badge-js';
+    const lBadge = q.level === 'Easy' ? 'badge-easy' : q.level === 'Medium' ? 'badge-medium' : 'badge-hard';
+    const typeBadge = q.type === 'MCQ' ? 'badge-mcq' : q.type === 'Multi-Select' ? 'badge-multi' : q.type === 'Text' ? 'badge-text' : 'badge-image';
+    const stBadge = q.status === 'Active' ? 'badge-active' : 'badge-draft';
+
+    // options preview for MCQ
+    let optPreview = '';
+    if (q.options && q.options.length) {
+      optPreview = `<div class="q-options-preview">` +
+        q.options.slice(0,3).map((o,oi) => {
+          const isC = Array.isArray(q.correct) ? q.correct.includes(oi) : q.correct === oi;
+          return `<span class="q-opt-chip ${isC?'correct':''}">${isC?'✓ ':''}${o.length > 18 ? o.substring(0,18)+'…' : o}</span>`;
+        }).join('') +
+        `</div>`;
+    } else if (q.textAnswer) {
+      optPreview = `<div class="q-options-preview"><span class="q-opt-chip" style="font-style:italic;">"${q.textAnswer.substring(0,40)}…"</span></div>`;
+    }
+
+    const row = document.createElement('tr');
+    if (isSelected) row.classList.add('selected');
+    row.innerHTML = `
+      <td><div class="td-inner cb-wrap"><input type="checkbox" ${isSelected?'checked':''} onchange="toggleSelect(${q.id},this)" style="width:15px;height:15px;accent-color:var(--accent2);cursor:pointer;"/></div></td>
+      <td><div class="td-inner" style="color:var(--muted);font-size:12px;font-weight:600;">${String(globalIdx).padStart(3,'0')}</div></td>
+      <td><div class="td-inner"><div class="q-cell"><div class="q-text">${q.text}</div>${optPreview}</div></div></td>
+      <td><div class="td-inner"><span class="badge ${tBadge}"><span class="bdot"></span>${q.topic}</span></div></td>
+      <td><div class="td-inner"><span class="badge ${lBadge}"><span class="bdot"></span>${q.level}</span></div></td>
+      <td><div class="td-inner"><span class="badge ${typeBadge}">${q.type}</span></div></td>
+      <td><div class="td-inner"><span class="badge ${stBadge}"><span class="bdot"></span>${q.status}</span></div></td>
+      <td><div class="td-inner">
+        <div class="action-btns">
+          <div class="act-btn view" title="Preview" onclick="openViewModal(${q.id})">👁</div>
+          <div class="act-btn" title="Edit" onclick="openEditModal(${q.id})">✏️</div>
+          <div class="act-btn del" title="Delete" onclick="openDeleteModal(${q.id})">🗑️</div>
+        </div>
+      </div></td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  const total = filtered.length;
+  const s = start + 1, e = Math.min(start + PAGE_SIZE, total);
+  document.getElementById('footerInfo').textContent = `Showing ${s}–${e} of ${total}`;
+  document.getElementById('resultCount').textContent = `${total} results`;
+  renderPagination();
+}
+
+/* ── PAGINATION ───────────────────────────────────────────── */
+function renderPagination() {
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const container = document.getElementById('pagination');
+  container.innerHTML = '';
+
+  const prev = document.createElement('div');
+  prev.className = 'page-btn'; prev.textContent = '‹';
+  if (currentPage === 1) prev.style.opacity = '.4';
+  prev.onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+  container.appendChild(prev);
+
+  let pages = [];
+  if (totalPages <= 5) {
+    pages = Array.from({length: totalPages}, (_,i) => i+1);
+  } else {
+    pages = [1,2,'…',totalPages-1,totalPages];
+    if (currentPage > 2 && currentPage < totalPages-1) pages = [1,'…',currentPage,'…',totalPages];
+  }
+
+  pages.forEach(p => {
+    const btn = document.createElement('div');
+    btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
+    btn.textContent = p;
+    if (p === '…') { btn.style.cursor = 'default'; btn.style.border = 'none'; }
+    else btn.onclick = () => { currentPage = p; renderTable(); };
+    container.appendChild(btn);
+  });
+
+  const next = document.createElement('div');
+  next.className = 'page-btn'; next.textContent = '›';
+  if (currentPage === totalPages) next.style.opacity = '.4';
+  next.onclick = () => { if (currentPage < totalPages) { currentPage++; renderTable(); } };
+  container.appendChild(next);
+}
+
+/* ── FILTER ───────────────────────────────────────────────── */
+function applyFilters() {
+  const q      = document.getElementById('searchInput').value.toLowerCase();
+  const topic  = document.getElementById('topicFilter').value;
+  const level  = document.getElementById('levelFilter').value;
+  const type   = document.getElementById('typeFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  const sort   = document.getElementById('sortSelect').value;
+
+  filtered = questions.filter(item => {
+    return (!q     || item.text.toLowerCase().includes(q))
+        && (!topic  || item.topic  === topic)
+        && (!level  || item.level  === level)
+        && (!type   || item.type   === type)
+        && (!status || item.status === status);
+  });
+
+  if (sort === 'topic') filtered.sort((a,b) => a.topic.localeCompare(b.topic));
+  else if (sort === 'level') {
+    const order = { Easy:0, Medium:1, Hard:2 };
+    filtered.sort((a,b) => order[a.level] - order[b.level]);
+  } else if (sort === 'type') filtered.sort((a,b) => a.type.localeCompare(b.type));
+
+  currentPage = 1;
+  renderTable();
+}
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('topicFilter').value = '';
+  document.getElementById('levelFilter').value = '';
+  document.getElementById('typeFilter').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('sortSelect').value = '';
+  filtered = [...questions];
+  currentPage = 1;
+  renderTable();
+}
+
+/* ── SELECTION ────────────────────────────────────────────── */
+function toggleSelect(id, cb) {
+  if (cb.checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  updateBulkActions();
+  renderTable();
+}
+function toggleSelectAll(masterCb) {
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  pageItems.forEach(q => masterCb.checked ? selectedIds.add(q.id) : selectedIds.delete(q.id));
+  updateBulkActions();
+  renderTable();
+}
+function updateBulkActions() {
+  const bulk = document.getElementById('bulkActions');
+  const cnt  = document.getElementById('bulkCount');
+  if (selectedIds.size > 0) { bulk.classList.add('visible'); cnt.textContent = `${selectedIds.size} selected`; }
+  else bulk.classList.remove('visible');
+}
+function clearSelection() { selectedIds.clear(); updateBulkActions(); renderTable(); }
+function bulkDelete() {
+  const n = selectedIds.size;
+  questions = questions.filter(q => !selectedIds.has(q.id));
+  filtered  = filtered.filter(q => !selectedIds.has(q.id));
+  selectedIds.clear();
+  updateBulkActions();
+  renderTable();
+  showToast('delete', `${n} question${n>1?'s':''} deleted.`);
+}
+
+/* ── OPTIONS BUILDER ──────────────────────────────────────── */
+let correctIdx = 0;
+function buildDefaultOptions() {
+  const builder = document.getElementById('optionsBuilder');
+  builder.innerHTML = '';
+  correctIdx = 0;
+  ['Option A', 'Option B', 'Option C', 'Option D'].forEach((ph, i) => addOptionRow(ph, i === 0));
+}
+function addOption() { addOptionRow('', false); }
+function addOptionRow(placeholder, isCorrect) {
+  const builder = document.getElementById('optionsBuilder');
+  const idx = builder.children.length;
+  const row = document.createElement('div');
+  row.className = `option-row${isCorrect ? ' is-correct' : ''}`;
+  row.dataset.idx = idx;
+  row.innerHTML = `
+    <div class="opt-radio${isCorrect?' selected':''}" onclick="setCorrect(this)">
+      ${isCorrect ? '' : ''}
+    </div>
+    <input class="opt-input" type="text" placeholder="${placeholder || 'Enter option…'}"/>
+    <span class="opt-correct-label">✓ Correct</span>
+    <span class="opt-remove" onclick="removeOption(this)">✕</span>
+  `;
+  builder.appendChild(row);
+}
+function setCorrect(radio) {
+  document.querySelectorAll('.opt-radio').forEach(r => {
+    r.classList.remove('selected');
+    r.closest('.option-row').classList.remove('is-correct');
+  });
+  radio.classList.add('selected');
+  radio.closest('.option-row').classList.add('is-correct');
+}
+function removeOption(btn) {
+  const row = btn.closest('.option-row');
+  if (document.querySelectorAll('.option-row').length <= 2) { showToast('error','Minimum 2 options required.'); return; }
+  row.remove();
+}
+
+/* ── TYPE CHANGE ──────────────────────────────────────────── */
+function onTypeChange() {
+  const type = document.getElementById('m_type').value;
+  const optSec = document.getElementById('optionsSection');
+  const txtSec = document.getElementById('textAnswerSection');
+  if (type === 'Text') { optSec.style.display = 'none'; txtSec.style.display = 'block'; }
+  else { optSec.style.display = 'block'; txtSec.style.display = 'none'; buildDefaultOptions(); }
+}
+
+/* ── OPEN / CLOSE MODALS ──────────────────────────────────── */
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add New Question';
+  document.getElementById('m_topic').value   = '';
+  document.getElementById('m_level').value   = '';
+  document.getElementById('m_type').value    = '';
+  document.getElementById('m_status').value  = 'Active';
+  document.getElementById('m_text').value    = '';
+  document.getElementById('m_textAnswer').value = '';
+  document.getElementById('optionsSection').style.display  = 'block';
+  document.getElementById('textAnswerSection').style.display = 'none';
+  buildDefaultOptions();
+  document.getElementById('addModal').classList.add('open');
+}
+function openEditModal(id) {
+  const q = questions.find(q => q.id === id);
+  if (!q) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Question';
+  document.getElementById('m_topic').value  = q.topic;
+  document.getElementById('m_level').value  = q.level;
+  document.getElementById('m_type').value   = q.type;
+  document.getElementById('m_status').value = q.status;
+  document.getElementById('m_text').value   = q.text;
+
+  if (q.type === 'Text') {
+    document.getElementById('optionsSection').style.display   = 'none';
+    document.getElementById('textAnswerSection').style.display = 'block';
+    document.getElementById('m_textAnswer').value = q.textAnswer || '';
+  } else {
+    document.getElementById('optionsSection').style.display   = 'block';
+    document.getElementById('textAnswerSection').style.display = 'none';
+    const builder = document.getElementById('optionsBuilder');
+    builder.innerHTML = '';
+    (q.options || []).forEach((opt, i) => {
+      const isC = Array.isArray(q.correct) ? q.correct.includes(i) : q.correct === i;
+      addOptionRow(opt, isC);
+      const rows = builder.querySelectorAll('.option-row');
+      rows[rows.length-1].querySelector('.opt-input').value = opt;
+    });
+  }
+  document.getElementById('addModal').classList.add('open');
+}
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('open');
+  editingId = null;
+}
+
+/* ── SAVE QUESTION ────────────────────────────────────────── */
+function collectFormData(status) {
+  const topic  = document.getElementById('m_topic').value;
+  const level  = document.getElementById('m_level').value;
+  const type   = document.getElementById('m_type').value;
+  const text   = document.getElementById('m_text').value.trim();
+
+  if (!topic || !level || !type || !text) {
+    showToast('error','Please fill all required fields.'); return null;
+  }
+
+  let options = [], correct = 0, textAnswer = '';
+  if (type === 'Text') {
+    textAnswer = document.getElementById('m_textAnswer').value.trim();
+  } else {
+    document.querySelectorAll('.option-row').forEach((row, i) => {
+      options.push(row.querySelector('.opt-input').value || `Option ${i+1}`);
+      if (row.classList.contains('is-correct')) correct = i;
+    });
+    if (options.length < 2) { showToast('error','Add at least 2 options.'); return null; }
+  }
+
+  return { topic, level, type, text, status: status || document.getElementById('m_status').value, options, correct, textAnswer };
+}
+function saveQuestion() {
+  const data = collectFormData(null);
+  if (!data) return;
+  if (editingId) {
+    const idx = questions.findIndex(q => q.id === editingId);
+    questions[idx] = { ...questions[idx], ...data };
+    showToast('success','Question updated successfully!');
+  } else {
+    questions.unshift({ id: Date.now(), ...data });
+    showToast('success','Question added to bank!');
+  }
+  applyFilters();
+  closeAddModal();
+}
+function saveAsDraft() {
+  const data = collectFormData('Draft');
+  if (!data) return;
+  questions.unshift({ id: Date.now(), ...data });
+  applyFilters();
+  closeAddModal();
+  showToast('info','Saved as draft.');
+}
+
+/* ── VIEW MODAL ───────────────────────────────────────────── */
+function openViewModal(id) {
+  const q = questions.find(q => q.id === id);
+  if (!q) return;
+
+  const tBadge = topicBadgeClass[q.topic] || 'badge-js';
+  const lBadge = q.level === 'Easy' ? 'badge-easy' : q.level === 'Medium' ? 'badge-medium' : 'badge-hard';
+  const typeBadge = q.type === 'MCQ' ? 'badge-mcq' : q.type === 'Multi-Select' ? 'badge-multi' : q.type === 'Text' ? 'badge-text' : 'badge-image';
+
+  document.getElementById('viewBadges').innerHTML = `
+    <span class="badge ${tBadge}"><span class="bdot"></span>${q.topic}</span>
+    <span class="badge ${lBadge}"><span class="bdot"></span>${q.level}</span>
+    <span class="badge ${typeBadge}">${q.type}</span>
+  `;
+  document.getElementById('viewQText').textContent = q.text;
+
+  const optContainer = document.getElementById('viewOptions');
+  optContainer.innerHTML = '';
+  if (q.options && q.options.length) {
+    q.options.forEach((opt, i) => {
+      const isC = Array.isArray(q.correct) ? q.correct.includes(i) : q.correct === i;
+      optContainer.innerHTML += `
+        <div class="view-option ${isC?'correct':''}">
+          <div class="view-opt-dot"></div>
+          <span>${opt}</span>
+          ${isC ? '<span style="margin-left:auto;font-size:12px;font-weight:600;">✓ Correct</span>' : ''}
+        </div>`;
+    });
+  } else if (q.textAnswer) {
+    optContainer.innerHTML = `
+      <div style="background:rgba(0,194,113,.06);border:1.5px solid rgba(0,194,113,.2);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.6;color:#008a50;">
+        <strong>Model Answer:</strong><br/>${q.textAnswer}
+      </div>`;
+  }
+  document.getElementById('viewModal').classList.add('open');
+}
+function closeViewModal() { document.getElementById('viewModal').classList.remove('open'); }
+
+/* ── DELETE ───────────────────────────────────────────────── */
+function openDeleteModal(id) { deleteCandidateId = id; document.getElementById('deleteModal').classList.add('open'); }
+function closeDeleteModal()  { document.getElementById('deleteModal').classList.remove('open'); deleteCandidateId = null; }
+function confirmDelete() {
+  questions = questions.filter(q => q.id !== deleteCandidateId);
+  applyFilters();
+  closeDeleteModal();
+  showToast('delete','Question deleted.');
+}
+
+/* ── TOAST ────────────────────────────────────────────────── */
+function showToast(type, msg) {
+  const toast = document.getElementById('toast');
+  const icons = { success:'✅', error:'❌', info:'ℹ️', delete:'🗑️' };
+  const colors = { success:'#0d1117', error:'#c0392b', info:'#1a2540', delete:'#444' };
+  document.getElementById('toastIcon').textContent = icons[type] || '✅';
+  document.getElementById('toastMsg').textContent  = msg;
+  toast.style.background = colors[type] || '#0d1117';
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), 3200);
+}
+
+/* ── CLOSE MODALS ON OVERLAY CLICK ───────────────────────── */
+['addModal','viewModal','deleteModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) {
+      if (id === 'addModal')    closeAddModal();
+      if (id === 'viewModal')   closeViewModal();
+      if (id === 'deleteModal') closeDeleteModal();
+    }
+  });
+});
+
+/* ── ANIMATE BARS ─────────────────────────────────────────── */
+setTimeout(() => {
+  document.querySelectorAll('.type-fill').forEach(el => {
+    el.style.width = el.dataset.w + '%';
+  });
+}, 300);
+
+/* ── INIT ─────────────────────────────────────────────────── */
+renderTable();
+
+</script>
+</body>
+</html>

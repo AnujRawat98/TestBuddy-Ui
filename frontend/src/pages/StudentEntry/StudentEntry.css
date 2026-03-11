@@ -1,0 +1,354 @@
+/* ─── PAGE WRAPPER ─────────────────────────────────────── */
+.student-entry-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: var(--surface);
+}
+
+/* ─── ENTRY CARD ───────────────────────────────────────── */
+.student-entry-wrap .entry-card {
+    background: var(--card);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 520px;
+    padding: 48px 48px 44px;
+    box-shadow: 0 8px 48px rgba(0, 0, 0, .09);
+    animation: popIn .4s ease both;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ─── LOGO ─────────────────────────────────────────────── */
+.student-entry-wrap .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--ink);
+    margin-bottom: 4px;
+    line-height: 1;
+}
+
+.student-entry-wrap .logo span {
+    color: var(--accent);
+}
+
+.student-entry-wrap .logo-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+}
+
+/* ─── DIVIDER ──────────────────────────────────────────── */
+.student-entry-wrap .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+}
+
+/* ─── EXAM TITLE ───────────────────────────────────────── */
+.student-entry-wrap .exam-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+    color: var(--ink);
+    line-height: 1.25;
+    margin-bottom: 16px;
+}
+
+/* ─── META ROW ─────────────────────────────────────────── */
+.student-entry-wrap .meta-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+
+.student-entry-wrap .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.student-entry-wrap .meta-icon-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.student-entry-wrap .meta-icon {
+    font-size: 15px;
+}
+
+.student-entry-wrap .meta-sub {
+    font-size: 13px;
+    color: var(--muted);
+    padding-left: 20px;
+}
+
+/* ─── FORM LABELS & INPUTS ─────────────────────────────── */
+.student-entry-wrap .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.student-entry-wrap .form-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.student-entry-wrap .form-input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    background: var(--surface);
+    outline: none;
+    transition: border-color .2s, background .2s, box-shadow .2s;
+}
+
+.student-entry-wrap .form-input:focus {
+    border-color: var(--accent2);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 87, 255, .07);
+}
+
+.student-entry-wrap .form-input.error {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(224, 59, 59, .08);
+}
+
+.student-entry-wrap .form-input::placeholder {
+    color: #bbb;
+}
+
+/* ─── INSTRUCTIONS BOX ─────────────────────────────────── */
+.student-entry-wrap .instructions {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 28px;
+    border: 1px solid var(--border);
+}
+
+.student-entry-wrap .instructions-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 13px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.student-entry-wrap .instructions-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 0;
+    margin: 0;
+}
+
+.student-entry-wrap .instructions-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: #444;
+    line-height: 1.5;
+}
+
+.student-entry-wrap .bullet {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ink);
+    flex-shrink: 0;
+    margin-top: 6px;
+}
+
+/* ─── ERROR MESSAGE ────────────────────────────────────── */
+.student-entry-wrap .err-msg {
+    background: rgba(224, 59, 59, .08);
+    border: 1px solid rgba(224, 59, 59, .2);
+    border-radius: 9px;
+    padding: 11px 15px;
+    font-size: 13px;
+    color: var(--red);
+    margin-bottom: 18px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+}
+
+.student-entry-wrap .err-msg.show {
+    display: flex;
+}
+
+/* ─── START BUTTON ─────────────────────────────────────── */
+.student-entry-wrap .start-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    letter-spacing: .5px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(255, 92, 0, .32);
+    transition: background .2s, box-shadow .2s, transform .18s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.student-entry-wrap .start-btn:hover {
+    background: #e04e00;
+    box-shadow: 0 6px 28px rgba(255, 92, 0, .44);
+    transform: translateY(-1px);
+}
+
+.student-entry-wrap .start-btn:active {
+    transform: translateY(0);
+}
+
+/* ─── SUCCESS OVERLAY ──────────────────────────────────── */
+.student-entry-wrap .success-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 17, 23, .65);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+}
+
+.student-entry-wrap .success-overlay.open {
+    display: flex;
+}
+
+.student-entry-wrap .success-card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 52px 44px;
+    text-align: center;
+    width: 400px;
+    max-width: 95vw;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .25);
+    animation: popInModal .3s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+
+@keyframes popInModal {
+    from {
+        opacity: 0;
+        transform: scale(.85);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.student-entry-wrap .success-icon {
+    font-size: 56px;
+    margin-bottom: 18px;
+}
+
+.student-entry-wrap .success-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: var(--ink);
+}
+
+.student-entry-wrap .success-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 22px;
+}
+
+.student-entry-wrap .success-student {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 13px 20px;
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+}
+
+.student-entry-wrap .success-proceed {
+    width: 100%;
+    padding: 14px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    font-size: 15px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 194, 113, .3);
+    transition: all .2s;
+}
+
+.student-entry-wrap .success-proceed:hover {
+    background: #00a85e;
+}
+
+/* ─── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width: 560px) {
+    .student-entry-wrap .entry-card {
+        padding: 32px 24px;
+    }
+
+    .student-entry-wrap .meta-row {
+        gap: 18px;
+    }
+
+    .student-entry-wrap .exam-title {
+        font-size: 20px;
+    }
+
+    .student-entry-wrap .logo {
+        font-size: 24px;
+    }
+}

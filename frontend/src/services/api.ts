@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Ensure this matches your backend API base URL when deployed or running locally
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://untinged-dominique-uncollapsed.ngrok-free.dev/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7162/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,

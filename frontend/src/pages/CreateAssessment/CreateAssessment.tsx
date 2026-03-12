@@ -5,22 +5,24 @@ import './CreateAssessment.css';
 
 const FALLBACK_COLORS = ['#ff5c00', '#e03b3b', '#8b5cf6', '#f5a623', '#06b6d4', '#0057ff', '#00c271'];
 
-// Mock UUIDs for Level and Type
+// Real database IDs for Level
 const MOCK_LEVELS: Record<string, string> = {
-    'Easy': 'e1111111-1111-1111-1111-111111111111',
-    'Medium': 'e2222222-2222-2222-2222-222222222222',
-    'Hard': 'e3333333-3333-3333-3333-333333333333'
+    'Easy':   '11111111-1111-1111-1111-111111111111',
+    'Medium': '22222222-2222-2222-2222-222222222222',
+    'Hard':   '33333333-3333-3333-3333-333333333333',
 };
 
+// Real database IDs for QuestionType
 const MOCK_TYPES: Record<string, string> = {
-    'MCQ': 't1111111-1111-1111-1111-111111111111',
-    'Multi-Select': 't2222222-2222-2222-2222-222222222222',
-    'Text Answer': 't3333333-3333-3333-3333-333333333333',
-    'Image-Based': 't4444444-4444-4444-4444-444444444444'
+    'MCQ':          'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA',
+    'Multi-Select': 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB',
+    'Text Answer':  'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC',
+    'Image-Based':  'DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD',
 };
 
 interface TopicDist {
-    name: string;
+    topicId: string;        // stores topicId UUID (for display/selection)
+    topicVersionId: string; // stores topicVersionId (what the API payload needs)
     pct: number;
 }
 
@@ -32,7 +34,7 @@ const CreateAssessment: React.FC = () => {
     const [currentStep, setCurrentStep] = useState(1);
 
     const getTopicColor = (topicId: string) => {
-        const idx = realTopics.findIndex(t => t.id === topicId);
+        const idx = realTopics.findIndex(t => t.topicId === topicId);
         const color = FALLBACK_COLORS[idx % FALLBACK_COLORS.length] || FALLBACK_COLORS[0];
         return {
             badge: `background:rgba(${hexToRgb(color)},.1);color:${color}`,
@@ -71,11 +73,13 @@ const CreateAssessment: React.FC = () => {
     const fetchTopics = async () => {
         try {
             const res = await topicsApi.getAll();
+            // API returns: { topicId, name, topicVersionId }
             setRealTopics(res.data);
             if (res.data.length > 0 && topics.length === 0) {
-                setTopics([{ name: res.data[0].id, pct: 100 }]);
+                const first = res.data[0];
+                setTopics([{ topicId: first.topicId, topicVersionId: first.topicVersionId, pct: 100 }]);
             }
-        } catch (err) {
+        } catch {
             showToast('Failed to load topics', 'error');
         }
     };
@@ -84,8 +88,13 @@ const CreateAssessment: React.FC = () => {
         fetchTopics();
     }, []);
 
-    const handleTopicChange = (idx: number, newName: string) => {
-        setTopics(prev => prev.map((t, i) => i === idx ? { ...t, name: newName } : t));
+    const handleTopicChange = (idx: number, newTopicId: string) => {
+        const found = realTopics.find(t => t.topicId === newTopicId);
+        setTopics(prev => prev.map((t, i) => i === idx ? {
+            ...t,
+            topicId: newTopicId,
+            topicVersionId: found?.topicVersionId || newTopicId,
+        } : t));
     };
     const handlePctChange = (idx: number, newPct: number) => {
         setTopics(prev => prev.map((t, i) => i === idx ? { ...t, pct: newPct } : t));
@@ -94,14 +103,15 @@ const CreateAssessment: React.FC = () => {
         setTopics(prev => prev.filter((_, i) => i !== idx));
     };
     const handleAddTopic = () => {
-        const used = topics.map(t => t.name);
-        const next = realTopics.find(t => !used.includes(t.id));
+        const used = topics.map(t => t.topicId);
+        const next = realTopics.find(t => !used.includes(t.topicId));
         if (!next) {
             showToast('All available topics already added.', 'info');
             return;
         }
-        setTopics(prev => [...prev, { name: next.id, pct: 0 }]);
+        setTopics(prev => [...prev, { topicId: next.topicId, topicVersionId: next.topicVersionId, pct: 0 }]);
     };
+
 
     const topicsSum = topics.reduce((acc, t) => acc + (t.pct || 0), 0);
     const topicsOk = topicsSum === 100;
@@ -160,7 +170,7 @@ const CreateAssessment: React.FC = () => {
                     marksPerCorrectAnswer: marksPerQ,
                     negativeMarksPerWrongAnswer: negMarks,
                     topicDistributions: topics.map(t => ({
-                        topicId: t.name,
+                        topicId: t.topicVersionId,   // API expects topicVersionId here
                         questionCount: Math.round((t.pct / 100) * totalQs)
                     })),
                     difficultyRules: [
@@ -321,13 +331,11 @@ const CreateAssessment: React.FC = () => {
                                 <thead><tr><th>Topic</th><th>Value (%)</th><th>Questions</th><th>Action</th></tr></thead>
                                 <tbody>
                                     {topics.map((t, idx) => {
-                                        const col = getTopicColor(t.name);
-                                        const topicName = realTopics.find(rt => rt.id === t.name)?.name || 'Unknown';
                                         return (
                                             <tr key={idx}>
                                                 <td>
-                                                    <select className="topic-pill" value={t.name} onChange={e => handleTopicChange(idx, e.target.value)}>
-                                                        {realTopics.map(tp => <option key={tp.id} value={tp.id}>{tp.name}</option>)}
+                                                    <select className="topic-pill" value={t.topicId} onChange={e => handleTopicChange(idx, e.target.value)}>
+                                                        {realTopics.map(tp => <option key={tp.topicId} value={tp.topicId}>{tp.name}</option>)}
                                                     </select>
                                                 </td>
                                                 <td><input type="number" value={t.pct} onChange={e => handlePctChange(idx, parseInt(e.target.value) || 0)} /></td>

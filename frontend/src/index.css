@@ -17,7 +17,10 @@
   --green:    #00c271;
   --card:     #ffffff;
   --red:      #ff3b30; /* Added for error states */
+  --purple:   #8b5cf6; /* Multi-select indicator */
+  --yellow:   #f5a623; /* Open Text indicator */
 }
+
 
 body {
   font-family: 'DM Sans', sans-serif;

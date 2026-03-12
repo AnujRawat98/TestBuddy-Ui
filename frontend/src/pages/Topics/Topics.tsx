@@ -1,22 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { topicsApi } from '../../services/api';
+import { topicsApi, questionsApi } from '../../services/api';
 import './Topics.css';
 
-// Mock initial data based on HTML
-const initialTopics = [
-    { id: 1, name: 'JavaScript', color: '#ff5c00', questions: 98, assessments: 4, date: 'Jan 10, 2025' },
-    { id: 2, name: 'HTML', color: '#e03b3b', questions: 72, assessments: 3, date: 'Jan 10, 2025' },
-    { id: 3, name: 'CSS', color: '#8b5cf6', questions: 54, assessments: 3, date: 'Jan 11, 2025' },
-    { id: 4, name: 'DBMS', color: '#f5a623', questions: 44, assessments: 2, date: 'Jan 13, 2025' },
-    { id: 5, name: 'C#', color: '#0057ff', questions: 38, assessments: 1, date: 'Jan 14, 2025' },
-    { id: 6, name: 'React', color: '#06b6d4', questions: 22, assessments: 0, date: 'Feb 01, 2025' },
-    { id: 7, name: 'Node.js', color: '#00c271', questions: 18, assessments: 0, date: 'Feb 05, 2025' },
-    { id: 8, name: 'SQL', color: '#f5a623', questions: 30, assessments: 1, date: 'Feb 08, 2025' },
-    { id: 9, name: 'Python', color: '#8b5cf6', questions: 14, assessments: 0, date: 'Feb 12, 2025' },
-    { id: 10, name: 'TypeScript', color: '#0057ff', questions: 10, assessments: 0, date: 'Feb 18, 2025' },
-    { id: 11, name: 'Vue.js', color: '#00c271', questions: 0, assessments: 0, date: 'Mar 01, 2025' },
-    { id: 12, name: 'Angular', color: '#e03b3b', questions: 0, assessments: 0, date: 'Mar 05, 2025' },
-];
+
+
 
 const COLORS = ['#ff5c00', '#0057ff', '#00c271', '#f5a623', '#8b5cf6', '#e03b3b', '#06b6d4', '#ec4899'];
 
@@ -40,6 +27,31 @@ const Topics: React.FC = () => {
     const [deleteCandidate, setDeleteCandidate] = useState<{ id: string | number; name: string } | null>(null);
     const [toast, setToast] = useState<{ type: string; msg: string; show: boolean }>({ type: '', msg: '', show: false });
 
+    // View Questions Modal State
+    const [viewModal, setViewModal] = useState<{ open: boolean; topic: any; questions: any[]; loading: boolean }>({
+        open: false, topic: null, questions: [], loading: false,
+    });
+
+    const openTopicQuestions = async (topic: any) => {
+        setViewModal({ open: true, topic, questions: [], loading: true });
+        try {
+            // topic.topicVersionId is stored directly from fetchTopics
+            const versionId = topic.topicVersionId;
+            if (!versionId) {
+                showToast('error', 'Could not determine topic version ID');
+                setViewModal(prev => ({ ...prev, loading: false }));
+                return;
+            }
+            const qRes = await questionsApi.getAllByTopic(versionId);
+            const data = qRes.data;
+            const qs = Array.isArray(data) ? data : (data?.items ?? []);
+            setViewModal(prev => ({ ...prev, questions: qs, loading: false }));
+        } catch {
+            setViewModal(prev => ({ ...prev, loading: false }));
+            showToast('error', 'Failed to load questions');
+        }
+    };
+
     const createFormRef = useRef<HTMLDivElement>(null);
     const topicNameInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,16 +59,35 @@ const Topics: React.FC = () => {
         setIsLoading(true);
         try {
             const res = await topicsApi.getAll();
-            console.log("topic list", res.data);
-            // Map backend data to UI structure if needed
-            const mapped = res.data.map((t: any, i: number) => ({
-                id: t.id,
-                name: t.name,
-                color: COLORS[i % COLORS.length],
-                questions: t.questionsCount || 0,
-                assessments: t.assessmentsCount || 0,
-                date: t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'N/A'
-            }));
+            // GET /api/topics returns: { topicId, name, topicVersionId }
+
+            // Fetch question counts per topic in parallel
+            // Pass topicVersionId as the value for the ?topicId= query param
+            const mapped = await Promise.all(
+                res.data.map(async (t: any, i: number) => {
+                    let questionCount = 0;
+                    try {
+                        const qRes = await questionsApi.getAllByTopic(t.topicVersionId);
+                        const data = qRes.data;
+                        // Handle both plain array and paginated { items, totalCount } responses
+                        questionCount = Array.isArray(data)
+                            ? data.length
+                            : (data?.totalCount ?? data?.count ?? data?.items?.length ?? 0);
+                    } catch {
+                        // Silently fall back to 0 if question fetch fails for this topic
+                    }
+
+                    return {
+                        id: t.topicId,           // API returns topicId (not id)
+                        topicVersionId: t.topicVersionId,  // store for view questions lookup
+                        name: t.name,
+                        color: COLORS[i % COLORS.length],
+                        questions: questionCount,
+                        assessments: t.assessmentsCount ?? t.assessmentCount ?? 0,
+                        date: t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'N/A',
+                    };
+                })
+            );
             setTopics(mapped);
         } catch (err) {
             showToast('error', 'Failed to fetch topics');
@@ -315,7 +346,7 @@ const Topics: React.FC = () => {
                                                 <td style={{ color: 'var(--muted)', fontSize: '13px' }}>{t.date}</td>
                                                 <td>
                                                     <div className="action-btns">
-                                                        <div className="act-btn" title="View Questions" onClick={() => showToast('info', `Opening ${t.name} questions…`)}>👁</div>
+                                                        <div className="act-btn" title="View Questions" onClick={() => openTopicQuestions(t)}>👁</div>
                                                         <div className="act-btn" title="Edit Topic" onClick={() => handleEdit(t.id)}>✏️</div>
                                                         <div className="act-btn delete" title="Delete Topic" onClick={() => setDeleteCandidate({ id: t.id, name: t.name })}>🗑️</div>
                                                     </div>
@@ -489,6 +520,68 @@ const Topics: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* ═══ VIEW QUESTIONS MODAL ════════════════════════════════════ */}
+            {viewModal.open && (
+                <div className="modal-overlay open" onClick={(e) => { if (e.target === e.currentTarget) setViewModal(prev => ({ ...prev, open: false })); }}>
+                    <div className="modal" style={{ maxWidth: '640px', width: '100%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                            <div>
+                                <div className="modal-title" style={{ marginBottom: '4px' }}>
+                                    <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', background: viewModal.topic?.color, marginRight: '8px', verticalAlign: 'middle' }}></span>
+                                    {viewModal.topic?.name} — Questions
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'var(--muted)' }}>{viewModal.questions.length} question(s) found</div>
+                            </div>
+                            <button className="btn btn-secondary btn-sm" onClick={() => setViewModal(prev => ({ ...prev, open: false }))}>✕ Close</button>
+                        </div>
+                        <div style={{ overflowY: 'auto', flex: 1 }}>
+                            {viewModal.loading ? (
+                                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>
+                                    <div className="spinner"></div>
+                                    <div style={{ marginTop: '10px' }}>Fetching questions…</div>
+                                </div>
+                            ) : viewModal.questions.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>
+                                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>📭</div>
+                                    <div style={{ fontWeight: 600, marginBottom: '4px' }}>No questions yet</div>
+                                    <div style={{ fontSize: '13px' }}>Add questions to this topic from the Questions page.</div>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {viewModal.questions.map((q: any, i: number) => (
+                                        <div key={q.id || i} style={{
+                                            padding: '14px 16px', border: '1.5px solid var(--border)', borderRadius: '10px',
+                                            background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: '6px'
+                                        }}>
+                                            <div style={{ fontWeight: 500, fontSize: '14px', color: 'var(--ink)', lineHeight: 1.5 }}>
+                                                {i + 1}. {q.questionText || q.text || '—'}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                {q.questionType && (
+                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', background: 'rgba(0,87,255,.1)', color: '#0040bb' }}>
+                                                        {q.questionType}
+                                                    </span>
+                                                )}
+                                                {q.level && (
+                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', background: 'rgba(0,194,113,.1)', color: '#006e40' }}>
+                                                        {q.level}
+                                                    </span>
+                                                )}
+                                                {q.status && (
+                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', background: 'rgba(245,166,35,.1)', color: '#8a5a00' }}>
+                                                        {q.status}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ═══ DELETE MODAL ═══════════════════════════════════════════ */}
             {deleteCandidate && (

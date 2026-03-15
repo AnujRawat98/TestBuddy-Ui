@@ -291,6 +291,13 @@ const CreateLink: React.FC = () => {
     const [compMsg,     setCompMsg]     = useState('Thank you for completing the assessment. Your responses have been recorded. Results will be reviewed and shared within 24 hours.');
     const [generatedLink,   setGeneratedLink]   = useState<string | null>(null);
 
+    // Session links — all links generated in this page session
+    const [sessionLinks, setSessionLinks] = useState<{
+        name: string; url: string; accessCode: string;
+        isCredential: boolean; userCount: number;
+        startDate: string; endDate: string;
+    }[]>([]);
+
     const [emailInput,    setEmailInput]    = useState('');
     const [pendingEmails, setPendingEmails] = useState<string[]>([]);
     const [addedEmails,   setAddedEmails]   = useState<string[]>([]);
@@ -341,14 +348,15 @@ const CreateLink: React.FC = () => {
         setAccessCode(code);
     };
 
-    // ── PATCH 1: credentialBasedUsers added to payload ────────────────────────
-    // Swagger: POST /api/assessment-links → CreateLinkRequest.credentialBasedUsers: string[]
-    // Users are saved to AssessmentLinkUser table by the backend on link creation.
+    // Sends local datetime string without UTC conversion.
+    // Prevents IST → UTC shift (e.g. 1:10 PM IST stored as 7:40 AM UTC).
+    const toLocalISO = (dt: string): string => dt.length === 16 ? `${dt}:00` : dt;
+
     const buildPayload = () => ({
         name:                   linkName.trim(),
         assessmentId:           selectedAssessmentId,
-        examStartDateTime:      new Date(startDate).toISOString(),
-        examEndDateTime:        new Date(endDate).toISOString(),
+        examStartDateTime:      toLocalISO(startDate),
+        examEndDateTime:        toLocalISO(endDate),
         isCredentialBased:      opts.credAccess,
         accessCode:             accessCode.trim(),
         maxAttempts:            toInt(attempts, 1),
@@ -378,9 +386,20 @@ const CreateLink: React.FC = () => {
         try {
             const res    = await assessmentLinksApi.create(payload);
             const linkId = res.data?.id ?? res.data?.Id ?? res.data;
-            setGeneratedLink(`${window.location.origin}/exam-entry/${linkId}`);
+            const fullUrl = `${window.location.origin}/exam-entry/${linkId}`;
+            setGeneratedLink(fullUrl);
             // ── PATCH 2: move pending → added after successful generation ──────
             setAddedEmails(opts.credAccess ? [...pendingEmails] : []);
+            // Save to session history
+            setSessionLinks(prev => [{
+                name:         linkName.trim(),
+                url:          fullUrl,
+                accessCode:   accessCode.trim(),
+                isCredential: opts.credAccess,
+                userCount:    opts.credAccess ? pendingEmails.length : 0,
+                startDate:    startDate,
+                endDate:      endDate,
+            }, ...prev]);
             setPendingEmails([]);
             setEmailInput('');
             showToast('Exam link generated successfully!', 'success');
@@ -438,8 +457,10 @@ const CreateLink: React.FC = () => {
 
             <div className="page-header">
                 <div>
-                    <div className="page-title">Create Exam Link</div>
-                    <div className="page-sub">Generate a shareable link for students to access an assessment.</div>
+                    <div className="page-title">
+                        Create {prefill?.assessmentTitle ?? selectedInfo?.title ?? selectedInfo?.Title ?? ''} Exam Link
+                    </div>
+                    <div className="page-sub">Generate a shareable link for students to access this assessment.</div>
                 </div>
                 <div className="header-actions">
                     <button className="btn btn-secondary btn-sm" onClick={() => (window.location.href = '/assessments')}>← Back</button>
@@ -451,45 +472,6 @@ const CreateLink: React.FC = () => {
 
             <div className="form-layout">
                 <div>
-
-                    {/* ══ 1: Select Assessment ══ */}
-                    <div className="section-card">
-                        <div className="section-header">
-                            <div className="section-title"><div className="section-title-icon si-orange">📝</div>Select Assessment</div>
-                            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{realAssessments.length} available</span>
-                        </div>
-                        <div className="section-body">
-                            {realAssessments.length === 0 ? (
-                                <div className="no-data-msg">No assessments found. Please create one first.</div>
-                            ) : (
-                                realAssessments.map(asmt => {
-                                    const aId = asmt.id ?? asmt.Id ?? '';
-                                    const selected = selectedAssessmentId === aId;
-                                    return (
-                                        <div key={aId} className={`assessment-select-card ${selected ? 'selected' : ''}`} onClick={() => setSelectedAssessmentId(aId)}>
-                                            <div className="asc-inner">
-                                                <div className="asc-radio" />
-                                                <div className="asc-icon">📝</div>
-                                                <div className="asc-body">
-                                                    <div className="asc-name">{asmt.title ?? asmt.Title}</div>
-                                                    <div className="asc-meta">
-                                                        <span>{asmt.totalQuestions ?? asmt.TotalQuestions ?? 0} questions</span>
-                                                        <span>{asmt.durationMinutes ?? asmt.DurationMinutes ?? 0} min</span>
-                                                        <span>{(asmt.totalQuestions ?? asmt.TotalQuestions ?? 0) * (asmt.marksPerQuestion ?? asmt.MarksPerQuestion ?? 1)} marks</span>
-                                                    </div>
-                                                </div>
-                                                <div className="asc-badges">
-                                                    <span className={`badge ${(asmt.isActive ?? asmt.IsActive) ? 'badge-active' : 'badge-draft'}`}>
-                                                        <span className="bdot" />{(asmt.isActive ?? asmt.IsActive) ? 'Active' : 'Draft'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-                    </div>
 
                     {/* ══ 2: Link Configuration ══ */}
                     <div className="section-card">

@@ -78,9 +78,7 @@ const AdminLayout: React.FC = () => {
                     <NavLink to="/assessments/create" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
                         <div className="nav-sub-dot"></div>Create Assessment
                     </NavLink>
-                    <NavLink to="/links/create" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                        <div className="nav-sub-dot"></div>Exam Links
-                    </NavLink>
+                    {/* Exam Links removed from sidebar — access via 🔗 button on Assessment List */}
                 </div>
 
                 <a className="nav-item" href="#">

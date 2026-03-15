@@ -338,3 +338,53 @@
         display: none;
     }
 }
+/* ── Status toggle button ─────────────────────────────────────────────────── */
+.assessments-container .status-toggle {
+    cursor: pointer;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 100px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: opacity .15s, transform .15s;
+    font-family: inherit;
+}
+.assessments-container .status-toggle:hover:not(:disabled) {
+    opacity: 0.78;
+    transform: scale(1.04);
+}
+.assessments-container .status-toggle.toggling {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── View icon button ─────────────────────────────────────────────────────── */
+.assessments-container .act-view {
+    font-size: 15px;
+}
+
+/* ── Share buttons inside modal ───────────────────────────────────────────── */
+.share-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    transition: transform .15s, background .15s;
+    color: var(--ink);
+}
+.share-btn:hover          { transform: scale(1.1); }
+.share-btn.share-wa       { border-color: rgba(37,211,102,.35); color: #25d366; }
+.share-btn.share-wa:hover { background: rgba(37,211,102,.08); }
+.share-btn.share-email:hover { background: rgba(0,87,255,.06); border-color: rgba(0,87,255,.3); }
+.share-btn.share-qr       { font-size: 12px; }
+.share-btn.share-qr:hover { background: rgba(0,0,0,.05); }

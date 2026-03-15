@@ -1,3 +1,27 @@
+/* ─── CSS VARIABLES ────────────────────────────────────────
+   If your project already declares these on :root elsewhere,
+   you can remove this block.
+──────────────────────────────────────────────────────────── */
+:root {
+    --ink:     #0d1117;
+    --surface: #f5f4f0;
+    --accent:  #ff5c00;
+    --accent2: #0057ff;
+    --muted:   #8a8a8a;
+    --border:  #e2e0da;
+    --green:   #00c271;
+    --red:     #e74c3c;
+    --card:    #ffffff;
+}
+
+/* ─── LOGIN CONTAINER ──────────────────────────────────── */
+.login-container {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    min-height: 100vh;
+}
+
 /* ─── LEFT PANEL ───────────────────────────────────────── */
 .left {
     flex: 1;
@@ -127,15 +151,15 @@
     flex-shrink: 0;
 }
 
-.feature-text {
-    color: rgba(255, 255, 255, .65);
-    font-size: 14px;
-}
-
 .feature-title {
     color: #fff;
     font-weight: 500;
     margin-bottom: 2px;
+    font-size: 14px;
+}
+
+.feature-text {
+    color: rgba(255, 255, 255, .65);
     font-size: 14px;
 }
 
@@ -257,6 +281,17 @@
     animation: fadeUp .45s ease both .1s;
 }
 
+/* error banner */
+.error-banner {
+    color: var(--red);
+    background: rgba(231, 76, 60, 0.1);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
 /* form */
 .form-group {
     margin-bottom: 20px;
@@ -280,6 +315,7 @@
     margin-bottom: 8px;
 }
 
+/* ─── INPUT WRAPPER & ICON ─────────────────────────────── */
 .input-wrapper {
     position: relative;
 }
@@ -289,9 +325,18 @@
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     pointer-events: none;
+    color: var(--muted);
     line-height: 1;
+}
+
+/* SVG strokes inside the icon inherit the muted colour */
+.input-icon svg {
+    display: block;
+    stroke: var(--muted);
 }
 
 .form-group input {
@@ -317,21 +362,30 @@
     box-shadow: 0 0 0 3px rgba(0, 87, 255, .09);
 }
 
+/* ─── EYE TOGGLE ───────────────────────────────────────── */
 .eye-toggle {
     position: absolute;
     right: 14px;
     top: 50%;
     transform: translateY(-50%);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--muted);
-    font-size: 18px;
     line-height: 1;
     user-select: none;
     transition: color .15s;
 }
 
-.eye-toggle:hover {
-    color: var(--ink);
+.eye-toggle svg {
+    display: block;
+    stroke: var(--muted);
+    transition: stroke .15s;
+}
+
+.eye-toggle:hover svg {
+    stroke: var(--ink);
 }
 
 /* remember + forgot row */
@@ -415,12 +469,21 @@
     transform: scale(.99);
 }
 
+.btn-login:disabled {
+    cursor: not-allowed;
+}
+
 .btn-arrow {
     transition: transform .2s;
 }
 
 .btn-login:hover .btn-arrow {
     transform: translateX(4px);
+}
+
+/* shake animation — triggered via className in React */
+.shake-animation {
+    animation: shake .4s ease !important;
 }
 
 /* divider */
@@ -492,6 +555,37 @@
     text-decoration: underline;
 }
 
+/* ─── ANIMATIONS ───────────────────────────────────────── */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes leftIn {
+    from {
+        opacity: 0;
+        transform: translateX(-24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes shake {
+    0%,  100% { transform: translateX(0); }
+    20%        { transform: translateX(-8px); }
+    40%        { transform: translateX(8px); }
+    60%        { transform: translateX(-5px); }
+    80%        { transform: translateX(5px); }
+}
+
 .left-headline {
     animation: leftIn .6s ease both .1s;
 }
@@ -529,11 +623,4 @@
     .right-title {
         font-size: 24px;
     }
-}
-
-.login-container {
-    display: flex;
-    align-items: stretch;
-    width: 100%;
-    min-height: 100vh;
 }

@@ -586,4 +586,201 @@
 
 /* ─── BTN GREEN (for AI Import All) ───────────────────── */
 .btn-green { background: var(--green); color: #fff; box-shadow: 0 3px 12px rgba(0,194,113,.25); }
-.btn-green:hover { filter: brightness(.95); }
+.btn-green:hover { filter: brightness(.95); }
+/* ── Append these rules to your existing AddQuestions.css ── */
+
+/* ── IMAGE OPTIONS GRID ─────────────────────────────────── */
+.add-questions-container .image-options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 4px;
+}
+
+/* Individual image option card */
+.add-questions-container .image-opt-card {
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.add-questions-container .image-opt-card:hover {
+    border-color: #ccc;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+
+.add-questions-container .image-opt-card.is-correct {
+    border-color: var(--green);
+    background: rgba(0, 194, 113, .04);
+}
+
+/* Correct marker row */
+.add-questions-container .img-opt-correct-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 6px;
+}
+
+/* Radio circle — click to mark correct */
+.add-questions-container .img-opt-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-questions-container .img-opt-radio:hover {
+    border-color: var(--green);
+}
+
+.add-questions-container .img-opt-radio.selected {
+    border-color: var(--green);
+    background: var(--green);
+}
+
+.add-questions-container .img-opt-radio.selected::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.add-questions-container .img-opt-correct-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green);
+    flex: 1;
+}
+
+.add-questions-container .img-opt-del {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all .15s;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.add-questions-container .img-opt-del:hover {
+    background: rgba(224, 59, 59, .08);
+    border-color: rgba(224, 59, 59, .3);
+    color: var(--red);
+}
+
+/* Image preview area — click to upload */
+.add-questions-container .img-opt-preview {
+    width: 100%;
+    height: 110px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    transition: background .18s;
+}
+
+.add-questions-container .img-opt-preview:hover {
+    background: rgba(0, 87, 255, .03);
+}
+
+.add-questions-container .image-opt-card.is-correct .img-opt-preview {
+    border-color: rgba(0, 194, 113, .3);
+}
+
+.add-questions-container .img-opt-placeholder {
+    text-align: center;
+    pointer-events: none;
+}
+
+.add-questions-container .img-opt-placeholder-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+    opacity: .45;
+}
+
+.add-questions-container .img-opt-placeholder-text {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* URL input row */
+.add-questions-container .img-opt-url-row {
+    padding: 7px 10px 0;
+}
+
+.add-questions-container .img-opt-url-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    background: var(--card);
+    color: var(--ink);
+    transition: border-color .2s;
+}
+
+.add-questions-container .img-opt-url-input:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 2px rgba(0, 87, 255, .07);
+}
+
+.add-questions-container .img-opt-url-input::placeholder {
+    color: #bbb;
+    font-size: 11px;
+}
+
+/* Label input */
+.add-questions-container .img-opt-label-input {
+    width: 100%;
+    padding: 7px 10px 8px;
+    border: none;
+    border-top: 1px solid var(--border);
+    outline: none;
+    background: transparent;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    margin-top: 6px;
+    display: block;
+}
+
+.add-questions-container .img-opt-label-input::placeholder {
+    color: #bbb;
+}
+
+/* Correct card highlight on label + url inputs */
+.add-questions-container .image-opt-card.is-correct .img-opt-label-input,
+.add-questions-container .image-opt-card.is-correct .img-opt-url-input {
+    background: rgba(0, 194, 113, .03);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .add-questions-container .image-options-grid {
+        grid-template-columns: 1fr;
+    }
+}

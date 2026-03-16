@@ -26,12 +26,6 @@ interface Question {
     totalDuration?:   number;
 }
 
-interface AttemptResponse {
-    questions:       Question[];
-    durationMinutes: number;
-    examTitle?:      string;
-}
-
 type QStatus = 'unanswered' | 'answered' | 'marked' | 'skipped';
 
 interface QState {
@@ -216,7 +210,7 @@ const ExamScreen: React.FC = () => {
         }
     };
 
-    // Single choice (MCQ)
+    // Single choice (MCQ) — state tracks optId for UI, backend stores opt.id
     const selectSingle = (optId: string) => {
         const q = questions[currentQ];
         setQState(prev => {
@@ -224,10 +218,10 @@ const ExamScreen: React.FC = () => {
             ns[currentQ] = { status: 'answered', answer: optId };
             return ns;
         });
-        saveAnswer(q.id, optId);
+        saveAnswer(q.id, optId);   // store option ID (GUID)
     };
 
-    // Multiple correct
+    // Multiple correct — state tracks optIds for UI, backend stores comma-separated IDs
     const toggleMulti = (optId: string) => {
         const q = questions[currentQ];
         setQState(prev => {
@@ -239,8 +233,11 @@ const ExamScreen: React.FC = () => {
                 status: cur.length > 0 ? 'answered' : 'unanswered',
                 answer: cur.length > 0 ? cur : null,
             };
-            // Auto-save as comma-separated
-            if (cur.length > 0) saveAnswer(q.id, cur.join(','));
+            // Save comma-separated option IDs (not texts) to backend
+            if (cur.length > 0) {
+                const selectedIds = cur.join(',');
+                saveAnswer(q.id, selectedIds);
+            }
             return ns;
         });
     };
@@ -374,104 +371,146 @@ const ExamScreen: React.FC = () => {
     const qt = q?.questionType ?? '';
     const KEYS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
+    // ── Question type label config ────────────────────────────────────────────
+    const qtLabel = (() => {
+        if (isMulti(qt)) return { text: 'Multiple Correct — select all that apply', color: 'var(--purple)',  bg: 'rgba(139,92,246,.1)', icon: '☑️' };
+        if (isText(qt))  return { text: 'Open Text — type your answer below',        color: 'var(--accent2)', bg: 'rgba(0,87,255,.08)',    icon: '📝' };
+        if (isImage(qt)) return { text: 'Image Select — click the correct image',    color: 'var(--green)',   bg: 'rgba(0,194,113,.1)',    icon: '🖼️' };
+        return               { text: 'Single Correct — select one answer',           color: 'var(--accent)',  bg: 'rgba(255,92,0,.08)',    icon: '🔘' };
+    })();
+
     // ── RENDER: Question ──────────────────────────────────────────────────────
     const renderQuestion = () => {
         if (!q) return null;
 
-        // ── MCQ / Single correct ──────────────────────────────────────────────
-        if (isMCQ(qt) || (!isMulti(qt) && !isText(qt) && !isImage(qt) && q.options?.length > 0)) {
-            return (
-                <div className="options-list">
-                    {q.options.map((opt, i) => {
-                        const selected = qs.answer === opt.id;
-                        return (
-                            <div key={opt.id} className={`option ${selected ? 'selected' : ''}`}
-                                onClick={() => selectSingle(opt.id)}>
-                                <div className="option-key">{KEYS[i] ?? i + 1}</div>
-                                <span>{opt.text}</span>
-                            </div>
-                        );
-                    })}
+        return (
+            <>
+                {/* ── Question type label ─────────────────────────────────── */}
+                <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '7px',
+                    padding: '6px 14px', borderRadius: '100px',
+                    background: qtLabel.bg, border: `1px solid ${qtLabel.color}33`,
+                    fontSize: '12px', fontWeight: 600, color: qtLabel.color,
+                    marginBottom: '18px',
+                }}>
+                    <span>{qtLabel.icon}</span>
+                    <span>{qtLabel.text}</span>
                 </div>
-            );
-        }
 
-        // ── Multiple correct ──────────────────────────────────────────────────
-        if (isMulti(qt)) {
-            const sel = Array.isArray(qs.answer) ? qs.answer as string[] : [];
-            return (
-                <div className="options-list">
-                    <div style={{ fontSize: '12px', color: 'var(--accent2)', marginBottom: '10px', fontWeight: 500 }}>
-                        ☑️ Select all that apply
-                    </div>
-                    {q.options.map((opt, i) => {
-                        const selected = sel.includes(opt.id);
-                        return (
-                            <div key={opt.id} className={`multi-option ${selected ? 'selected' : ''}`}
-                                onClick={() => toggleMulti(opt.id)}>
-                                <div className="multi-checkbox">{selected ? '✓' : ''}</div>
-                                <div className="option-key">{KEYS[i] ?? i + 1}</div>
-                                <span>{opt.text}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            );
-        }
-
-        // ── Image Select ──────────────────────────────────────────────────────
-        if (isImage(qt)) {
-            return (
-                <div className="options-list">
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                {/* ── MCQ / Single correct ──────────────────────────────── */}
+                {(isMCQ(qt) || (!isMulti(qt) && !isText(qt) && !isImage(qt) && q.options?.length > 0)) && (
+                    <div className="options-list">
                         {q.options.map((opt, i) => {
                             const selected = qs.answer === opt.id;
                             return (
-                                <div key={opt.id}
-                                    onClick={() => selectSingle(opt.id)}
-                                    style={{
-                                        border: `2px solid ${selected ? 'var(--accent2)' : 'var(--border)'}`,
-                                        borderRadius: '12px',
-                                        cursor: 'pointer',
-                                        overflow: 'hidden',
-                                        background: selected ? 'rgba(0,87,255,.06)' : 'var(--card)',
-                                        transition: 'all .18s',
-                                    }}>
-                                    {opt.imageUrl
-                                        ? <img src={opt.imageUrl} alt={`Option ${KEYS[i]}`}
-                                            style={{ width: '100%', display: 'block', maxHeight: '160px', objectFit: 'cover' }} />
-                                        : <div style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>🖼</div>
-                                    }
-                                    <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                                        <div className="option-key" style={{ width: 24, height: 24, fontSize: '11px' }}>{KEYS[i]}</div>
+                                <div key={opt.id} className={`option ${selected ? 'selected' : ''}`}
+                                    onClick={() => selectSingle(opt.id)}>
+                                    <div className="option-key">{KEYS[i] ?? i + 1}</div>
+                                    <span>{opt.text}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* ── Multiple correct ────────────────────────────────────── */}
+                {isMulti(qt) && (() => {
+                    const sel = Array.isArray(qs.answer) ? qs.answer as string[] : [];
+                    return (
+                        <div className="options-list">
+                            {q.options.map((opt, i) => {
+                                const selected = sel.includes(opt.id);
+                                return (
+                                    <div key={opt.id} className={`multi-option ${selected ? 'selected' : ''}`}
+                                        onClick={() => toggleMulti(opt.id)}>
+                                        <div className="multi-checkbox">{selected ? '✓' : ''}</div>
+                                        <div className="option-key">{KEYS[i] ?? i + 1}</div>
                                         <span>{opt.text}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                })()}
+
+                {/* ── Image Select ────────────────────────────────────────── */}
+                {isImage(qt) && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                        {q.options.map((opt, i) => {
+                            const selected = qs.answer === opt.id;
+                            return (
+                                <div key={opt.id} onClick={() => selectSingle(opt.id)} style={{
+                                    border: `2.5px solid ${selected ? 'var(--accent2)' : 'var(--border)'}`,
+                                    borderRadius: '14px', cursor: 'pointer', overflow: 'hidden',
+                                    background: selected ? 'rgba(0,87,255,.06)' : 'var(--card)',
+                                    transition: 'all .18s',
+                                    boxShadow: selected ? '0 0 0 3px rgba(0,87,255,.15)' : 'none',
+                                }}>
+                                    {/* Image area */}
+                                    <div style={{ width: '100%', minHeight: '140px', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                        {opt.imageUrl
+                                            ? <img src={opt.imageUrl} alt={`Option ${KEYS[i]}`}
+                                                style={{ width: '100%', maxHeight: '180px', objectFit: 'cover', display: 'block' }} />
+                                            : <div style={{ fontSize: '40px', color: 'var(--border)' }}>🖼️</div>
+                                        }
+                                    </div>
+                                    {/* Label bar */}
+                                    <div style={{
+                                        padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px',
+                                        background: selected ? 'rgba(0,87,255,.06)' : 'var(--card)',
+                                        borderTop: `1px solid ${selected ? 'rgba(0,87,255,.2)' : 'var(--border)'}`,
+                                    }}>
+                                        <div className="option-key" style={{
+                                            width: 26, height: 26, fontSize: '11px', flexShrink: 0,
+                                            background: selected ? 'var(--accent2)' : 'var(--surface)',
+                                            color: selected ? '#fff' : 'var(--ink)',
+                                            border: `1.5px solid ${selected ? 'var(--accent2)' : 'var(--border)'}`,
+                                        }}>{KEYS[i]}</div>
+                                        <span style={{ fontSize: '13px', fontWeight: selected ? 600 : 400 }}>
+                                            {opt.text || `Option ${KEYS[i]}`}
+                                        </span>
+                                        {selected && <span style={{ marginLeft: 'auto', color: 'var(--accent2)', fontWeight: 700, fontSize: '14px' }}>✓</span>}
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-                </div>
-            );
-        }
+                )}
 
-        // ── Open Text ─────────────────────────────────────────────────────────
-        if (isText(qt)) {
-            const textVal = typeof qs.answer === 'string' ? qs.answer : '';
-            return (
-                <div className="text-answer-wrap">
-                    <textarea
-                        placeholder="Type your answer here…"
-                        value={textVal}
-                        onChange={e => setTextAnswer(e.target.value)}
-                        onBlur={saveTextOnBlur}
-                        rows={6}
-                    />
-                    <div className="text-char-count">{textVal.length} characters</div>
-                </div>
-            );
-        }
+                {/* ── Open Text ───────────────────────────────────────────── */}
+                {isText(qt) && (() => {
+                    const textVal = typeof qs.answer === 'string' ? qs.answer : '';
+                    return (
+                        <div className="text-answer-wrap">
+                            <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '8px' }}>
+                                Write your answer in detail. Your response will be reviewed by the examiner.
+                            </div>
+                            <textarea
+                                placeholder="Type your answer here…"
+                                value={textVal}
+                                onChange={e => setTextAnswer(e.target.value)}
+                                onBlur={saveTextOnBlur}
+                                rows={7}
+                                style={{ resize: 'vertical' }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                                <div className="text-char-count">{textVal.length} characters</div>
+                                {textVal.trim() && (
+                                    <div style={{ fontSize: '11px', color: 'var(--green)', fontWeight: 600 }}>✓ Answer saved on navigation</div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })()}
 
-        return <div style={{ color: 'var(--muted)', fontSize: '14px' }}>Unknown question type: {qt}</div>;
+                {/* ── Unknown type ─────────────────────────────────────────── */}
+                {!isMCQ(qt) && !isMulti(qt) && !isText(qt) && !isImage(qt) && q.options?.length === 0 && (
+                    <div style={{ color: 'var(--muted)', fontSize: '14px', padding: '16px', background: 'var(--surface)', borderRadius: '10px' }}>
+                        Unknown question type: {qt}
+                    </div>
+                )}
+            </>
+        );
     };
 
     return (
@@ -583,8 +622,7 @@ const ExamScreen: React.FC = () => {
                                     </span>
                                 )}
                                 {q?.marks && <span className="q-tag q-tag-marks">{q.marks} Marks</span>}
-                                {isMulti(qt) && <span className="q-tag" style={{ background: 'rgba(139,92,246,.1)', color: 'var(--purple)' }}>Multiple Correct</span>}
-                                {isText(qt)  && <span className="q-tag" style={{ background: 'rgba(0,87,255,.1)', color: 'var(--accent2)' }}>Descriptive</span>}
+
                                 {/* Save indicator */}
                                 {savingId === q?.id && (
                                     <span style={{ fontSize: '11px', color: 'var(--muted)', marginLeft: '4px' }}>💾 saving…</span>

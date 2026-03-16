@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { topicsApi, questionsApi } from '../../services/api';
-import { compressImage } from '../../utils/compressImage';
+import { compressImage } from '../../utils/compressImage';   // ← NEW
 import './AddQuestions.css';
+import RichTextEditor from '../../components/RichTextEditor/RichTextEditor';
 
 type QuestionType      = 'MCQ' | 'Multi-Select' | 'Text' | 'Image' | '';
 type DifficultyStatus  = 'Easy' | 'Medium' | 'Hard' | '';
@@ -101,7 +102,6 @@ const mapApiQuestion = (q: any, localId: number, fallbackTopicId: string): Quest
 };
 
 // ── Build Options payload for MCQ / Multi-Select ──────────────────────
-// → Options table: { Text, IsCorrect, ImageUrl }
 const buildMCQOptions = (q: Question) =>
     q.options.map((text, i) => ({
         text,
@@ -110,12 +110,11 @@ const buildMCQOptions = (q: Question) =>
     }));
 
 // ── Build Options payload for Image Select ────────────────────────────
-// → Options table: { Text(label), IsCorrect, ImageUrl }
 const buildImageOptions = (q: Question) =>
     q.imageOptions.map(opt => ({
-        text:      opt.label,       // Options.Text  = label
-        isCorrect: opt.isCorrect,   // Options.IsCorrect
-        imageUrl:  opt.imageUrl,    // Options.ImageUrl  ← the actual image URL
+        text:      opt.label,
+        isCorrect: opt.isCorrect,
+        imageUrl:  opt.imageUrl,
     }));
 
 // ─────────────────────────────────────────────────────────────────────
@@ -126,7 +125,6 @@ const AddQuestions: React.FC = () => {
     const routeState          = (location.state as any) ?? {};
     const editMode            = !!routeState.editMode;
     const presetTopicId       = routeState.topicId    ?? '';
-    const presetTopicVersionId = routeState.topicVersionId ?? ''; 
     const presetTopicName     = routeState.topicName  ?? '';
     const existingQuestions: any[] = routeState.existingQuestions ?? [];
 
@@ -138,6 +136,12 @@ const AddQuestions: React.FC = () => {
     const [isSaving,        setIsSaving]        = useState(false);
     const [toast,           setToast]           = useState({ show: false, msg: '', type: 'success' });
     const [importedIds,     setImportedIds]     = useState<Set<string>>(new Set());
+    // Refs for image option file inputs — keyed by questionId
+    const fileRefsMap = useRef<Record<number, (HTMLInputElement | null)[]>>({});
+    const getFileRefs = (qId: number): (HTMLInputElement | null)[] => {
+        if (!fileRefsMap.current[qId]) fileRefsMap.current[qId] = [];
+        return fileRefsMap.current[qId];
+    };
 
     // Sidebar AI
     const [aiTopic,       setAiTopic]       = useState('');
@@ -158,81 +162,26 @@ const AddQuestions: React.FC = () => {
 
     // ── On mount ────────────────────────────────────────────────────
     useEffect(() => {
-    topicsApi.getAll().then(res => {
-        const list = Array.isArray(res.data) ? res.data : (res.data?.items ?? res.data?.data ?? []);
-        setRealTopics(list);
-    }).catch(() => showToast('Failed to load topics', 'error'));
+        topicsApi.getAll().then(res => {
+            const list = Array.isArray(res.data) ? res.data : (res.data?.items ?? res.data?.data ?? []);
+            setRealTopics(list);
+        }).catch(() => showToast('Failed to load topics', 'error'));
 
-    if (editMode && existingQuestions.length > 0) {
-        // Step 1: Prefill immediately from navigation state — always works
-        let ctr = 0;
-        const prefilled = existingQuestions.map(q => mapApiQuestion(q, ++ctr, presetTopicId));
-        setQCounter(ctr);
-        setQuestions(prefilled);
-
-        // Step 2: Background re-fetch using topicVersionId to get
-        // textAnswer (OpenText) and imageUrl (ImageSelect) which may
-        // be missing from the navigation state if fetched before DTO fix
-        if (presetTopicVersionId) {
-            questionsApi.getAllByTopic(presetTopicVersionId)
-                .then(res => {
-                    const fresh: any[] = Array.isArray(res.data)
-                        ? res.data
-                        : (res.data?.items ?? res.data?.data ?? res.data?.questions ?? []);
-
-                    if (!fresh.length) return;
-
-                    // Map fresh data by question ID for fast lookup
-                    const freshMap = new Map<string, any>();
-                    fresh.forEach(q => {
-                        const id = String(q.id ?? q.questionId ?? '');
-                        if (id) freshMap.set(id, q);
-                    });
-
-                    // Patch only Text and Image type questions with fresh data
-                    setQuestions(prev => prev.map(q => {
-                        if (!q.apiId) return q;
-                        const f = freshMap.get(q.apiId);
-                        if (!f) return q;
-
-                        if (q.type === 'Text') {
-                            return {
-                                ...q,
-                                textAnswer: f.textAnswer ?? f.modelAnswer ?? q.textAnswer,
-                            };
-                        }
-
-                        if (q.type === 'Image') {
-                            const freshOpts = f.options ?? [];
-                            if (freshOpts.length > 0) {
-                                return {
-                                    ...q,
-                                    imageOptions: freshOpts.map((o: any) => ({
-                                        label:     o.text      ?? '',
-                                        imageUrl:  o.imageUrl  ?? '',
-                                        isCorrect: o.isCorrect ?? false,
-                                    })),
-                                };
-                            }
-                        }
-
-                        return q;
-                    }));
-                })
-                .catch(() => {
-                    // Silent — questions already shown from Step 1
-                });
+        if (editMode && existingQuestions.length > 0) {
+            let ctr = 0;
+            const prefilled = existingQuestions.map(q => mapApiQuestion(q, ++ctr, presetTopicId));
+            setQCounter(ctr);
+            setQuestions(prefilled);
+        } else {
+            setQCounter(1);
+            setQuestions([{
+                id: 1, type: '', text: '', topic: presetTopicId,
+                level: '', status: 'Active', options: [],
+                correct: 0, textAnswer: '', imageOptions: [],
+            }]);
         }
-    } else {
-        setQCounter(1);
-        setQuestions([{
-            id: 1, type: '', text: '', topic: presetTopicId,
-            level: '', status: 'Active', options: [],
-            correct: 0, textAnswer: '', imageOptions: [],
-        }]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
         setToast({ show: true, msg, type });
@@ -281,8 +230,8 @@ const AddQuestions: React.FC = () => {
     const toggleCollapse = (id: number) =>
         setCollapsedCards(prev => ({ ...prev, [id]: !prev[id] }));
 
-    // ── MCQ / Multi-Select options builder ──────────────────────────
-    const OptionBuilder = ({ q }: { q: Question }) => {
+    // ── MCQ / Multi-Select options renderer (plain function, not component — prevents focus loss) ──
+    const renderOptions = (q: Question) => {
         const isMulti = q.type === 'Multi-Select';
         const updateOpt = (idx: number, val: string) => {
             const o = [...q.options]; o[idx] = val; updateQuestion(q.id, { options: o });
@@ -333,11 +282,8 @@ const AddQuestions: React.FC = () => {
         );
     };
 
-    // ── Image Select builder ─────────────────────────────────────────
-    // Each card: upload image file → convert to base64 URL or use URL input
-    // Stores: Options.Text = label, Options.ImageUrl = URL, Options.IsCorrect
-    const ImageOptionBuilder = ({ q }: { q: Question }) => {
-        const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
+    // ── Image Select renderer (plain function — prevents focus loss) ────
+    const renderImageOptions = (q: Question) => {
 
         const updateImageOpt = (idx: number, updates: Partial<ImageOption>) => {
             const opts = [...q.imageOptions];
@@ -350,15 +296,21 @@ const AddQuestions: React.FC = () => {
             updateQuestion(q.id, { imageOptions: opts });
         };
 
-        const handleFileChange = (idx: number, file: File | null) => {
+        // ── CHANGED: compress before storing ──────────────────────────
+        // Before: reader.readAsDataURL(file) → raw base64 (200 KB+)
+        // After:  compressImage(file, 300, 300, 0.6) → WebP base64 (~5-15 KB)
+        // Display is identical — <img src={base64} /> works with both formats.
+        const handleFileChange = async (idx: number, file: File | null) => {
             if (!file) return;
-            // Convert to base64 data URL — stored in Options.ImageUrl
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const dataUrl = e.target?.result as string;
-                updateImageOpt(idx, { imageUrl: dataUrl });
-            };
-            reader.readAsDataURL(file);
+            try {
+                const compressed = await compressImage(file, 300, 300, 0.6);
+                updateImageOpt(idx, { imageUrl: compressed });
+            } catch {
+                // Fallback to raw base64 if compression fails (e.g. unsupported format)
+                const reader = new FileReader();
+                reader.onload = e => updateImageOpt(idx, { imageUrl: e.target?.result as string });
+                reader.readAsDataURL(file);
+            }
         };
 
         const addImageOpt = () => {
@@ -398,7 +350,7 @@ const AddQuestions: React.FC = () => {
                             {/* Image preview / upload */}
                             <div
                                 className="img-opt-preview"
-                                onClick={() => fileRefs.current[idx]?.click()}
+                                onClick={() => getFileRefs(q.id)[idx]?.click()}
                                 title="Click to upload image"
                             >
                                 {opt.imageUrl ? (
@@ -418,7 +370,7 @@ const AddQuestions: React.FC = () => {
                                     type="file"
                                     accept="image/*"
                                     style={{ display: 'none' }}
-                                    ref={el => { fileRefs.current[idx] = el; }}
+                                    ref={el => { getFileRefs(q.id)[idx] = el; }}
                                     onChange={e => handleFileChange(idx, e.target.files?.[0] ?? null)}
                                 />
                             </div>
@@ -450,8 +402,8 @@ const AddQuestions: React.FC = () => {
                     🖼️ + Add Image Option
                 </button>
                 <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
-                    Upload an image file or paste a URL. Click the radio circle to mark the correct option.
-                    Image URL is stored in <code style={{ background: 'rgba(0,87,255,.08)', color: 'var(--accent2)', padding: '1px 5px', borderRadius: '4px' }}>Options.ImageUrl</code>.
+                    Images are compressed to 300×300 WebP (~5–15 KB) before saving.
+                    Upload a file or paste a URL. Click ○ to mark the correct option.
                 </div>
             </>
         );
@@ -517,11 +469,10 @@ const AddQuestions: React.FC = () => {
 
         setIsSaving(true);
 
-        // ── Build options per type ───────────────────────────────────
         const getOptions = (q: Question) => {
             if (q.type === 'MCQ' || q.type === 'Multi-Select') return buildMCQOptions(q);
             if (q.type === 'Image')                            return buildImageOptions(q);
-            return []; // Text type — no options
+            return [];
         };
 
         if (editMode) {
@@ -529,20 +480,11 @@ const AddQuestions: React.FC = () => {
             for (const q of questions) {
                 try {
                     if (q.apiId) {
-                        // PUT — UpdateQuestionRequestDto
-                        const putPayload: any = {
-                            questionText: q.text,
-                            status:       q.status,
-                        };
-                        if (q.type === 'Text') {
-                            // textAnswer → stored in Questions.Text (DB column)
-                            putPayload.textAnswer = q.textAnswer;
-                        } else {
-                            putPayload.options = getOptions(q);
-                        }
+                        const putPayload: any = { questionText: q.text, status: q.status };
+                        if (q.type === 'Text') { putPayload.textAnswer = q.textAnswer; }
+                        else                   { putPayload.options    = getOptions(q); }
                         await questionsApi.update(q.apiId, putPayload);
                     } else {
-                        // POST new question added during edit
                         const postPayload = {
                             isSaveAsDraft: isDraft,
                             questions: [{
@@ -551,7 +493,6 @@ const AddQuestions: React.FC = () => {
                                 levelId:        LEVEL_IDS[q.level] || LEVEL_IDS['Easy'],
                                 questionTypeId: TYPE_IDS[q.type]   || TYPE_IDS['MCQ'],
                                 options:        getOptions(q),
-                                // textAnswer → Questions.Text DB column (model answer for open text)
                                 textAnswer:     q.type === 'Text' ? q.textAnswer : '',
                             }],
                         };
@@ -565,7 +506,6 @@ const AddQuestions: React.FC = () => {
             else showToast(`${ok} saved, ${fail} failed.`, 'error');
 
         } else {
-            // POST all new questions
             try {
                 const payload = {
                     isSaveAsDraft: isDraft,
@@ -575,7 +515,6 @@ const AddQuestions: React.FC = () => {
                         levelId:        LEVEL_IDS[q.level] || LEVEL_IDS['Easy'],
                         questionTypeId: TYPE_IDS[q.type]   || TYPE_IDS['MCQ'],
                         options:        getOptions(q),
-                        // textAnswer → Questions.Text DB column (only for Text type questions)
                         textAnswer:     q.type === 'Text' ? q.textAnswer : '',
                     })),
                 };
@@ -666,7 +605,12 @@ const AddQuestions: React.FC = () => {
                                     <div className="q-card-header" onClick={() => toggleCollapse(q.id)}>
                                         <div className="q-card-num">{idx + 1}</div>
                                         <div className={`q-card-preview ${q.text ? 'has-text' : ''}`}>
-                                            {q.text ? (q.text.length > 70 ? q.text.slice(0, 70) + '…' : q.text) : 'New Question'}
+                                            {q.text
+                                            ? (() => {
+                                                const plain = q.text.replace(/<[^>]+>/g, '').trim();
+                                                return plain.length > 70 ? plain.slice(0, 70) + '…' : plain || 'New Question';
+                                              })()
+                                            : 'New Question'}
                                         </div>
                                         {q.apiId && (
                                             <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', background: 'rgba(0,87,255,.1)', color: '#0057ff', whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -680,7 +624,6 @@ const AddQuestions: React.FC = () => {
                                     </div>
 
                                     <div className="q-card-body">
-                                        {/* Type selector */}
                                         <div className="section-divider">
                                             <div className="section-divider-line"></div>
                                             <div className="section-divider-text">Question Type</div>
@@ -705,7 +648,6 @@ const AddQuestions: React.FC = () => {
                                             ))}
                                         </div>
 
-                                        {/* Meta row */}
                                         <div className="form-row triple">
                                             <div className="form-group">
                                                 <label>Topic <span style={{ color: 'var(--red)' }}>*</span></label>
@@ -732,29 +674,27 @@ const AddQuestions: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        {/* Question text */}
                                         <div className="form-row full">
                                             <div className="form-group">
                                                 <label>Question Text <span style={{ color: 'var(--red)' }}>*</span></label>
-                                                <textarea
-                                                    placeholder="Type the question here…"
-                                                    rows={3}
+                                                <RichTextEditor
+                                                    key={`rte-${q.id}`}
                                                     value={q.text}
-                                                    onChange={e => updateQuestion(q.id, { text: e.target.value })}
+                                                    onChange={(html: string) => updateQuestion(q.id, { text: html })}
+                                                    placeholder="Type the question here… (use toolbar for bold, code, math, images)"
+                                                    minHeight={130}
                                                 />
                                             </div>
                                         </div>
 
-                                        {/* Type-specific UI */}
                                         {q.type === '' && (
                                             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px', border: '1.5px dashed var(--border)', borderRadius: '10px' }}>
                                                 ↑ Select a question type to configure answer options
                                             </div>
                                         )}
 
-                                        {(q.type === 'MCQ' || q.type === 'Multi-Select') && <OptionBuilder q={q} />}
+                                        {(q.type === 'MCQ' || q.type === 'Multi-Select') && renderOptions(q)}
 
-                                        {/* ── OPEN TEXT ── */}
                                         {q.type === 'Text' && (
                                             <>
                                                 <div className="section-divider">
@@ -763,27 +703,18 @@ const AddQuestions: React.FC = () => {
                                                     <div className="section-divider-line"></div>
                                                 </div>
                                                 <div className="form-group">
-                                                    <label>
-                                                        Model / Expected Answer
-                                                        <span style={{ fontSize: '11px', fontWeight: 600, background: 'rgba(0,87,255,.08)', color: 'var(--accent2)', padding: '2px 7px', borderRadius: '4px', marginLeft: '8px' }}>
-                                                            → Questions.Text (DB)
-                                                        </span>
-                                                    </label>
+                                                    <label>Model / Expected Answer</label>
                                                     <textarea
                                                         placeholder="Enter the expected answer for reference or auto-grading…"
                                                         rows={4}
                                                         value={q.textAnswer}
                                                         onChange={e => updateQuestion(q.id, { textAnswer: e.target.value })}
                                                     />
-                                                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
-                                                        This is sent as <code style={{ background: 'rgba(0,87,255,.08)', color: 'var(--accent2)', padding: '1px 5px', borderRadius: '3px' }}>textAnswer</code> and stored in the <code style={{ background: 'rgba(0,87,255,.08)', color: 'var(--accent2)', padding: '1px 5px', borderRadius: '3px' }}>Text</code> column of the Questions table.
-                                                    </div>
                                                 </div>
                                             </>
                                         )}
 
-                                        {/* ── IMAGE SELECT ── */}
-                                        {q.type === 'Image' && <ImageOptionBuilder q={q} />}
+                                        {q.type === 'Image' && renderImageOptions(q)}
                                     </div>
                                 </div>
                             ))}
@@ -890,8 +821,8 @@ const AddQuestions: React.FC = () => {
                                 ] : [
                                     { icon: '🎯', text: 'Click the radio circle to mark the correct answer.' },
                                     { icon: '✅', text: 'Multi-Select allows multiple correct answers.' },
-                                    { icon: '🖼️', text: 'Image Select: upload a file or paste a URL for each option.' },
-                                    { icon: '📝', text: 'Open Text: the model answer is stored in Questions.Text.' },
+                                    { icon: '🖼️', text: 'Images compressed to 300×300 WebP (~5–15 KB) automatically.' },
+                                    { icon: '📝', text: 'Open Text: enter a model answer for grading reference.' },
                                     { icon: '🤖', text: 'Use AI Generate to create questions instantly.' },
                                 ]).map((tip, i) => (
                                     <div className="tip-row" key={i}>

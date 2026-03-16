@@ -18,11 +18,20 @@ interface TopicDist {
     selectedQuestionIds: string[];
 }
 
+interface OptionItem {
+    id:        string;
+    text:      string;
+    isCorrect: boolean;
+    imageUrl?: string | null;
+}
+
 interface QuestionItem {
     id:           string;
     questionText: string;
     level?:       string;
     type?:        string;
+    textAnswer?:  string | null;   // OpenText
+    options?:     OptionItem[];    // MCQ | MultiSelect | ImageSelect
 }
 
 const CreateAssessment: React.FC = () => {
@@ -149,8 +158,15 @@ const CreateAssessment: React.FC = () => {
             setModalQuestions(list.map((q: any) => ({
                 id:           q.id ?? q.questionId ?? '',
                 questionText: q.questionText ?? q.text ?? 'Question',
-                level:        q.level?.name ?? q.levelName ?? '',
-                type:         q.questionType?.name ?? q.typeName ?? '',
+                level:        q.level?.name  ?? q.levelName  ?? q.level  ?? '',
+                type:         q.questionType?.name ?? q.typeName ?? q.questionType ?? '',
+                textAnswer:   q.textAnswer ?? null,
+                options:      (q.options ?? []).map((o: any) => ({
+                    id:        o.id,
+                    text:      o.text      ?? '',
+                    isCorrect: o.isCorrect ?? false,
+                    imageUrl:  o.imageUrl  ?? null,
+                })),
             })));
         } catch {
             showToast('Failed to load questions', 'error');
@@ -822,6 +838,46 @@ const CreateAssessment: React.FC = () => {
                                                         {q.level && <span className="q-tag">{q.level}</span>}
                                                         {q.type  && <span className="q-tag">{q.type}</span>}
                                                     </div>
+
+                                                    {/* MCQ / MultiSelect — text options */}
+                                                    {(q.type === 'MCQ' || q.type === 'MultiSelect') && (q.options ?? []).length > 0 && (
+                                                        <div className="q-options-list">
+                                                            {(q.options ?? []).map((o: OptionItem, oi: number) => (
+                                                                <div key={oi} className={`q-option-chip ${o.isCorrect ? 'correct' : ''}`}>
+                                                                    {o.isCorrect && <span className="q-option-tick">✓</span>}
+                                                                    {o.text}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* OpenText — model answer */}
+                                                    {q.type === 'OpenText' && q.textAnswer && (
+                                                        <div className="q-text-answer">
+                                                            📝 <strong>Model Answer:</strong> {q.textAnswer}
+                                                        </div>
+                                                    )}
+                                                    {q.type === 'OpenText' && !q.textAnswer && (
+                                                        <div className="q-text-answer empty">
+                                                            ✍️ Open text — no model answer set
+                                                        </div>
+                                                    )}
+
+                                                    {/* ImageSelect — image thumbnails */}
+                                                    {q.type === 'ImageSelect' && (q.options ?? []).length > 0 && (
+                                                        <div className="q-image-options">
+                                                            {(q.options ?? []).map((o: OptionItem, oi: number) => (
+                                                                <div key={oi} className={`q-image-chip ${o.isCorrect ? 'correct' : ''}`}>
+                                                                    {o.imageUrl
+                                                                        ? <img src={o.imageUrl} alt={o.text || `Option ${oi + 1}`} />
+                                                                        : <div className="q-image-placeholder">🖼️</div>
+                                                                    }
+                                                                    {o.isCorrect && <span className="q-image-correct-badge">✓</span>}
+                                                                    {o.text && <div className="q-image-label">{o.text}</div>}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );

@@ -280,12 +280,13 @@ const CreateLink: React.FC = () => {
 
     const [procWeb,     setProcWeb]     = useState<boolean>(false);
     const [procImage,   setProcImage]   = useState<boolean>(false);
-    const [procVideo,   setProcVideo]   = useState<boolean>(false);
     const [webWarnings, setWebWarnings] = useState<number>(3);
     const [imgCount,    setImgCount]    = useState<number>(5);
-    const [videoMins,   setVideoMins]   = useState<number>(30);
     const [warnAction,  setWarnAction]  = useState<'warn' | 'terminate'>('warn');
-    const anyProctor = procWeb || procImage || procVideo;
+    const [procScreen, setProcScreen] = useState<boolean>(false);
+    const [screenDuration, setScreenDuration] = useState<number>(60);
+    const [screenQuality, setScreenQuality] = useState<'Low' | 'Medium' | 'High'>('Medium');
+    const anyProctor = procWeb || procImage ||  procScreen;
 
     const [startupInst, setStartupInst] = useState('Please ensure you are in a quiet room with good lighting. Keep your camera on throughout the exam. Do not switch browser tabs — it will be flagged and reported.');
     const [compMsg,     setCompMsg]     = useState('Thank you for completing the assessment. Your responses have been recorded. Results will be reviewed and shared within 24 hours.');
@@ -353,25 +354,34 @@ const CreateLink: React.FC = () => {
     const toLocalISO = (dt: string): string => dt.length === 16 ? `${dt}:00` : dt;
 
     const buildPayload = () => ({
-        name:                   linkName.trim(),
-        assessmentId:           selectedAssessmentId,
-        examStartDateTime:      toLocalISO(startDate),
-        examEndDateTime:        toLocalISO(endDate),
-        isCredentialBased:      opts.credAccess,
-        accessCode:             accessCode.trim(),
-        maxAttempts:            toInt(attempts, 1),
-        shuffleQuestions:       opts.shuffleQs,
-        startupInstruction:     startupInst,
-        completeInstruction:    compMsg,
-        isWebProctoring:        procWeb,
-        webProctoringWarnings:  procWeb   ? webWarnings : 0,
-        isImageProctoring:      procImage,
-        imageProctoringCount:   procImage ? imgCount    : 0,
-        isVideoProctoring:      procVideo,
-        videoProctoringMinutes: procVideo ? videoMins   : 0,
-        warningAction:          anyProctor ? warnAction : 'warn',
-        credentialBasedUsers:   opts.credAccess ? pendingEmails : [],  // ← PATCH 1
-    });
+    name: linkName.trim(),
+    assessmentId: selectedAssessmentId,
+    examStartDateTime: toLocalISO(startDate),
+    examEndDateTime: toLocalISO(endDate),
+    isCredentialBased: opts.credAccess,
+    accessCode: accessCode.trim(),
+    maxAttempts: toInt(attempts, 1),
+    shuffleQuestions: opts.shuffleQs,
+    startupInstruction: startupInst,
+    completeInstruction: compMsg,
+
+    // ── PROCTORING ──
+    isWebProctoring: procWeb,
+    webProctoringWarnings: procWeb ? webWarnings : 0,
+
+    isImageProctoring: procImage,
+    imageProctoringCount: procImage ? imgCount : 0,
+
+
+    // ✅ SCREEN RECORDING
+    isScreenRecording: procScreen,
+    screenRecordingDuration: procScreen ? screenDuration : null,
+    screenRecordingQuality: procScreen ? screenQuality : 'Medium',
+
+    warningAction: anyProctor ? warnAction : 'warn',
+
+    credentialBasedUsers: opts.credAccess ? pendingEmails : [],
+});
 
     const handleGenerate = async () => {
         if (!selectedAssessmentId) { showToast('Please select an assessment.',    'error'); return; }
@@ -546,61 +556,120 @@ const CreateLink: React.FC = () => {
 
                     {/* ══ 4: Proctoring ══ */}
                     <div className="section-card">
-                        <div className="section-header">
-                            <div className="section-title"><div className="section-title-icon si-red">🔒</div>Proctoring Settings</div>
-                            {anyProctor ? <span className="badge badge-active" style={{ fontSize: '11px' }}><span className="bdot" /> Active</span> : <span style={{ fontSize: '12px', color: 'var(--muted)' }}>All off</span>}
-                        </div>
-                        <div className="section-body">
-                            {anyProctor && (
-                                <div className="proctor-detail-row" style={{ marginBottom: '8px' }}>
-                                    <div className="form-group" style={{ flex: 1 }}>
-                                        <label className="form-label">On Violation — Warning Action</label>
-                                        <select value={warnAction} onChange={e => setWarnAction(e.target.value as 'warn' | 'terminate')}>
-                                            <option value="warn">Warn student only</option>
-                                            <option value="terminate">Terminate exam immediately</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
-                            <div className="toggle-row">
-                                <div className="toggle-info"><div className="toggle-label">Web / Tab Proctoring</div><div className="toggle-sub">Detects tab switches and window focus loss.</div></div>
-                                <div className={`toggle blue ${procWeb ? 'on' : ''}`} onClick={() => setProcWeb(v => !v)} />
-                            </div>
-                            {procWeb && (
-                                <div className="proctor-detail-row"><div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">Allowed Warnings Before Action</label>
-                                    <select value={webWarnings} onChange={e => setWebWarnings(toInt(e.target.value, 3))}>
-                                        <option value={0}>0 — act immediately</option><option value={1}>1 warning</option><option value={2}>2 warnings</option><option value={3}>3 warnings</option><option value={5}>5 warnings</option>
-                                    </select>
-                                </div></div>
-                            )}
-                            <div className="toggle-row">
-                                <div className="toggle-info"><div className="toggle-label">Image / Snapshot Proctoring</div><div className="toggle-sub">Captures periodic webcam snapshots.</div></div>
-                                <div className={`toggle blue ${procImage ? 'on' : ''}`} onClick={() => setProcImage(v => !v)} />
-                            </div>
-                            {procImage && (
-                                <div className="proctor-detail-row"><div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">Number of Snapshots</label>
-                                    <select value={imgCount} onChange={e => setImgCount(toInt(e.target.value, 5))}>
-                                        <option value={3}>3 snapshots</option><option value={5}>5 snapshots</option><option value={10}>10 snapshots</option><option value={20}>20 snapshots</option>
-                                    </select>
-                                </div></div>
-                            )}
-                            <div className="toggle-row">
-                                <div className="toggle-info"><div className="toggle-label">Video Recording Proctoring</div><div className="toggle-sub">Records webcam for specified duration.</div></div>
-                                <div className={`toggle blue ${procVideo ? 'on' : ''}`} onClick={() => setProcVideo(v => !v)} />
-                            </div>
-                            {procVideo && (
-                                <div className="proctor-detail-row"><div className="form-group" style={{ flex: 1 }}>
-                                    <label className="form-label">Recording Duration</label>
-                                    <select value={videoMins} onChange={e => setVideoMins(toInt(e.target.value, 30))}>
-                                        <option value={10}>10 minutes</option><option value={15}>15 minutes</option><option value={30}>30 minutes</option><option value={60}>60 minutes (full exam)</option>
-                                    </select>
-                                </div></div>
-                            )}
-                            {!anyProctor && <div className="proctor-off-note">🔓 No proctoring enabled. Toggle options above to activate.</div>}
-                        </div>
-                    </div>
+    <div className="section-header">
+        <div className="section-title">
+            <div className="section-title-icon si-red">🔒</div>
+            Proctoring Settings
+        </div>
+
+        {anyProctor ? (
+            <span className="badge badge-active" style={{ fontSize: '11px' }}>
+                <span className="bdot" /> Active
+            </span>
+        ) : (
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>All off</span>
+        )}
+    </div>
+
+    <div className="section-body">
+
+        {anyProctor && (
+            <div className="proctor-detail-row" style={{ marginBottom: '8px' }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label">On Violation — Warning Action</label>
+                    <select value={warnAction} onChange={e => setWarnAction(e.target.value as 'warn' | 'terminate')}>
+                        <option value="warn">Warn student only</option>
+                        <option value="terminate">Terminate exam immediately</option>
+                    </select>
+                </div>
+            </div>
+        )}
+
+        {/* WEB */}
+        <div className="toggle-row">
+            <div className="toggle-info">
+                <div className="toggle-label">Web / Tab Proctoring</div>
+                <div className="toggle-sub">Detects tab switches and window focus loss.</div>
+            </div>
+            <div className={`toggle blue ${procWeb ? 'on' : ''}`} onClick={() => setProcWeb(v => !v)} />
+        </div>
+
+        {procWeb && (
+            <div className="proctor-detail-row">
+                <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label">Allowed Warnings</label>
+                    <select value={webWarnings} onChange={e => setWebWarnings(toInt(e.target.value, 3))}>
+                        <option value={0}>0 — immediate action</option>
+                        <option value={1}>1 warning</option>
+                        <option value={2}>2 warnings</option>
+                        <option value={3}>3 warnings</option>
+                        <option value={5}>5 warnings</option>
+                    </select>
+                </div>
+            </div>
+        )}
+
+        {/* IMAGE */}
+        <div className="toggle-row">
+            <div className="toggle-info">
+                <div className="toggle-label">Image / Snapshot Proctoring</div>
+                <div className="toggle-sub">Captures webcam snapshots.</div>
+            </div>
+            <div className={`toggle blue ${procImage ? 'on' : ''}`} onClick={() => setProcImage(v => !v)} />
+        </div>
+
+        {procImage && (
+            <div className="proctor-detail-row">
+                <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label">Snapshots</label>
+                    <select value={imgCount} onChange={e => setImgCount(toInt(e.target.value, 5))}>
+                        <option value={3}>3</option>
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                    </select>
+                </div>
+            </div>
+        )}
+
+        {/* ✅ SCREEN RECORDING */}
+        <div className="toggle-row">
+            <div className="toggle-info">
+                <div className="toggle-label">Screen Recording</div>
+                <div className="toggle-sub">Records entire screen during exam.</div>
+            </div>
+            <div className={`toggle blue ${procScreen ? 'on' : ''}`} onClick={() => setProcScreen(v => !v)} />
+        </div>
+
+        {procScreen && (
+            <div className="proctor-detail-row">
+                <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label">Duration</label>
+                    <select value={screenDuration} onChange={e => setScreenDuration(toInt(e.target.value, 60))}>
+                        <option value={15}>15 min</option>
+                        <option value={30}>30 min</option>
+                        <option value={60}>Full exam</option>
+                    </select>
+                </div>
+
+                <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label">Quality</label>
+                    <select value={screenQuality} onChange={e => setScreenQuality(e.target.value as any)}>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </div>
+            </div>
+        )}
+
+        {!anyProctor && (
+            <div className="proctor-off-note">
+                🔓 No proctoring enabled
+            </div>
+        )}
+    </div>
+</div>
 
                     {/* ══ 5: Student Instructions ══ */}
                     <div className="section-card">
@@ -764,7 +833,7 @@ const CreateLink: React.FC = () => {
                                 { key: 'Window Closes', val: fmtDate(endDate) },
                                 { key: 'Max Attempts',  val: attempts === '0' ? 'Unlimited' : `${attempts} attempt${attempts !== '1' ? 's' : ''}` },
                                 { key: 'Student Cap',   val: capLabel },
-                                { key: 'Proctoring',    val: anyProctor ? [procWeb && 'Web', procImage && 'Image', procVideo && 'Video'].filter(Boolean).join(', ') : 'None' },
+                                { key: 'Proctoring',    val: anyProctor ? [procWeb && 'Web', procImage && 'Image', procScreen && 'Screen'].filter(Boolean).join(', ') : 'None' },
                             ].map(r => (
                                 <div className="summary-row" key={r.key}>
                                     <span className="summary-key">{r.key}</span>

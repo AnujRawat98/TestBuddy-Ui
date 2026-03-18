@@ -1,54 +1,64 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import './StudentEntry.css';
 import { assessmentLinksApi } from '../../services/api';
 
-// ── Full link details from GET /api/assessment-links/{linkId} ────────────────
+// Extend window to hold live media streams for popup access via window.opener
+declare global {
+    interface Window {
+        __procCamStream?:    MediaStream | null;
+        __procScreenStream?: MediaStream | null;
+    }
+}
+
 interface LinkDetails {
-    id:                   string;
-    name:                 string;
-    examStartDateTime:    string;
-    examEndDateTime:      string;
-    isCredentialBased:    boolean;
-    isActive:             boolean;
-    accessCode:           string;       // link-level code (used for direct-based)
-    startupInstruction?:  string;
-    // Proctoring flags — used to build permission checkboxes
-    isWebProctoring:      boolean;
-    isImageProctoring:    boolean;
-    isVideoProctoring:    boolean;
-    webProctoringWarnings?: number;
-    imageProctoringCount?:  number;
-    videoProctoringMinutes?: number;
+    id: string; name: string; examStartDateTime: string; examEndDateTime: string;
+    isCredentialBased: boolean; isActive: boolean; accessCode: string;
+    startupInstruction?: string;
+    isWebProctoring: boolean; isImageProctoring: boolean;
+    isScreenRecording: boolean;
+    webProctoringWarnings?: number; imageProctoringCount?: number;
+    screenRecordingDuration?: number; screenRecordingQuality?: string;
+    warningAction?: string;
+}
+
+export interface ProctoringConfig {
+    assessmentLinkId:        string;
+    webProctoringEnabled:    boolean;
+    imageProctoringEnabled:  boolean;
+    screenRecordingEnabled:  boolean;
+    webProctoringWarnings:   number;
+    imageProctoringCount:    number;
+    screenRecordingDuration: number | null;
+    screenRecordingQuality:  string;
+    warningAction:           string;
 }
 
 type Stage = 'loading' | 'link-error' | 'entry' | 'instructions' | 'starting';
 
-// ── Proctoring permission item ───────────────────────────────────────────────
-interface ProcPermission {
-    key:     string;
-    icon:    string;
-    label:   string;
-    detail:  string;
-}
+// permission status per type
+type PermStatus = 'idle' | 'granted' | 'denied';
 
 const StudentEntry: React.FC = () => {
     const { linkId } = useParams<{ linkId: string }>();
 
-    const [link,    setLink]    = useState<LinkDetails | null>(null);
-    const [stage,   setStage]   = useState<Stage>('loading');
-    const [errorMsg, setErrorMsg] = useState('');
+    const [link,          setLink]          = useState<LinkDetails | null>(null);
+    const [stage,         setStage]         = useState<Stage>('loading');
+    const [errorMsg,      setErrorMsg]      = useState('');
+    const [email,         setEmail]         = useState('');
+    const [code,          setCode]          = useState('');
+    const [emailError,    setEmailError]    = useState(false);
+    const [codeError,     setCodeError]     = useState(false);
+    const [loading,       setLoading]       = useState(false);
+    const [agreedGeneral, setAgreedGeneral] = useState(false);
+    const [procAgreed,    setProcAgreed]    = useState<Record<string, boolean>>({});
 
-    // Entry form
-    const [email,      setEmail]      = useState('');
-    const [code,       setCode]       = useState('');
-    const [emailError, setEmailError] = useState(false);
-    const [codeError,  setCodeError]  = useState(false);
-    const [loading,    setLoading]    = useState(false);
-
-    // Instructions: general + per-proctoring permission checkboxes
-    const [agreedGeneral,  setAgreedGeneral]  = useState(false);
-    const [procAgreed,     setProcAgreed]     = useState<Record<string, boolean>>({});
+    // Permission states — tracked independently
+    const [cameraStatus, setCameraStatus] = useState<PermStatus>('idle');
+    const [screenStatus, setScreenStatus] = useState<PermStatus>('idle');
+    const [cameraError,  setCameraError]  = useState('');
+    const [screenError,  setScreenError]  = useState('');
+    const [requestingPerm, setRequestingPerm] = useState<'camera' | 'screen' | null>(null);
 
     const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
     const showToast = (msg: string, type: 'success' | 'info' | 'error' = 'success') => {
@@ -56,246 +66,213 @@ const StudentEntry: React.FC = () => {
         setTimeout(() => setToast(p => ({ ...p, show: false })), 3500);
     };
 
-    // ── STEP 1: Fetch link details ────────────────────────────────────────────
+    // ── Fetch link ────────────────────────────────────────────────────────────
     useEffect(() => {
         if (!linkId) { setStage('link-error'); return; }
         (async () => {
             try {
-                const res     = await assessmentLinksApi.getById(linkId);
-                const details = res.data as LinkDetails;
-
-                if (!details?.isActive) {
-                    setErrorMsg('This exam link is inactive or does not exist.');
-                    setStage('link-error');
-                    return;
-                }
-                if (new Date() > new Date(details.examEndDateTime)) {
-                    setErrorMsg(`This exam link expired on ${fmtDT(details.examEndDateTime)}.`);
-                    setStage('link-error');
-                    return;
-                }
-
-                setLink(details);
-                setStage('entry');
-            } catch {
-                setErrorMsg('Exam link not found or has expired.');
-                setStage('link-error');
-            }
+                const res = await assessmentLinksApi.getById(linkId);
+                const d = res.data as LinkDetails;
+                if (!d?.isActive) { setErrorMsg('This exam link is inactive or does not exist.'); setStage('link-error'); return; }
+                if (new Date() > new Date(d.examEndDateTime)) { setErrorMsg(`This exam link expired on ${fmtDT(d.examEndDateTime)}.`); setStage('link-error'); return; }
+                setLink(d); setStage('entry');
+            } catch { setErrorMsg('Exam link not found or has expired.'); setStage('link-error'); }
         })();
-    }, [linkId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [linkId]);
 
-    // ── Build proctoring permissions list from link flags ─────────────────────
-    const buildProcPermissions = (l: LinkDetails): ProcPermission[] => {
-        const perms: ProcPermission[] = [];
-        if (l.isWebProctoring) {
-            perms.push({
-                key:    'web',
-                icon:   '🌐',
-                label:  'Tab & Window Monitoring',
-                detail: `We will monitor tab switches and window focus. ${l.webProctoringWarnings ? `${l.webProctoringWarnings} warning(s) allowed before action.` : ''}`,
-            });
-        }
-        if (l.isImageProctoring) {
-            perms.push({
-                key:    'image',
-                icon:   '📸',
-                label:  'Webcam Snapshot Capture',
-                detail: `Your webcam will capture ${l.imageProctoringCount ?? 'periodic'} snapshot(s) during the exam to verify your identity.`,
-            });
-        }
-        if (l.isVideoProctoring) {
-            perms.push({
-                key:    'video',
-                icon:   '🎥',
-                label:  'Webcam Video Recording',
-                detail: `Your webcam will be recorded for ${l.videoProctoringMinutes ? `${l.videoProctoringMinutes} minutes` : 'the exam duration'} for proctoring purposes.`,
-            });
-        }
-        return perms;
-    };
+    const needsCamera = (l: LinkDetails) => l.isImageProctoring;
+    const needsScreen = (l: LinkDetails) => l.isScreenRecording;
 
-    // ── STEP 2: Validate ──────────────────────────────────────────────────────
-    // Swagger: POST /api/assessment-links/validate?linkId={uuid}&email={string}
-    //
-    // Direct-based:      backend checks code against AssessmentLink.AccessCode
-    //                    → we validate client-side first (immediate feedback),
-    //                      then call validate with email so backend confirms & checks
-    //                      expiry / attempts. We also pass the code via email param
-    //                      since Swagger only exposes linkId+email — the backend
-    //                      validate endpoint handles code internally for direct links.
-    //
-    // Credential-based:  backend checks email+code against AssessmentLinkUser.AccessCodeHash
-    //                    → same endpoint, backend knows the type from the link record.
+    // ── Verify credentials ────────────────────────────────────────────────────
     const handleVerify = async () => {
         if (!linkId || !link) return;
-
-        setEmailError(false);
-        setCodeError(false);
-        setErrorMsg('');
-
-        const emailTrimmed = email.trim().toLowerCase();
-        const codeTrimmed  = code.trim().toUpperCase();
-
-        if (!emailTrimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
-            setEmailError(true);
-            setErrorMsg('Please enter a valid email address.');
-            return;
-        }
-        if (!codeTrimmed) {
-            setCodeError(true);
-            setErrorMsg('Please enter the access code.');
-            return;
-        }
-
-        // Cannot start before exam window opens
-        if (new Date() < new Date(link.examStartDateTime)) {
-            setErrorMsg(`Exam hasn't started yet. It opens at ${fmtDT(link.examStartDateTime)}.`);
-            return;
-        }
-
-        // For direct-based: client-side code check first
-        // (gives immediate feedback without API round-trip)
-        if (!link.isCredentialBased) {
-            if (codeTrimmed !== link.accessCode?.toUpperCase()) {
-                setCodeError(true);
-                setErrorMsg('Invalid access code. Please check and try again.');
-                return;
-            }
-        }
-
+        setEmailError(false); setCodeError(false); setErrorMsg('');
+        const et = email.trim().toLowerCase(), ct = code.trim().toUpperCase();
+        if (!et || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(et)) { setEmailError(true); setErrorMsg('Please enter a valid email address.'); return; }
+        if (!ct) { setCodeError(true); setErrorMsg('Please enter the access code.'); return; }
+        if (new Date() < new Date(link.examStartDateTime)) { setErrorMsg(`Exam hasn't started yet. Opens at ${fmtDT(link.examStartDateTime)}.`); return; }
+        if (!link.isCredentialBased && ct !== link.accessCode?.toUpperCase()) { setCodeError(true); setErrorMsg('Invalid access code. Please check and try again.'); return; }
         setLoading(true);
         try {
-            // POST /api/assessment-links/validate?linkId={}&email={}
-            // Backend handles: expiry, attempts, credential code check
-            await assessmentLinksApi.validate(linkId, emailTrimmed);
-
-            // Init proctoring checkboxes — one per active proctoring type
-            const perms = buildProcPermissions(link);
-            const initAgreed: Record<string, boolean> = {};
-            perms.forEach(p => { initAgreed[p.key] = false; });
-            setProcAgreed(initAgreed);
+            await assessmentLinksApi.validate(linkId, et);
+            // init proctoring checkboxes
+            const keys: string[] = [];
+            if (link.isWebProctoring)    keys.push('web');
+            if (link.isImageProctoring)  keys.push('image');
+            if (link.isScreenRecording)  keys.push('screen');
+            const init: Record<string, boolean> = {};
+            keys.forEach(k => { init[k] = false; });
+            setProcAgreed(init);
             setAgreedGeneral(false);
+            setCameraStatus('idle'); setScreenStatus('idle');
+            setCameraError(''); setScreenError('');
             setStage('instructions');
         } catch (err: any) {
-            const msg =
-                err?.response?.data?.message ??
-                err?.response?.data?.title   ??
-                'Invalid credentials or access denied.';
-            setErrorMsg(msg);
+            setErrorMsg(err?.response?.data?.message ?? err?.response?.data?.title ?? 'Invalid credentials or access denied.');
             setCodeError(true);
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
-    // ── STEP 3: Proceed — all checkboxes must be checked ─────────────────────
-    const procPerms    = link ? buildProcPermissions(link) : [];
-    const allProcAgreed = procPerms.every(p => procAgreed[p.key] === true);
-    const canProceed    = agreedGeneral && allProcAgreed;
+    // ── Request camera permission ─────────────────────────────────────────────
+    const requestCamera = async () => {
+        if (!link || cameraStatus === 'granted' || requestingPerm) return;
+        setRequestingPerm('camera');
+        setCameraError('');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            // Keep stream alive and expose to popup via window.opener
+            // ExamScreen accesses it as (window.opener as any).testbuddyCameraStream
+            (window as any).testbuddyCameraStream = stream;
+            setCameraStatus('granted');
+            showToast('Camera access granted ✅', 'success');
+        } catch (err: any) {
+            setCameraStatus('denied');
+            const isBlocked = err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError';
+            setCameraError(isBlocked
+                ? 'Camera was blocked. Click the 🔒 lock icon in your browser address bar → Camera → Allow, then try again.'
+                : `Camera error: ${err?.message ?? 'Make sure your camera is connected.'}`);
+        } finally { setRequestingPerm(null); }
+    };
 
+    // ── Request screen share permission ───────────────────────────────────────
+    const requestScreen = async () => {
+        if (!link || screenStatus === 'granted' || requestingPerm) return;
+        setRequestingPerm('screen');
+        setScreenError('');
+        try {
+            const stream = await (navigator.mediaDevices as any).getDisplayMedia({ video: true, audio: false });
+            // Keep stream alive and expose to popup via window.opener
+            // ExamScreen accesses it as (window.opener as any).testbuddyScreenStream
+            (window as any).testbuddyScreenStream = stream;
+            // If candidate stops sharing before exam starts, clear it
+            stream.getVideoTracks()[0].addEventListener('ended', () => {
+                (window as any).testbuddyScreenStream = null;
+                setScreenStatus('idle');
+                setScreenError('Screen sharing was stopped. Please allow it again.');
+            });
+            setScreenStatus('granted');
+            showToast('Screen sharing access granted ✅', 'success');
+        } catch (err: any) {
+            setScreenStatus('denied');
+            const isCancelled = err?.name === 'NotAllowedError' || err?.name === 'AbortError';
+            setScreenError(isCancelled
+                ? 'Screen sharing was cancelled. Please click Allow Screen and select your screen.'
+                : `Screen share error: ${err?.message ?? 'Unknown error.'}`);
+        } finally { setRequestingPerm(null); }
+    };
+
+    // ── Compute canProceed ────────────────────────────────────────────────────
+    const procKeys     = link ? [link.isWebProctoring && 'web', link.isImageProctoring && 'image', link.isScreenRecording && 'screen'].filter(Boolean) as string[] : [];
+    const allAgreed    = procKeys.every(k => procAgreed[k] === true);
+    const camOk        = !link || !needsCamera(link) || cameraStatus === 'granted';
+    const screenOk     = !link || !needsScreen(link) || screenStatus === 'granted';
+    const canProceed   = agreedGeneral && allAgreed && camOk && screenOk;
+
+    // ── Launch exam ───────────────────────────────────────────────────────────
     const handleProceed = async () => {
-        if (!linkId || !canProceed) return;
+        if (!link || !canProceed) return;
         setStage('starting');
         try {
-            // POST /api/assessment-links/{linkId}/start?email={}
-            // Returns the attemptId
-            const emailToSend = email.trim().toLowerCase();
-            console.log('[StudentEntry] calling start:', { linkId, email: emailToSend });
-            const res       = await assessmentLinksApi.start(linkId, emailToSend);
-            console.log('[StudentEntry] start response:', res.data);
+            const res = await assessmentLinksApi.start(linkId!, email.trim().toLowerCase());
             const attemptId = res.data?.id ?? res.data?.attemptId ?? res.data;
 
-            const examUrl = `${window.location.origin}/exam/${attemptId}`;
+            const procConfig: ProctoringConfig = {
+                assessmentLinkId:        link.id,
+                webProctoringEnabled:    link.isWebProctoring,
+                imageProctoringEnabled:  link.isImageProctoring,
+                screenRecordingEnabled:  link.isScreenRecording  ?? false,
+                webProctoringWarnings:   link.webProctoringWarnings  ?? 3,
+                imageProctoringCount:    link.imageProctoringCount   ?? 5,
+                screenRecordingDuration: link.screenRecordingDuration ?? null,
+                screenRecordingQuality:  link.screenRecordingQuality  ?? 'Medium',
+                warningAction:           link.warningAction ?? 'warn',
+            };
+            localStorage.setItem(`proctoringConfig_${attemptId}`, JSON.stringify(procConfig));
 
-            // Open exam in a new fullscreen popup window
-            const w      = screen.width;
-            const h      = screen.height;
-            const popup  = window.open(
-                examUrl,
-                'TestBuddyExam',
-                `width=${w},height=${h},top=0,left=0,toolbar=no,menubar=no,` +
-                `scrollbars=no,resizable=no,location=no,status=no`
-            );
-
+            const sw = screen.width, sh = screen.height;
+            const features = [`width=${sw}`,`height=${sh}`,`top=0`,`left=0`,`toolbar=no`,`menubar=no`,`location=no`,`status=no`,`scrollbars=no`,`resizable=no`,`directories=no`].join(',');
+            const popup = window.open(`${window.location.origin}/exam/${attemptId}`, 'TestBuddyExam', features);
             if (!popup || popup.closed) {
-                // Popup blocked — fallback: open in same tab
-                showToast('Popup blocked. Opening in this tab…', 'info');
-                setTimeout(() => { window.location.href = examUrl; }, 1200);
-            } else {
-                showToast('Exam window opened! Good luck 🚀', 'success');
+                showToast('Popup blocked! Allow popups for this site in browser settings.', 'error');
+                setStage('instructions'); return;
             }
+            try { popup.moveTo(0, 0); popup.resizeTo(sw, sh); } catch {}
+            // Streams remain on window.testbuddyCameraStream / window.testbuddyScreenStream
+            // ExamScreen popup reads them via window.opener — do NOT stop them here
         } catch (err: any) {
-            // Log full error for debugging
-            console.error('[StudentEntry] start failed:', err?.response ?? err);
-            const msg =
-                err?.response?.data?.message ??
-                err?.response?.data?.title   ??
-                (typeof err?.response?.data === 'string' ? err.response.data : null) ??
-                err?.message ??
-                'Failed to start exam. Please try again.';
-            showToast(msg, 'error');
-            setStage('instructions');
+            const msg = err?.response?.data?.message ?? err?.response?.data?.title ?? err?.message ?? 'Failed to start exam.';
+            showToast(msg, 'error'); setStage('instructions');
         }
     };
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    const fmtDT = (s: string) => !s ? '—' : new Date(s).toLocaleString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-    });
-
+    const fmtDT = (s: string) => !s ? '—' : new Date(s).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     const clearErr = () => { setErrorMsg(''); setEmailError(false); setCodeError(false); };
-
     const timeStatus = () => {
         if (!link) return null;
         const now = new Date(), start = new Date(link.examStartDateTime), end = new Date(link.examEndDateTime);
         if (now < start) return { label: `Opens ${fmtDT(link.examStartDateTime)}`, color: 'var(--yellow)' };
-        if (now > end)   return { label: 'Expired',  color: 'var(--red)'   };
-        return               { label: 'Active Now', color: 'var(--green)' };
+        if (now > end)   return { label: 'Expired',   color: 'var(--red)' };
+        return { label: 'Active Now', color: 'var(--green)' };
     };
     const ts = timeStatus();
+    const hasAnyProc = link && (link.isWebProctoring || link.isImageProctoring || link.isScreenRecording);
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // RENDER: Loading
-    if (stage === 'loading') {
-        return (
-            <div className="student-entry-wrap">
-                <div className="entry-card" style={{ textAlign: 'center' }}>
-                    <div className="logo">Test<span>Buddy</span></div>
-                    <div style={{ fontSize: '32px', margin: '32px 0 12px' }}>⏳</div>
-                    <div style={{ fontSize: '15px', color: 'var(--muted)' }}>Loading exam details…</div>
-                </div>
+    // ── LOADING ───────────────────────────────────────────────────────────────
+    if (stage === 'loading') return (
+        <div className="student-entry-wrap"><div className="entry-card" style={{ textAlign: 'center' }}>
+            <div className="logo">Test<span>Buddy</span></div>
+            <div style={{ fontSize: '32px', margin: '32px 0 12px' }}>⏳</div>
+            <div style={{ fontSize: '15px', color: 'var(--muted)' }}>Loading exam details…</div>
+        </div></div>
+    );
+
+    // ── LINK ERROR ────────────────────────────────────────────────────────────
+    if (stage === 'link-error') return (
+        <div className="student-entry-wrap"><div className="entry-card" style={{ textAlign: 'center' }}>
+            <div className="logo">Test<span>Buddy</span></div>
+            <div style={{ fontSize: '48px', margin: '28px 0 14px' }}>🔒</div>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 700, marginBottom: '10px' }}>Link Unavailable</div>
+            <div style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: 1.6 }}>{errorMsg || 'This exam link is invalid, inactive, or has expired.'}</div>
+        </div></div>
+    );
+
+    // ── EXAM LAUNCHED ─────────────────────────────────────────────────────────
+    if (stage === 'starting') return (
+        <div className="student-entry-wrap"><div className="entry-card" style={{ textAlign: 'center', maxWidth: 420 }}>
+            <div className="logo">Test<span>Buddy</span></div>
+            <div style={{ fontSize: '60px', margin: '28px 0 14px' }}>🚀</div>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 700, marginBottom: '10px', color: 'var(--green)' }}>Exam Window Opened!</div>
+            <div style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: 1.8 }}>
+                Your exam is running in a separate window.<br />
+                Please switch to that window to begin.<br />
+                <span style={{ fontSize: '12px' }}>You may close this tab.</span>
             </div>
-        );
-    }
+        </div></div>
+    );
 
-    // RENDER: Link error
-    if (stage === 'link-error') {
-        return (
-            <div className="student-entry-wrap">
-                <div className="entry-card" style={{ textAlign: 'center' }}>
-                    <div className="logo">Test<span>Buddy</span></div>
-                    <div style={{ fontSize: '48px', margin: '28px 0 14px' }}>🔒</div>
-                    <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 700, marginBottom: '10px' }}>
-                        Link Unavailable
-                    </div>
-                    <div style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: 1.6 }}>
-                        {errorMsg || 'This exam link is invalid, inactive, or has expired.'}
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // RENDER: Instructions + permission checkboxes
-    if (stage === 'instructions' || stage === 'starting') {
+    // ── INSTRUCTIONS + PERMISSIONS ────────────────────────────────────────────
+    if (stage === 'instructions') {
         const instructions = link?.startupInstruction
             ? link.startupInstruction.split(/\n|(?<=\.)\s+/).map(s => s.trim()).filter(Boolean)
-            : [
-                'Ensure you are in a quiet, well-lit room.',
-                'Do not switch browser tabs — violations will be recorded.',
-                'Once started, the timer cannot be paused.',
-                'Submit before the exam window closes.',
-            ];
+            : ['Ensure you are in a quiet, well-lit room.','Do not switch browser tabs — violations will be recorded.','Once started, the timer cannot be paused.','Submit before the exam window closes.'];
+
+        const procItems = [
+            link?.isWebProctoring && {
+                key: 'web', icon: '🌐', label: 'Tab & Window Monitoring',
+                detail: `Detects tab switches, DevTools, and copy attempts.${link.webProctoringWarnings ? ` Max ${link.webProctoringWarnings} violation(s) allowed.` : ''}`,
+                permType: 'none' as const,
+            },
+            link?.isImageProctoring && {
+                key: 'image', icon: '📸', label: 'Webcam Snapshot Capture',
+                detail: 'Captures periodic webcam snapshots to verify your identity.',
+                permType: 'camera' as const,
+            },
+            link?.isScreenRecording && {
+                key: 'screen', icon: '🖥️', label: 'Screen Recording',
+                detail: `Records your screen${link.screenRecordingDuration ? ` for up to ${link.screenRecordingDuration} min` : ' for the exam duration'}. Quality: ${link.screenRecordingQuality ?? 'Medium'}.`,
+                permType: 'screen' as const,
+            },
+        ].filter(Boolean) as { key: string; icon: string; label: string; detail: string; permType: 'none' | 'camera' | 'screen' }[];
 
         return (
             <div className="student-entry-wrap">
@@ -303,253 +280,177 @@ const StudentEntry: React.FC = () => {
                     <div className="logo">Test<span>Buddy</span></div>
                     <div className="logo-sub">Online Assessment Platform</div>
                     <div className="divider" />
-
                     <div className="exam-title">{link?.name ?? 'Assessment'}</div>
-
                     <div className="meta-row">
-                        <div className="meta-item">
-                            <div className="meta-icon-label"><span className="meta-icon">📅</span> Opens</div>
-                            <div className="meta-sub">{fmtDT(link?.examStartDateTime ?? '')}</div>
-                        </div>
-                        <div className="meta-item">
-                            <div className="meta-icon-label"><span className="meta-icon">⏰</span> Closes</div>
-                            <div className="meta-sub">{fmtDT(link?.examEndDateTime ?? '')}</div>
-                        </div>
-                        <div className="meta-item">
-                            <div className="meta-icon-label"><span className="meta-icon">👤</span> Student</div>
-                            <div className="meta-sub" style={{ fontFamily: 'monospace', fontSize: '12px' }}>{email}</div>
-                        </div>
+                        <div className="meta-item"><div className="meta-icon-label"><span className="meta-icon">📅</span> Opens</div><div className="meta-sub">{fmtDT(link?.examStartDateTime ?? '')}</div></div>
+                        <div className="meta-item"><div className="meta-icon-label"><span className="meta-icon">⏰</span> Closes</div><div className="meta-sub">{fmtDT(link?.examEndDateTime ?? '')}</div></div>
+                        <div className="meta-item"><div className="meta-icon-label"><span className="meta-icon">👤</span> Student</div><div className="meta-sub" style={{ fontFamily: 'monospace', fontSize: '12px' }}>{email}</div></div>
                     </div>
 
-                    {/* Exam instructions */}
                     <div className="instructions">
                         <div className="instructions-title">📋 Exam Instructions</div>
-                        <ul className="instructions-list">
-                            {instructions.map((inst, i) => (
-                                <li key={i}><div className="bullet" /><span>{inst}</span></li>
-                            ))}
-                        </ul>
+                        <ul className="instructions-list">{instructions.map((inst, i) => (<li key={i}><div className="bullet" /><span>{inst}</span></li>))}</ul>
                     </div>
 
-                    {/* ── Proctoring Permission Checkboxes ──────────────────────
-                        Only shown if the link has proctoring enabled.
-                        Each active proctoring type gets its own checkbox.
-                        Student must check ALL of them to proceed.
-                    ─────────────────────────────────────────────────────────── */}
-                    {procPerms.length > 0 && (
+                    {/* ── Proctoring section ──────────────────────────────── */}
+                    {procItems.length > 0 && (
                         <div style={{ marginBottom: '20px' }}>
-                            <div style={{
-                                fontSize: '12px', fontWeight: 700, letterSpacing: '1px',
-                                textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '12px',
-                                display: 'flex', alignItems: 'center', gap: '6px',
-                            }}>
-                                🔒 Proctoring Permissions Required
+                            <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '12px' }}>
+                                🔒 Proctoring — Accept & Grant Permissions
                             </div>
 
-                            <div style={{
-                                background: 'rgba(224,59,59,.05)',
-                                border: '1px solid rgba(224,59,59,.18)',
-                                borderRadius: '12px',
-                                padding: '4px 0',
-                                marginBottom: '4px',
-                            }}>
-                                {procPerms.map((perm, i) => (
-                                    <label key={perm.key} style={{
-                                        display: 'flex', alignItems: 'flex-start', gap: '12px',
-                                        padding: '14px 16px',
-                                        borderBottom: i < procPerms.length - 1 ? '1px solid rgba(224,59,59,.1)' : 'none',
-                                        cursor: stage === 'starting' ? 'not-allowed' : 'pointer',
-                                        background: procAgreed[perm.key] ? 'rgba(0,87,255,.04)' : 'transparent',
-                                        transition: 'background .15s',
-                                    }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={procAgreed[perm.key] ?? false}
-                                            onChange={e => setProcAgreed(prev => ({ ...prev, [perm.key]: e.target.checked }))}
-                                            disabled={stage === 'starting'}
-                                            style={{ width: '16px', height: '16px', marginTop: '3px', accentColor: 'var(--accent2)', flexShrink: 0, cursor: 'pointer' }}
-                                        />
-                                        <div>
-                                            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '3px' }}>
-                                                {perm.icon} {perm.label}
-                                            </div>
-                                            <div style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: 1.5 }}>
-                                                {perm.detail}
-                                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
+                                {procItems.map(perm => {
+                                    const camGranted = perm.permType === 'camera' && cameraStatus === 'granted';
+                                    const scrGranted = perm.permType === 'screen' && screenStatus === 'granted';
+                                    const isGranted  = perm.permType === 'none' || camGranted || scrGranted;
+                                    const isDenied   = (perm.permType === 'camera' && cameraStatus === 'denied') || (perm.permType === 'screen' && screenStatus === 'denied');
+                                    const isRequesting = requestingPerm === perm.permType;
+                                    const errMsg = perm.permType === 'camera' ? cameraError : perm.permType === 'screen' ? screenError : '';
+
+                                    return (
+                                        <div key={perm.key} style={{ borderRadius: '12px', border: `1.5px solid ${isGranted ? 'var(--green)' : isDenied ? 'var(--red)' : 'rgba(224,59,59,.2)'}`, background: isGranted ? 'rgba(0,194,113,.04)' : isDenied ? 'rgba(224,59,59,.04)' : 'rgba(224,59,59,.02)', overflow: 'hidden', transition: 'border-color .2s' }}>
+                                            {/* Row: checkbox + info + permission button */}
+                                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 16px', cursor: 'pointer' }}>
+                                                <input type="checkbox" checked={procAgreed[perm.key] ?? false} onChange={e => setProcAgreed(prev => ({ ...prev, [perm.key]: e.target.checked }))} style={{ width: '16px', height: '16px', marginTop: '3px', accentColor: 'var(--accent2)', flexShrink: 0 }} />
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '3px' }}>
+                                                        {perm.icon} {perm.label}
+                                                        {isGranted && perm.permType !== 'none' && <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--green)', fontWeight: 500 }}>✅ Granted</span>}
+                                                        {isDenied && <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--red)', fontWeight: 500 }}>❌ Denied</span>}
+                                                    </div>
+                                                    <div style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: 1.5 }}>{perm.detail}</div>
+                                                </div>
+                                            </label>
+
+                                            {/* Permission grant button — only for camera and screen */}
+                                            {perm.permType !== 'none' && !isGranted && (
+                                                <div style={{ padding: '0 16px 14px' }}>
+                                                    {errMsg && (
+                                                        <div style={{ fontSize: '12px', color: 'var(--red)', background: 'rgba(224,59,59,.08)', padding: '8px 12px', borderRadius: '8px', marginBottom: '8px', lineHeight: 1.6 }}>
+                                                            ⚠️ {errMsg}
+                                                        </div>
+                                                    )}
+                                                    <button
+                                                        onClick={perm.permType === 'camera' ? requestCamera : requestScreen}
+                                                        disabled={!!requestingPerm}
+                                                        style={{ width: '100%', padding: '10px', border: 'none', borderRadius: '8px', fontWeight: 600, fontSize: '13px', cursor: requestingPerm ? 'not-allowed' : 'pointer', background: isDenied ? 'rgba(224,59,59,.15)' : 'rgba(0,87,255,.1)', color: isDenied ? 'var(--red)' : 'var(--accent2)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                        {isRequesting ? (
+                                                            <><div style={{ width: '14px', height: '14px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Waiting for browser permission…</>
+                                                        ) : isDenied ? (
+                                                            `🔄 Retry ${perm.permType === 'camera' ? 'Camera' : 'Screen Share'}`
+                                                        ) : (
+                                                            `${perm.permType === 'camera' ? '📷 Allow Camera Access' : '🖥️ Allow Screen Share'}`
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
-                                    </label>
-                                ))}
+                                    );
+                                })}
                             </div>
+
+                            {/* Summary of what's still needed */}
+                            {(!camOk || !screenOk) && (
+                                <div style={{ fontSize: '12px', padding: '10px 14px', background: 'rgba(245,166,35,.08)', border: '1px solid rgba(245,166,35,.2)', borderRadius: '8px', color: 'var(--muted)', lineHeight: 1.8, marginBottom: '4px' }}>
+                                    💡 <strong style={{ color: 'var(--ink)' }}>Grant all permissions above</strong> before proceeding.
+                                    The <em>Proceed to Exam</em> button will turn <strong style={{ color: 'var(--green)' }}>green</strong> once everything is allowed.
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    {/* ── General agreement checkbox ─────────────────────────── */}
-                    <label style={{
-                        display: 'flex', alignItems: 'flex-start', gap: '12px',
-                        cursor: stage === 'starting' ? 'not-allowed' : 'pointer',
-                        marginBottom: '24px', padding: '16px',
-                        background: 'var(--surface)',
-                        borderRadius: '12px',
-                        border: `2px solid ${agreedGeneral ? 'var(--accent2)' : 'var(--border)'}`,
-                        transition: 'border-color .2s',
-                    }}>
-                        <input
-                            type="checkbox"
-                            checked={agreedGeneral}
-                            onChange={e => setAgreedGeneral(e.target.checked)}
-                            disabled={stage === 'starting'}
-                            style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: 'var(--accent2)', cursor: 'pointer', flexShrink: 0 }}
-                        />
-                        <span style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.55 }}>
-                            I have read and understood all the instructions. I agree to follow the exam
-                            rules and acknowledge that any violations will be recorded and reported.
-                            {procPerms.length > 0 && (
-                                <span style={{ color: 'var(--muted)' }}>
-                                    {' '}I also grant permission for the proctoring methods listed above.
-                                </span>
-                            )}
+                    {/* General agreement */}
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', marginBottom: '24px', padding: '16px', background: 'var(--surface)', borderRadius: '12px', border: `2px solid ${agreedGeneral ? 'var(--accent2)' : 'var(--border)'}`, transition: 'border-color .2s' }}>
+                        <input type="checkbox" checked={agreedGeneral} onChange={e => setAgreedGeneral(e.target.checked)} style={{ width: '18px', height: '18px', marginTop: '2px', accentColor: 'var(--accent2)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '14px', lineHeight: 1.55 }}>
+                            I have read and understood all instructions and agree to follow the exam rules.
+                            {procItems.length > 0 && <span style={{ color: 'var(--muted)' }}> I consent to all proctoring methods listed above.</span>}
                         </span>
                     </label>
 
-                    {/* Pending notice if proctoring checkboxes not all ticked */}
-                    {!canProceed && procPerms.length > 0 && (
-                        <div style={{
-                            fontSize: '12px', color: 'var(--yellow)', textAlign: 'center',
-                            marginBottom: '12px', padding: '8px 12px',
-                            background: 'rgba(245,166,35,.08)', borderRadius: '8px',
-                        }}>
-                            ☝️ Please accept all proctoring permissions and the general agreement to proceed.
-                        </div>
-                    )}
-                    {!canProceed && procPerms.length === 0 && (
-                        <div style={{ textAlign: 'center', fontSize: '13px', color: 'var(--muted)', marginBottom: '12px' }}>
-                            ☝️ Check the box above to enable the Proceed button.
+                    {/* Hint when not ready */}
+                    {!canProceed && (
+                        <div style={{ fontSize: '12px', color: 'var(--yellow)', textAlign: 'center', marginBottom: '12px', padding: '8px 12px', background: 'rgba(245,166,35,.08)', borderRadius: '8px' }}>
+                            {!allAgreed ? '☝️ Check all proctoring boxes above.' : (!camOk || !screenOk) ? '☝️ Grant all required permissions above.' : '☝️ Check the agreement above to proceed.'}
                         </div>
                     )}
 
-                    {/* Proceed button — disabled until ALL boxes checked */}
+                    {/* Proceed button — GREEN when all ready */}
                     <button
                         className="start-btn"
                         onClick={handleProceed}
-                        disabled={!canProceed || stage === 'starting'}
+                        disabled={!canProceed}
                         style={{
                             background: canProceed ? 'var(--green)' : '#ccc',
-                            boxShadow: canProceed ? '0 4px 20px rgba(0,194,113,.35)' : 'none',
+                            boxShadow: canProceed ? '0 4px 20px rgba(0,194,113,.45)' : 'none',
                             cursor: canProceed ? 'pointer' : 'not-allowed',
-                        }}
-                    >
-                        {stage === 'starting' ? '⏳ Starting Exam…' : '🚀 Proceed to Exam'}
+                            transition: 'background .3s, box-shadow .3s',
+                        }}>
+                        {canProceed ? '🚀 Proceed to Exam' : ((!camOk || !screenOk) ? '🔒 Grant Permissions First' : '🚀 Proceed to Exam')}
                     </button>
 
                     <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                        <button
-                            onClick={() => { setStage('entry'); setAgreedGeneral(false); setProcAgreed({}); }}
-                            disabled={stage === 'starting'}
-                            style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline' }}
-                        >
-                            ← Back to entry
-                        </button>
+                        <button onClick={() => {
+                            // Clean up any open streams if going back
+                            window.__procCamStream?.getTracks().forEach(t => t.stop());
+                            window.__procCamStream = null;
+                            window.__procScreenStream?.getTracks().forEach(t => t.stop());
+                            window.__procScreenStream = null;
+                            setStage('entry'); setAgreedGeneral(false); setProcAgreed({});
+                            setCameraStatus('idle'); setScreenStatus('idle'); setCameraError(''); setScreenError('');
+                        }} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline' }}>← Back to entry</button>
                     </div>
                 </div>
 
                 <div className={`toast ${toast.show ? 'show' : ''}`} style={{ background: toast.type === 'error' ? '#c0392b' : toast.type === 'info' ? '#1a2540' : '#0d1117' }}>
-                    <span>{toast.type === 'error' ? '❌' : toast.type === 'info' ? 'ℹ️' : '✅'}</span>
-                    <span>{toast.msg}</span>
+                    <span>{toast.type === 'error' ? '❌' : toast.type === 'info' ? 'ℹ️' : '✅'}</span><span>{toast.msg}</span>
                 </div>
+
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             </div>
         );
     }
 
-    // RENDER: Entry form
+    // ── ENTRY FORM ────────────────────────────────────────────────────────────
     return (
         <div className="student-entry-wrap">
             <div className="entry-card">
                 <div className="logo">Test<span>Buddy</span></div>
                 <div className="logo-sub">Online Assessment Platform</div>
                 <div className="divider" />
-
                 <div className="exam-title">{link?.name ?? 'Assessment Entry'}</div>
-
-                {/* Time window + type badges */}
                 {link && (
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
-                        {ts && (
-                            <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px', background: `${ts.color}18`, color: ts.color, border: `1px solid ${ts.color}44` }}>
-                                ● {ts.label}
-                            </span>
-                        )}
-                        <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                            {fmtDT(link.examStartDateTime)} → {fmtDT(link.examEndDateTime)}
-                        </span>
-                        <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '100px', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>
-                            {link.isCredentialBased ? '🔐 Credential-Based' : '🔓 Direct Access'}
-                        </span>
-                        {(link.isWebProctoring || link.isImageProctoring || link.isVideoProctoring) && (
-                            <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '100px', background: 'rgba(224,59,59,.08)', border: '1px solid rgba(224,59,59,.2)', color: 'var(--red)' }}>
-                                🔒 Proctored
-                            </span>
-                        )}
+                        {ts && <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 10px', borderRadius: '100px', background: `${ts.color}18`, color: ts.color, border: `1px solid ${ts.color}44` }}>● {ts.label}</span>}
+                        <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{fmtDT(link.examStartDateTime)} → {fmtDT(link.examEndDateTime)}</span>
+                        <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '100px', background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--muted)' }}>{link.isCredentialBased ? '🔐 Credential-Based' : '🔓 Direct Access'}</span>
+                        {hasAnyProc && <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '100px', background: 'rgba(224,59,59,.08)', border: '1px solid rgba(224,59,59,.2)', color: 'var(--red)' }}>🔒 Proctored</span>}
                     </div>
                 )}
-
                 <div className={`err-msg ${errorMsg ? 'show' : ''}`}>⚠️ <span>{errorMsg}</span></div>
-
-                {/* Email */}
                 <div className="form-group">
                     <label className="form-label">Your Email Address</label>
-                    <input
-                        className={`form-input ${emailError ? 'error' : ''}`}
-                        type="email"
-                        placeholder="student@example.com"
-                        value={email}
-                        onChange={e => { clearErr(); setEmail(e.target.value); }}
-                        disabled={loading}
-                        onKeyDown={e => e.key === 'Enter' && handleVerify()}
-                    />
+                    <input className={`form-input ${emailError ? 'error' : ''}`} type="email" placeholder="student@example.com" value={email} onChange={e => { clearErr(); setEmail(e.target.value); }} disabled={loading} onKeyDown={e => e.key === 'Enter' && handleVerify()} />
                 </div>
-
-                {/* Access Code */}
                 <div className="form-group">
-                    <label className="form-label">
-                        Access Code
-                        <span style={{ marginLeft: '8px', fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--muted)', fontSize: '11px' }}>
-                            {link?.isCredentialBased ? '(sent to your email individually)' : '(shared with all participants)'}
-                        </span>
-                    </label>
-                    <input
-                        className={`form-input ${codeError ? 'error' : ''}`}
-                        type="text"
-                        placeholder="Enter access code"
-                        maxLength={10}
-                        value={code}
-                        onChange={e => { clearErr(); setCode(e.target.value.toUpperCase()); }}
-                        disabled={loading}
-                        onKeyDown={e => e.key === 'Enter' && handleVerify()}
-                        style={{ letterSpacing: '3px', fontFamily: '"Syne",sans-serif', fontWeight: 700 }}
-                    />
+                    <label className="form-label">Access Code <span style={{ marginLeft: '8px', fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--muted)', fontSize: '11px' }}>{link?.isCredentialBased ? '(sent to your email)' : '(shared with all participants)'}</span></label>
+                    <input className={`form-input ${codeError ? 'error' : ''}`} type="text" placeholder="Enter access code" maxLength={10} value={code} onChange={e => { clearErr(); setCode(e.target.value.toUpperCase()); }} disabled={loading} onKeyDown={e => e.key === 'Enter' && handleVerify()} style={{ letterSpacing: '3px', fontFamily: '"Syne",sans-serif', fontWeight: 700 }} />
                 </div>
-
-                {/* Quick instructions preview */}
                 <div className="instructions">
                     <div className="instructions-title">📋 Before you begin</div>
                     <ul className="instructions-list">
                         <li><div className="bullet" /><span>Ensure you are in a quiet room with good lighting</span></li>
                         <li><div className="bullet" /><span>Do not switch browser tabs — it will be flagged</span></li>
-                        {(link?.isImageProctoring || link?.isVideoProctoring) && (
-                            <li><div className="bullet" /><span>Camera access will be required — allow it when prompted</span></li>
-                        )}
+                        {link?.isImageProctoring && <li><div className="bullet" /><span>Camera access will be required — you'll be asked to allow it</span></li>}
+                        {link?.isScreenRecording && <li><div className="bullet" /><span>Screen sharing will be required — you'll be asked to allow it</span></li>}
                         <li><div className="bullet" /><span>Once started, the timer cannot be paused</span></li>
                     </ul>
                 </div>
-
-                <button className="start-btn" onClick={handleVerify} disabled={loading}>
-                    {loading ? '⏳ Verifying…' : 'Verify Access →'}
-                </button>
+                <button className="start-btn" onClick={handleVerify} disabled={loading}>{loading ? '⏳ Verifying…' : 'Verify Access →'}</button>
             </div>
-
             <div className={`toast ${toast.show ? 'show' : ''}`} style={{ background: toast.type === 'error' ? '#c0392b' : toast.type === 'info' ? '#1a2540' : '#0d1117' }}>
-                <span>{toast.type === 'error' ? '❌' : toast.type === 'info' ? 'ℹ️' : '✅'}</span>
-                <span>{toast.msg}</span>
+                <span>{toast.type === 'error' ? '❌' : toast.type === 'info' ? 'ℹ️' : '✅'}</span><span>{toast.msg}</span>
             </div>
         </div>
     );

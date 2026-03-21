@@ -81,10 +81,10 @@ const AdminLayout: React.FC = () => {
                     {/* Exam Links removed from sidebar — access via 🔗 button on Assessment List */}
                 </div>
 
-                <a className="nav-item" href="#">
+                {/* <a className="nav-item" href="#">
                     <span className="nav-icon">👥</span>
                     <span className="nav-label">Attempts</span>
-                </a>
+                </a> */}
 
                 <div className="sidebar-section">System</div>
 

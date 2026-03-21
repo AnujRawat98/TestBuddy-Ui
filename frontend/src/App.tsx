@@ -8,6 +8,7 @@ import AddQuestions from './pages/AddQuestions/AddQuestions';
 import AIGenerator from './pages/AIGenerator/AIGenerator';
 import CreateAssessment from './pages/CreateAssessment/CreateAssessment';
 import Assessments from './pages/Assessments/Assessments';
+import AssessmentReport from './pages/Reports/Assessmentreport';
 import CreateLink from './pages/CreateLink/CreateLink';
 import StudentEntry from './pages/StudentEntry/StudentEntry';
 import ExamScreen from './pages/ExamScreen/ExamScreen';
@@ -21,18 +22,19 @@ function App() {
 
         {/* Protected Admin Routes (Wrapped in Layout) */}
         <Route element={<AdminLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/topics" element={<Topics />} />
-          <Route path="/questions/add" element={<AddQuestions />} />
-          <Route path="/ai-generator" element={<AIGenerator />} />
-          <Route path="/assessments" element={<Assessments />} />
-          <Route path="/assessments/create" element={<CreateAssessment />} />
-          <Route path="/links/create" element={<CreateLink />} />
+          <Route path="/dashboard"                          element={<Dashboard />} />
+          <Route path="/topics"                             element={<Topics />} />
+          <Route path="/questions/add"                      element={<AddQuestions />} />
+          <Route path="/ai-generator"                       element={<AIGenerator />} />
+          <Route path="/assessments"                        element={<Assessments />} />
+          <Route path="/assessments/create"                 element={<CreateAssessment />} />
+          <Route path="/assessments/:assessmentId/report"   element={<AssessmentReport />} />  {/* ← FIXED */}
+          <Route path="/links/create"                       element={<CreateLink />} />
         </Route>
 
         {/* Student Routes */}
-        <Route path="/exam-entry/:linkId" element={<StudentEntry />} />
-        <Route path="/exam/:attemptId" element={<ExamScreen />} />
+        <Route path="/exam-entry/:linkId"   element={<StudentEntry />} />
+        <Route path="/exam/:attemptId"      element={<ExamScreen />} />
       </Routes>
     </Router>
   );

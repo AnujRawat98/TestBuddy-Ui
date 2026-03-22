@@ -78,7 +78,7 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            // ── Step 1: Load topics and assessments in parallel ───────────────
+            // ── Step 1: topics + assessments in parallel ──────────────────────
             const [topicsRes, assessmentsRes] = await Promise.allSettled([
                 topicsApi.getAll(),
                 assessmentsApi.getAll(),
@@ -89,9 +89,8 @@ const Dashboard: React.FC = () => {
                 ? (Array.isArray(topicsRes.value.data) ? topicsRes.value.data : topicsRes.value.data?.items ?? topicsRes.value.data?.value ?? [])
                 : [];
 
-            // ── Step 2: For each topic, fetch question count by topicVersionId ─
-            // This is EXACTLY what Topics page does — counts only the LATEST version
-            // instead of questionsApi.search which counts ALL versions (gives 3959)
+            // ── Step 2: fetch question count per topic by topicVersionId ──────
+            // Same as Topics page — counts only the LATEST version questions
             const topicList: Topic[] = await Promise.all(
                 rawTopicList.map(async (t: any) => {
                     const tvId: string = t.topicVersionId ?? t.TopicVersionId ?? '';
@@ -108,8 +107,8 @@ const Dashboard: React.FC = () => {
                         }
                     }
                     return {
-                        id:            t.topicId ?? t.TopicId ?? t.id,
-                        name:          t.name    ?? t.Name    ?? '—',
+                        id:             t.topicId ?? t.TopicId ?? t.id,
+                        name:           t.name    ?? t.Name    ?? '—',
                         topicVersionId: tvId,
                         questionCount,
                     };
@@ -117,8 +116,7 @@ const Dashboard: React.FC = () => {
             );
             setTopics(topicList);
 
-            // ── Step 3: Sum question counts from latest topic versions ─────────
-            // This matches Topics page exactly — correct count (109, not 3959)
+            // ── Step 3: sum question counts ───────────────────────────────────
             const totalQuestions = topicList.reduce((sum, t) => sum + (t.questionCount ?? 0), 0);
 
             // ── Assessments ───────────────────────────────────────────────────
@@ -127,7 +125,7 @@ const Dashboard: React.FC = () => {
                 : [];
             setAssessments(assessmentList);
 
-            // ── Step 4: Fetch links in batches of 5 ───────────────────────────
+            // ── Step 4: fetch links in batches ────────────────────────────────
             const batchSize = 5;
             const links: ExamLink[] = [];
             for (let i = 0; i < assessmentList.length; i += batchSize) {
@@ -153,7 +151,7 @@ const Dashboard: React.FC = () => {
 
             setStats({
                 totalTopics:       rawTopicList.length,
-                totalQuestions,    // ← now correct: sum of latest-version question counts
+                totalQuestions,
                 totalAssessments:  assessmentList.length,
                 activeLinks,
                 activeAssessments: activeAssess,
@@ -206,10 +204,10 @@ const Dashboard: React.FC = () => {
             {/* ── Stat Cards ── */}
             <div className="stats-grid">
                 {[
-                    { cls: 's1', icon: '🗂',  num: cntTopics,      label: 'Total Topics',      sub: `📌 ${topics[0]?.name ?? topics[0]?.Name ?? 'No topics yet'}`,               trend: `${stats.totalTopics} total`          },
-                    { cls: 's2', icon: '❓',  num: cntQuestions,   label: 'Total Questions',   sub: `📚 Across ${stats.totalTopics} topic${stats.totalTopics !== 1 ? 's' : ''}`,  trend: `${stats.totalQuestions} total`       },
-                    { cls: 's3', icon: '📝',  num: cntAssessments, label: 'Assessments',       sub: `✅ ${stats.activeAssessments} active · ${stats.draftAssessments} inactive`,  trend: `↑ ${stats.activeAssessments} active` },
-                    { cls: 's4', icon: '🔗',  num: cntLinks,       label: 'Active Exam Links', sub: `🔗 Out of ${allLinks.length} total links`,                                   trend: `${stats.activeLinks} live`           },
+                    { cls: 's1', icon: '🗂',  num: cntTopics,      label: 'Total Topics',      sub: `Across ${stats.totalTopics} version${stats.totalTopics !== 1 ? 's' : ''}`,    trend: `${stats.totalTopics} total`          },
+                    { cls: 's2', icon: '❓',  num: cntQuestions,   label: 'Total Questions',   sub: `Across ${stats.totalTopics} topic${stats.totalTopics !== 1 ? 's' : ''}`,       trend: `${stats.totalQuestions} total`       },
+                    { cls: 's3', icon: '📝',  num: cntAssessments, label: 'Assessments',       sub: `${stats.activeAssessments} active · ${stats.draftAssessments} inactive`,       trend: `↑ ${stats.activeAssessments} active` },
+                    { cls: 's4', icon: '🔗',  num: cntLinks,       label: 'Active Exam Links', sub: `Out of ${allLinks.length} total links`,                                        trend: `${stats.activeLinks} live`           },
                 ].map(s => (
                     <div key={s.label} className={`stat-card ${s.cls}`}>
                         <div className="stat-top">
@@ -342,7 +340,7 @@ const Dashboard: React.FC = () => {
             {/* ── Row 3: Topics + All Links ── */}
             <div className="grid-2">
 
-                {/* Topics with correct question counts */}
+                {/* Topics with question counts */}
                 <div className="card">
                     <div className="card-header">
                         <div className="card-title">📚 Topics</div>

@@ -1,3 +1,6 @@
+/* ─── FONT IMPORT ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
+
 /* ─── SIDEBAR ──────────────────────────────────────────────── */
 .sidebar {
     width: var(--sidebar-w, 240px);
@@ -27,7 +30,7 @@
 
 .sidebar-logo {
     padding: 28px 24px 24px;
-    font-family: 'Syne', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 22px;
     font-weight: 800;
     color: #fff;
@@ -39,9 +42,7 @@
     gap: 10px;
 }
 
-.sidebar-logo span {
-    color: var(--accent);
-}
+.sidebar-logo span { color: var(--accent); }
 
 .logo-dot {
     width: 8px;
@@ -61,6 +62,7 @@
     padding: 22px 24px 8px;
     position: relative;
     z-index: 2;
+    font-family: 'DM Sans', sans-serif;
 }
 
 .nav-item {
@@ -69,6 +71,7 @@
     gap: 12px;
     padding: 11px 24px;
     font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
     color: rgba(255, 255, 255, .5);
     cursor: pointer;
     border-left: 3px solid transparent;
@@ -89,9 +92,7 @@
     border-left-color: var(--accent);
 }
 
-.nav-item.active .nav-icon {
-    color: var(--accent);
-}
+.nav-item.active .nav-icon { color: var(--accent); }
 
 .nav-icon {
     width: 20px;
@@ -100,9 +101,7 @@
     flex-shrink: 0;
 }
 
-.nav-label {
-    flex: 1;
-}
+.nav-label { flex: 1; }
 
 .nav-badge {
     background: var(--accent);
@@ -110,25 +109,17 @@
     border-radius: 100px;
     font-size: 11px;
     font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
     padding: 2px 8px;
     min-width: 22px;
     text-align: center;
 }
 
-.nav-badge.green {
-    background: var(--green);
-}
+.nav-badge.green { background: var(--green); }
 
 /* submenu */
-.nav-sub {
-    display: none;
-    position: relative;
-    z-index: 2;
-}
-
-.nav-sub.open {
-    display: block;
-}
+.nav-sub { display: none; position: relative; z-index: 2; }
+.nav-sub.open { display: block; }
 
 .nav-sub-item {
     display: flex;
@@ -136,6 +127,7 @@
     gap: 10px;
     padding: 8px 24px 8px 50px;
     font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
     color: rgba(255, 255, 255, .4);
     cursor: pointer;
     transition: all .15s;
@@ -182,9 +174,7 @@
     transition: background .18s;
 }
 
-.admin-card:hover {
-    background: rgba(255, 255, 255, .09);
-}
+.admin-card:hover { background: rgba(255, 255, 255, .09); }
 
 .admin-avatar {
     width: 34px;
@@ -194,6 +184,7 @@
     color: #fff;
     font-size: 13px;
     font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -203,11 +194,13 @@
 .admin-name {
     font-size: 13px;
     font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
     color: #fff;
 }
 
 .admin-role {
     font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
     color: rgba(255, 255, 255, .4);
     margin-top: 1px;
 }
@@ -248,7 +241,7 @@
 }
 
 .topbar-greeting {
-    font-family: 'Syne', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 16px;
     font-weight: 700;
     letter-spacing: -.3px;
@@ -256,6 +249,7 @@
 
 .topbar-date {
     font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
     color: var(--muted);
     padding: 3px 10px;
     background: var(--surface);
@@ -278,15 +272,14 @@
     border-radius: 9px;
     padding: 7px 14px;
     font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
     color: var(--muted);
     width: 220px;
     transition: border-color .2s;
     cursor: text;
 }
 
-.topbar-search:hover {
-    border-color: #ccc;
-}
+.topbar-search:hover { border-color: #ccc; }
 
 .icon-btn {
     width: 36px;
@@ -327,6 +320,7 @@
     color: #fff;
     font-size: 13px;
     font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -340,67 +334,28 @@
 }
 
 /* ─── SCROLLBAR ────────────────────────────────────────────── */
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #d5d2cb;
-    border-radius: 100px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #bbb;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d5d2cb; border-radius: 100px; }
+::-webkit-scrollbar-thumb:hover { background: #bbb; }
 
 /* ─── RESPONSIVE ───────────────────────────────────────────── */
 @media (max-width: 960px) {
-    :root {
-        --sidebar-w: 0px;
-    }
-
-    .sidebar {
-        transform: translateX(-240px);
-    }
-
-    .sidebar.open {
-        transform: translateX(0);
-        width: 240px;
-    }
-
-    .main {
-        margin-left: 0;
-    }
-
-    .grid-2,
-    .grid-3 {
-        grid-template-columns: 1fr;
-    }
+    :root { --sidebar-w: 0px; }
+    .sidebar { transform: translateX(-240px); }
+    .sidebar.open { transform: translateX(0); width: 240px; }
+    .main { margin-left: 0; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .content {
-        padding: 16px;
-    }
-
-    .topbar {
-        padding: 0 16px;
-    }
-
-    .topbar-search {
-        display: none;
-    }
+    .stats-grid { grid-template-columns: 1fr; }
+    .content { padding: 16px; }
+    .topbar { padding: 0 16px; }
+    .topbar-search { display: none; }
 }
 
-/* GLOBAL BUTTONS - Move to index.css if needed, but keeping here for layout */
+/* GLOBAL BUTTONS */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -437,10 +392,7 @@
     background: var(--surface);
 }
 
-.btn-sm {
-    padding: 7px 16px;
-    font-size: 13px;
-}
+.btn-sm { padding: 7px 16px; font-size: 13px; }
 
 /* PAGE HEADERS */
 .page-header {
@@ -451,7 +403,7 @@
 }
 
 .page-title {
-    font-family: 'Syne', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 26px;
     font-weight: 800;
     letter-spacing: -1px;
@@ -460,13 +412,11 @@
 
 .page-sub {
     font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
     color: var(--muted);
 }
 
-.header-actions {
-    display: flex;
-    gap: 10px;
-}
+.header-actions { display: flex; gap: 10px; }
 
 /* CARD UTILS */
 .card {
@@ -485,7 +435,7 @@
 }
 
 .card-title {
-    font-family: 'Syne', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-weight: 700;
     font-size: 15px;
     letter-spacing: -.3px;
@@ -494,9 +444,7 @@
     gap: 8px;
 }
 
-.card-body {
-    padding: 0;
-}
+.card-body { padding: 0; }
 
 .card-footer {
     padding: 12px 22px;

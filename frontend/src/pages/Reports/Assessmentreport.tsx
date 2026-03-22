@@ -14,12 +14,40 @@ interface AssessmentLink {
 }
 
 interface SnapshotItem {
-    originalUrl: string;
-    blobUrl:     string;
-    capturedAt?: string;
-    isFlagged?:  boolean;
-    loading:     boolean;
-    error:       boolean;
+    originalUrl: string; blobUrl: string;
+    capturedAt?: string; isFlagged?: boolean;
+    loading: boolean; error: boolean;
+}
+
+interface QuestionOption {
+    optionId:   string;
+    questionId: string;
+    optionText: string;
+    imageUrl?:  string;
+    isCorrect:  boolean;
+}
+
+interface AttemptQuestion {
+    attemptQuestionId: string;
+    questionId:        string;
+    questionOrder:     number;
+    questionText:      string;
+    questionTypeId:    string;
+    questionType:      string;
+    selectedAnswer:    string | null;
+    answeredAt:        string | null;
+    correctTextAnswer: string | null;
+    isCorrect:         boolean;
+    marksPerQuestion:  number;
+    topicId:           string;
+    topicName:         string;
+    options:           QuestionOption[];
+}
+
+interface TopicGroup {
+    topicId:   string;
+    topicName: string;
+    questions: AttemptQuestion[];
 }
 
 interface CandidateSession {
@@ -52,6 +80,8 @@ interface CandidateSession {
     recordingUrl:           string | null;
     screenRecordingEnabled: boolean;
     snapshotItems:          SnapshotItem[];
+    negativeDeduction?:     number;
+    passingMarks?:          number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -83,9 +113,47 @@ const reviewColor = (status: string) => {
     }
 };
 
-// ─── Images load directly now that CORS is fixed in Program.cs ───────────────
-// No blob conversion needed — just return the URL as-is.
-const fetchBlobUrl = async (url: string): Promise<string> => url;
+const normaliseStatus = (raw?: string): string => {
+    if (!raw) return 'Submitted';
+    const s = raw.toLowerCase();
+    if (s === 'submitted' || s === 'completed' || s === 'finished') return 'Submitted';
+    if (s === 'inprogress' || s === 'in_progress' || s === 'started') return 'In Progress';
+    return raw;
+};
+
+const scoreCircleColor = (s: CandidateSession): string => {
+    if (s.passed === true)  return '#00c271';
+    if (s.passed === false) return '#e03b3b';
+    if (s.percentage !== undefined) {
+        if (s.percentage >= 75) return '#00c271';
+        if (s.percentage >= 50) return '#f5a623';
+        return '#e03b3b';
+    }
+    return 'var(--accent2)';
+};
+
+// ─── Collapsible Section Component ───────────────────────────────────────────
+const Section: React.FC<{
+    id:       string;
+    icon:     string;
+    title:    string;
+    badge?:   React.ReactNode;
+    open:     boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+}> = ({ icon, title, badge, open, onToggle, children }) => (
+    <div className={`rp-section ${open ? 'open' : ''}`}>
+        <div className="rp-section-header" onClick={onToggle}>
+            <div className="rp-section-header-left">
+                <span className="rp-section-icon">{icon}</span>
+                <span className="rp-section-title-text">{title}</span>
+                {badge && <span className="rp-section-badge">{badge}</span>}
+            </div>
+            <span className="rp-section-chevron">{open ? '▲' : '▼'}</span>
+        </div>
+        {open && <div className="rp-section-body">{children}</div>}
+    </div>
+);
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const AssessmentReport: React.FC = () => {
@@ -100,6 +168,7 @@ const AssessmentReport: React.FC = () => {
     const durationMinutes  = state?.durationMinutes  ?? 0;
     const marksPerQuestion = state?.marksPerQuestion ?? 1;
     const negativeMarks    = state?.negativeMarks    ?? 0;
+    const passingMarks     = state?.passingMarks     ?? undefined;
 
     const [linkType,        setLinkType]        = useState<'credential' | 'direct'>('credential');
     const [links,           setLinks]           = useState<AssessmentLink[]>([]);
@@ -118,6 +187,18 @@ const AssessmentReport: React.FC = () => {
     const [photoIndex, setPhotoIndex] = useState(0);
     const [snapItems,  setSnapItems]  = useState<SnapshotItem[]>([]);
 
+    // ── Expandable sections ───────────────────────────────────────────────────
+    const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+        score: true, performance: true, questions: false, proctoring: false, timing: false,
+    });
+    const toggleSection = (id: string) => setOpenSections(p => ({ ...p, [id]: !p[id] }));
+
+    // ── Question review state ─────────────────────────────────────────────────
+    const [topicGroups,      setTopicGroups]      = useState<TopicGroup[]>([]);
+    const [loadingQuestions, setLoadingQuestions] = useState(false);
+    const [selectedTopic,    setSelectedTopic]    = useState<string | null>(null);
+    const [questionsLoaded,  setQuestionsLoaded]  = useState(false);
+
     const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
         setToast({ show: true, msg, type });
         setTimeout(() => setToast(p => ({ ...p, show: false })), 3000);
@@ -133,49 +214,86 @@ const AssessmentReport: React.FC = () => {
         ongoing: sessions.filter(s => !s.endedAt && s.status !== 'Submitted').length,
     } : null;
 
-    // ── No blob URLs to revoke — images use direct URLs ──────────────────────────
-    const revokeBlobUrls = useCallback(() => {}, []);
-
-    // ── Load each snapshot image as a blob ────────────────────────────────────
-        const loadSnapshotBlobs = useCallback((
+    const loadSnapshotBlobs = useCallback((
         rawItems: { originalUrl: string; capturedAt?: string; isFlagged?: boolean }[]
     ) => {
-        revokeBlobUrls();
-        // CORS is now fixed in Program.cs — images load directly via src URL
-        setSnapItems(rawItems.map(it => ({
-            ...it,
-            blobUrl: it.originalUrl,
-            loading: false,
-            error:   false,
-        })));
-    }, [revokeBlobUrls]);
+        setSnapItems(rawItems.map(it => ({ ...it, blobUrl: it.originalUrl, loading: false, error: false })));
+    }, []);
 
-    // ── Fetch snapshots: GET /api/proctoring/snapshots/{sessionId} ────────────
-    // Matches your existing ProctoringController → GetSnapshots(Guid sessionId)
     const loadSnapshotsForSession = useCallback(async (proctoringSessionId: string) => {
         if (!proctoringSessionId) return;
         try {
             const res  = await proctoringApi.getSnapshots(proctoringSessionId);
-            const list: any[] = Array.isArray(res.data)
-                ? res.data
-                : (res.data?.items ?? res.data?.data ?? []);
-
+            const list: any[] = Array.isArray(res.data) ? res.data : (res.data?.items ?? res.data?.data ?? []);
             if (list.length === 0) { showToast('No snapshot images found', 'info'); return; }
-
             const rawItems = list.map((item: any) => ({
-                // SnapshotDto fields from your backend
-                originalUrl: item.url        ?? item.imageUrl  ?? item.snapshotUrl
-                          ?? item.filePath   ?? item.path      ?? item.src ?? '',
-                capturedAt:  item.capturedAt ?? item.takenAt   ?? item.timestamp ?? '',
-                isFlagged:   item.isFlagged  ?? item.flagged   ?? false,
+                originalUrl: item.url ?? item.imageUrl ?? item.snapshotUrl ?? item.filePath ?? item.path ?? item.src ?? '',
+                capturedAt:  item.capturedAt ?? item.takenAt ?? item.timestamp ?? '',
+                isFlagged:   item.isFlagged ?? item.flagged ?? false,
             })).filter((i: any) => i.originalUrl);
-
             loadSnapshotBlobs(rawItems);
-        } catch (err) {
-            console.error('Failed to fetch snapshots:', err);
-            showToast('Could not load snapshot images', 'error');
-        }
+        } catch { showToast('Could not load snapshot images', 'error'); }
     }, [loadSnapshotBlobs]);
+
+    // ── Load question review ──────────────────────────────────────────────────
+    // Calls GET /Assessments/attempt/{attemptId}/question-review
+    // which runs GetAttemptQuestionReview SP.
+    // Response: { topics: [ { topicId, topicName, questions: [ { ..., options: [...] } ] } ] }
+    const loadQuestionReview = useCallback(async (attemptId: string) => {
+        if (questionsLoaded) return;
+        setLoadingQuestions(true);
+        try {
+            const res        = await assessmentsApi.getAttemptQuestionReview(attemptId);
+            const rawTopics: any[] = res.data?.topics ?? [];
+
+            const groups: TopicGroup[] = rawTopics.map((t: any) => ({
+                topicId:   String(t.topicId   ?? t.TopicId   ?? ''),
+                topicName: String(t.topicName ?? t.TopicName ?? 'General'),
+                questions: (t.questions ?? []).map((q: any) => ({
+                    attemptQuestionId: String(q.attemptQuestionId ?? q.AttemptQuestionId ?? ''),
+                    questionId:        String(q.questionId        ?? q.QuestionId        ?? ''),
+                    questionOrder:     Number(q.questionOrder     ?? q.QuestionOrder     ?? 0),
+                    questionText:      String(q.questionText      ?? q.QuestionText      ?? ''),
+                    questionTypeId:    '',
+                    questionType:      String(q.questionType      ?? q.QuestionType      ?? 'Single Select'),
+                    selectedAnswer:    q.selectedAnswer    ?? q.SelectedAnswer    ?? null,
+                    answeredAt:        q.answeredAt        ?? q.AnsweredAt        ?? null,
+                    correctTextAnswer: q.correctTextAnswer ?? q.CorrectTextAnswer ?? null,
+                    isCorrect:         Boolean(q.isCorrect ?? q.IsCorrect ?? false),
+                    marksPerQuestion:  Number(q.marksPerQuestion ?? q.MarksPerQuestion ?? marksPerQuestion),
+                    topicId:           String(t.topicId   ?? ''),
+                    topicName:         String(t.topicName ?? 'General'),
+                    options: (q.options ?? []).map((o: any) => ({
+                        optionId:   String(o.optionId       ?? o.OptionId   ?? ''),
+                        questionId: String(q.questionId     ?? ''),
+                        optionText: String(o.optionText     ?? o.OptionText ?? ''),
+                        imageUrl:   o.optionImageUrl ?? o.OptionImageUrl ?? o.imageUrl ?? undefined,
+                        isCorrect:  Boolean(o.optionIsCorrect ?? o.OptionIsCorrect ?? o.isCorrect ?? false),
+                    })),
+                } as AttemptQuestion)).map((q: AttemptQuestion): AttemptQuestion => {
+                    // Re-derive isCorrect for Multi Select on the frontend:
+                    // Correct only if ALL correct options selected AND no wrong options selected
+                    if ((q.questionType ?? '').toLowerCase().includes('multi') && q.options.length > 0) {
+                        const selectedIds       = new Set((q.selectedAnswer ?? '').split(',').map((id: string) => id.trim().toLowerCase()).filter(Boolean));
+                        const correctIds        = new Set(q.options.filter((o: QuestionOption) => o.isCorrect).map((o: QuestionOption) => o.optionId.toLowerCase()));
+                        const wrongSelected     = q.options.some((o: QuestionOption) => !o.isCorrect && selectedIds.has(o.optionId.toLowerCase()));
+                        const allCorrectSelected = correctIds.size > 0 && [...correctIds].every((id: string) => selectedIds.has(id));
+                        return { ...q, isCorrect: allCorrectSelected && !wrongSelected };
+                    }
+                    return q;
+                }),
+            }));
+
+            setTopicGroups(groups);
+            if (groups.length > 0) setSelectedTopic(groups[0].topicId);
+            setQuestionsLoaded(true);
+        } catch (err) {
+            console.error('Question review failed:', err);
+            showToast('Could not load question review', 'error');
+        } finally {
+            setLoadingQuestions(false);
+        }
+    }, [questionsLoaded, marksPerQuestion]);
 
     // ── Load links ────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -184,8 +302,7 @@ const AssessmentReport: React.FC = () => {
             setLoadingLinks(true);
             try {
                 const res  = await assessmentLinksApi.getByAssessment(assessmentId);
-                const list: AssessmentLink[] = Array.isArray(res.data)
-                    ? res.data : (res.data?.items ?? res.data?.data ?? []);
+                const list: AssessmentLink[] = Array.isArray(res.data) ? res.data : (res.data?.items ?? res.data?.data ?? []);
                 setLinks(list);
                 const first = list.find(l => l.isCredentialBased === (linkType === 'credential'));
                 if (first) handleSelectLink(first);
@@ -200,15 +317,16 @@ const AssessmentReport: React.FC = () => {
         else if (!first) { setSelectedLink(null); setSessions([]); setSelectedSession(null); }
     }, [linkType]);
 
-    // ── Select link → load candidates ────────────────────────────────────────
+    // ── Select link ───────────────────────────────────────────────────────────
     const handleSelectLink = async (link: AssessmentLink) => {
         setSelectedLink(link);
         setSelectedSession(null);
         setSearch('');
         setLoadingSessions(true);
         setSessions([]);
-        revokeBlobUrls();
         setSnapItems([]);
+        setTopicGroups([]);
+        setQuestionsLoaded(false);
         try {
             const res  = await assessmentsApi.getAttemptsByLink(link.id);
             const list = Array.isArray(res.data) ? res.data : (res.data?.items ?? res.data?.data ?? []);
@@ -220,7 +338,7 @@ const AssessmentReport: React.FC = () => {
                 startedAt:           a.startedAt   ?? a.StartedAt ?? '',
                 endedAt:             a.submittedAt ?? a.SubmittedAt ?? null,
                 score:               a.score       ?? undefined,
-                status:              a.status      ?? '',
+                status:              normaliseStatus(a.status),
                 riskScore: 0, riskLevel: '', totalViolations: 0,
                 tabSwitchCount: 0, fullscreenExitCount: 0, devToolsCount: 0,
                 copyPasteCount: 0, totalSnapshots: 0, flaggedSnapshots: 0,
@@ -232,65 +350,82 @@ const AssessmentReport: React.FC = () => {
         finally  { setLoadingSessions(false); }
     };
 
-    // ── Select candidate → load full report ───────────────────────────────────
+    // ── Select candidate ──────────────────────────────────────────────────────
     const handleSelectCandidate = async (s: CandidateSession) => {
         setSelectedSession(s);
         setLoadingReport(true);
         setPhotoIndex(0);
-        revokeBlobUrls();
         setSnapItems([]);
+        setTopicGroups([]);
+        setQuestionsLoaded(false);
+        setSelectedTopic(null);
+        setOpenSections({ score: true, performance: true, questions: false, proctoring: false, timing: false });
 
         try {
             const res = await assessmentsApi.getAttemptFullReport(s.assessmentAttemptId);
             if (res?.data) {
-                const d        = res.data;
-                const totalM   = d.totalMarks    ?? (totalQuestions * marksPerQuestion);
-                const obtained = d.obtainedMarks ?? d.score ?? 0;
-                const pct      = totalM > 0 ? Math.round((obtained / totalM) * 100) : 0;
+                const d               = res.data;
+                const totalM          = d.totalMarks    ?? (totalQuestions * marksPerQuestion);
+                const obtained        = d.obtainedMarks ?? d.score ?? 0;
+                const correct         = d.correct       ?? 0;
+                const spNegativeMarks = d.negativeMarks ?? d.NegativeMarks ?? negativeMarks ?? 0;
+                const wrong           = d.wrong         ?? 0;
+                const unattempted     = d.unattempted   ?? Math.max(0, (d.totalQuestions ?? totalQuestions) - correct - wrong);
+                const pct             = totalM > 0 ? Math.round((obtained / totalM) * 100) : 0;
+                const normStatus      = normaliseStatus(d.status ?? s.status);
+                const isSubmitted     = normStatus === 'Submitted';
 
-                // proctoringSessionId is returned by GetAttemptFullReport stored procedure
+                let passed: boolean | undefined;
+                if (d.passed !== undefined && d.passed !== null) {
+                    passed = Boolean(d.passed);
+                } else if (isSubmitted) {
+                    const threshold = d.passingMarks ?? passingMarks ?? totalM * 0.5;
+                    passed = obtained >= threshold;
+                }
+
                 const sessionId = d.proctoringSessionId ?? '';
 
                 setSelectedSession(prev => prev ? {
                     ...prev,
-                    proctoringSessionId:    sessionId,
-                    score:                  obtained,
-                    obtainedMarks:          obtained,
-                    totalMarks:             totalM,
-                    totalQuestions:         d.totalQuestions        ?? totalQuestions,
-                    correct:                d.correct               ?? 0,
-                    wrong:                  d.wrong                 ?? 0,
-                    unattempted:            d.unattempted           ?? 0,
-                    percentage:             pct,
-                    status:                 d.status                ?? prev.status,
-                    endedAt:                d.endedAt               ?? prev.endedAt,
-                    riskScore:              d.riskScore             ?? 0,
-                    riskLevel:              d.riskLevel             ?? '',
-                    totalViolations:        d.totalViolations       ?? 0,
-                    tabSwitchCount:         d.tabSwitchCount        ?? 0,
-                    fullscreenExitCount:    d.fullscreenExitCount   ?? 0,
-                    devToolsCount:          d.devToolsCount         ?? 0,
-                    copyPasteCount:         d.copyPasteCount        ?? 0,
-                    totalSnapshots:         d.totalSnapshots        ?? 0,
-                    flaggedSnapshots:       d.flaggedSnapshots      ?? 0,
-                    reviewStatus:           d.reviewStatus          ?? '',
-                    recordingUrl:           d.recordingUrl          ?? null,
+                    proctoringSessionId: sessionId,
+                    score: obtained, obtainedMarks: obtained, totalMarks: totalM,
+                    totalQuestions:      d.totalQuestions        ?? totalQuestions,
+                    correct, wrong, unattempted,
+                    percentage: pct, passed, status: normStatus,
+                    endedAt:             d.endedAt               ?? prev.endedAt,
+                    riskScore:           d.riskScore             ?? 0,
+                    riskLevel:           d.riskLevel             ?? '',
+                    totalViolations:     d.totalViolations       ?? 0,
+                    tabSwitchCount:      d.tabSwitchCount        ?? 0,
+                    fullscreenExitCount: d.fullscreenExitCount   ?? 0,
+                    devToolsCount:       d.devToolsCount         ?? 0,
+                    copyPasteCount:      d.copyPasteCount        ?? 0,
+                    totalSnapshots:      d.totalSnapshots        ?? 0,
+                    flaggedSnapshots:    d.flaggedSnapshots      ?? 0,
+                    reviewStatus:        d.reviewStatus          ?? '',
+                    recordingUrl:        d.recordingUrl          ?? null,
                     screenRecordingEnabled: d.screenRecordingEnabled ?? false,
-                    snapshotItems:          [],
+                    negativeDeduction:   d.negativeDeduction ?? d.NegativeDeduction ?? (wrong * spNegativeMarks),
+                    snapshotItems: [],
                 } : prev);
 
-                // Load snapshot images using proctoringSessionId
-                // Calls: GET /api/proctoring/snapshots/{sessionId}
-                if ((d.totalSnapshots ?? 0) > 0 && sessionId) {
-                    loadSnapshotsForSession(sessionId);
-                }
+                if ((d.totalSnapshots ?? 0) > 0 && sessionId) loadSnapshotsForSession(sessionId);
             }
-        } catch {
-            // show basic info only
-        } finally {
-            setLoadingReport(false);
+        } catch { /* show basic info */ }
+        finally { setLoadingReport(false); }
+    };
+
+    // ── Open questions section → lazy load ────────────────────────────────────
+    const handleToggleQuestions = () => {
+        const willOpen = !openSections.questions;
+        toggleSection('questions');
+        if (willOpen && selectedSession && !questionsLoaded) {
+            loadQuestionReview(selectedSession.assessmentAttemptId);
         }
     };
+
+    const computeTotalMarks = (s: CandidateSession): string | number =>
+        (s.totalMarks ?? (totalQuestions * marksPerQuestion)) || '—';
 
     const handleDownloadPDF = () => { if (!selectedSession) return; window.print(); showToast('Preparing PDF…', 'info'); };
 
@@ -299,24 +434,17 @@ const AssessmentReport: React.FC = () => {
         const s      = selectedSession;
         const totalM = (s.totalMarks ?? (totalQuestions * marksPerQuestion)) || 0;
         const text   = encodeURIComponent(
-            `📋 *Exam Report — ${assessmentTitle}*\n` +
-            `👤 ${s.candidateEmail}\n` +
+            `📋 *Exam Report — ${assessmentTitle}*\n👤 ${s.candidateEmail}\n` +
             `🎯 Score: ${s.obtainedMarks ?? s.score ?? '—'} / ${totalM || '—'}\n` +
             `✅ Correct: ${s.correct ?? '—'}   ❌ Wrong: ${s.wrong ?? '—'}\n` +
-            `📊 ${s.percentage ?? '—'}%\n` +
-            `⚠️ Violations: ${s.totalViolations ?? 0}\n` +
-            `🔗 ${selectedLink.name}`
+            `📊 ${s.percentage ?? '—'}%\n⚠️ Violations: ${s.totalViolations ?? 0}\n🔗 ${selectedLink.name}`
         );
         window.open(`https://wa.me/?text=${text}`, '_blank');
         setShareModal(false);
     };
 
-    const computeTotalMarks = (s: CandidateSession): string | number =>
-        (s.totalMarks ?? (totalQuestions * marksPerQuestion)) || '—';
-
-    // ── Photo gallery helpers ──────────────────────────────────────────────────
+    // Photo gallery
     const openPhotoModal = () => { setPhotoIndex(0); setPhotoModal(true); };
-
     const goPhoto = useCallback((dir: 1 | -1) => {
         setPhotoIndex(i => Math.max(0, Math.min(snapItems.length - 1, i + dir)));
     }, [snapItems.length]);
@@ -335,6 +463,33 @@ const AssessmentReport: React.FC = () => {
     const currentSnap     = snapItems[photoIndex];
     const totalSnapsCount = selectedSession?.totalSnapshots ?? snapItems.length;
     const flaggedCount    = selectedSession?.flaggedSnapshots ?? snapItems.filter(s => s.isFlagged).length;
+
+    const currentTopicQuestions = topicGroups.find(g => g.topicId === selectedTopic)?.questions ?? [];
+
+    const isTextQuestion = (q: AttemptQuestion) =>
+        (q.questionType ?? '').toLowerCase().includes('text') ||
+        (q.questionType ?? '').toLowerCase().includes('open') ||
+        q.options.length === 0;
+
+    // ── Parse selectedAnswer → Set of lowercase GUIDs ────────────────────────
+    // Single Select : "guid"
+    // Multi Select  : "guid1,guid2,guid3"  (comma-separated)
+    const getSelectedIds = (q: AttemptQuestion): Set<string> => {
+        if (!q.selectedAnswer) return new Set<string>();
+        return new Set<string>(
+            q.selectedAnswer.split(',').map((id: string) => id.trim().toLowerCase()).filter(Boolean)
+        );
+    };
+
+    // ── Option state ─────────────────────────────────────────────────────────
+    const getOptionState = (q: AttemptQuestion, opt: QuestionOption): 'correct' | 'wrong' | 'none' => {
+        const selectedIds       = getSelectedIds(q);
+        const candidateSelected = selectedIds.has(opt.optionId.toLowerCase());
+        if (candidateSelected && opt.isCorrect)  return 'correct'; // selected & correct ✓
+        if (candidateSelected && !opt.isCorrect) return 'wrong';   // selected & wrong   ✗
+        if (!candidateSelected && opt.isCorrect) return 'correct'; // not selected but IS the correct answer
+        return 'none';
+    };
 
     return (
         <div className="rp-root">
@@ -433,9 +588,9 @@ const AssessmentReport: React.FC = () => {
                                         {sessions.length === 0 ? 'No candidates have attempted this exam yet' : 'No results'}
                                     </div>
                                 ) : filteredSessions.map((s, i) => {
-                                    const rc       = riskColor(s.riskLevel);
-                                    const selected = selectedSession?.sessionId === s.sessionId;
-                                    const initials = (s.candidateEmail ?? '?')[0].toUpperCase();
+                                    const rc        = riskColor(s.riskLevel);
+                                    const selected  = selectedSession?.sessionId === s.sessionId;
+                                    const initials  = (s.candidateEmail ?? '?')[0].toUpperCase();
                                     const submitted = s.status === 'Submitted' || !!s.endedAt;
                                     return (
                                         <div key={s.sessionId || i} className={`rp-candidate-item ${selected ? 'selected' : ''}`} onClick={() => handleSelectCandidate(s)}>
@@ -487,147 +642,279 @@ const AssessmentReport: React.FC = () => {
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
                                         Share
                                     </button>
-                                    <button className="rp-action-btn rp-btn-download" onClick={handleDownloadPDF}>↓ Download PDF</button>
+                                    <button className="rp-action-btn rp-btn-download" onClick={handleDownloadPDF}>↓ PDF</button>
                                 </div>
                             </div>
 
+                            {loadingReport && (
+                                <div style={{ textAlign: 'center', padding: '16px', color: 'var(--muted)', fontSize: '13px' }}>⏳ Loading report…</div>
+                            )}
+
                             <div className="rp-report-body" ref={printRef}>
-                                {loadingReport && (
-                                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--muted)', fontSize: '13px' }}>
-                                        ⏳ Loading full report…
-                                    </div>
-                                )}
 
-                                {/* Score card */}
-                                <div className="rp-score-card">
-                                    <div className="rp-score-main">
-                                        <div className="rp-score-circle" style={{ borderColor: selectedSession.passed === true ? '#00c271' : selectedSession.passed === false ? '#e03b3b' : 'var(--accent2)' }}>
-                                            <div className="rp-score-num">{selectedSession.obtainedMarks ?? selectedSession.score ?? '—'}</div>
-                                            <div className="rp-score-denom">/ {computeTotalMarks(selectedSession)}</div>
-                                        </div>
-                                        <div className="rp-score-details">
-                                            {selectedSession.passed !== undefined ? (
-                                                <div className="rp-pass-badge" style={{ background: selectedSession.passed ? 'rgba(0,194,113,.12)' : 'rgba(224,59,59,.12)', color: selectedSession.passed ? '#00c271' : '#e03b3b' }}>
-                                                    {selectedSession.passed ? '✅ PASSED' : '❌ FAILED'}
-                                                </div>
-                                            ) : (
-                                                <div className="rp-pass-badge" style={{ background: 'rgba(0,87,255,.1)', color: 'var(--accent2)' }}>
-                                                    📋 {selectedSession.status || 'Submitted'}
-                                                </div>
-                                            )}
-                                            {selectedSession.percentage !== undefined && (
-                                                <div className="rp-score-pct">{selectedSession.percentage}% Score</div>
-                                            )}
-                                            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>{selectedLink?.name}</div>
+                                {/* ══ Score ══ */}
+                                <Section id="score" icon="🎯" title="Score Overview"
+                                    badge={selectedSession.percentage !== undefined ? `${selectedSession.percentage}%` : undefined}
+                                    open={openSections.score} onToggle={() => toggleSection('score')}>
+                                    <div className="rp-score-card">
+                                        <div className="rp-score-main">
+                                            <div className="rp-score-circle" style={{ borderColor: scoreCircleColor(selectedSession) }}>
+                                                <div className="rp-score-num">{selectedSession.obtainedMarks ?? selectedSession.score ?? '—'}</div>
+                                                <div className="rp-score-denom">/ {computeTotalMarks(selectedSession)}</div>
+                                            </div>
+                                            <div className="rp-score-details">
+                                                {selectedSession.status === 'In Progress' ? (
+                                                    <div className="rp-pass-badge" style={{ background: 'rgba(245,166,35,.12)', color: '#f5a623' }}>🕐 In Progress</div>
+                                                ) : selectedSession.passed === true ? (
+                                                    <div className="rp-pass-badge" style={{ background: 'rgba(0,194,113,.12)', color: '#00c271' }}>✅ PASSED</div>
+                                                ) : selectedSession.passed === false ? (
+                                                    <div className="rp-pass-badge" style={{ background: 'rgba(224,59,59,.12)', color: '#e03b3b' }}>❌ FAILED</div>
+                                                ) : (
+                                                    <div className="rp-pass-badge" style={{ background: 'rgba(0,87,255,.1)', color: 'var(--accent2)' }}>📋 {selectedSession.status || 'Submitted'}</div>
+                                                )}
+                                                {selectedSession.percentage !== undefined && (
+                                                    <div className="rp-score-pct" style={{ color: selectedSession.percentage >= 75 ? '#00c271' : selectedSession.percentage >= 50 ? '#f5a623' : '#e03b3b' }}>
+                                                        {selectedSession.percentage}% Score
+                                                    </div>
+                                                )}
+                                                {selectedSession.correct !== undefined && (
+                                                    <div style={{ fontSize: '12px', marginTop: '6px', display: 'flex', gap: '10px' }}>
+                                                        <span style={{ color: '#00c271' }}>✓ {selectedSession.correct} correct</span>
+                                                        <span style={{ color: '#e03b3b' }}>✗ {selectedSession.wrong} wrong</span>
+                                                    </div>
+                                                )}
+                                                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>{selectedLink?.name}</div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </Section>
 
-                                {/* Exam Performance */}
-                                <div className="rp-section-title">📋 Exam Performance</div>
-                                <div className="rp-stats-grid">
-                                    {[
-                                        { label: 'Total Questions', val: selectedSession.totalQuestions ?? totalQuestions ?? '—', color: 'var(--accent2)' },
-                                        { label: 'Attempted',       val: (selectedSession.correct !== undefined && selectedSession.wrong !== undefined) ? selectedSession.correct + selectedSession.wrong : '—', color: 'var(--ink)' },
-                                        { label: 'Correct',         val: selectedSession.correct     ?? '—', color: '#00c271' },
-                                        { label: 'Wrong',           val: selectedSession.wrong       ?? '—', color: '#e03b3b' },
-                                        { label: 'Unattempted',     val: selectedSession.unattempted ?? '—', color: '#f5a623' },
-                                        { label: 'Total Marks',     val: computeTotalMarks(selectedSession), color: 'var(--ink)' },
-                                        { label: 'Marks Obtained',  val: selectedSession.obtainedMarks ?? selectedSession.score ?? '—', color: '#00c271' },
-                                        { label: 'Negative Marks',  val: selectedSession.wrong !== undefined && negativeMarks > 0
-                                            ? `-${(selectedSession.wrong * negativeMarks).toFixed(2)}` : '0', color: '#e03b3b' },
-                                    ].map(stat => (
-                                        <div className="rp-stat-box" key={stat.label}>
-                                            <div className="rp-stat-val" style={{ color: stat.color }}>{stat.val}</div>
-                                            <div className="rp-stat-lbl">{stat.label}</div>
-                                        </div>
-                                    ))}
-                                </div>
+                                {/* ══ Exam Performance ══ */}
+                                <Section id="performance" icon="📋" title="Exam Performance"
+                                    badge={selectedSession.correct !== undefined ? `${selectedSession.correct}✓ ${selectedSession.wrong}✗` : undefined}
+                                    open={openSections.performance} onToggle={() => toggleSection('performance')}>
+                                    <div className="rp-stats-grid">
+                                        {[
+                                            { label: 'Total Questions', val: selectedSession.totalQuestions ?? totalQuestions ?? '—', color: 'var(--accent2)' },
+                                            { label: 'Attempted',       val: (selectedSession.correct !== undefined && selectedSession.wrong !== undefined) ? selectedSession.correct + selectedSession.wrong : '—', color: 'var(--ink)' },
+                                            { label: 'Correct',         val: selectedSession.correct     ?? '—', color: '#00c271' },
+                                            { label: 'Wrong',           val: selectedSession.wrong       ?? '—', color: '#e03b3b' },
+                                            { label: 'Unattempted',     val: selectedSession.unattempted ?? '—', color: '#f5a623' },
+                                            { label: 'Total Marks',     val: computeTotalMarks(selectedSession), color: 'var(--ink)' },
+                                            { label: 'Marks Obtained',  val: selectedSession.obtainedMarks ?? selectedSession.score ?? '—', color: '#00c271' },
+                                            { label: 'Negative Marks',
+                                              val: (() => {
+                                                  const d = selectedSession.negativeDeduction ?? (selectedSession.wrong !== undefined && negativeMarks > 0 ? selectedSession.wrong * negativeMarks : 0);
+                                                  return d > 0 ? `-${d.toFixed(2)}` : '0';
+                                              })(), color: '#e03b3b' },
+                                        ].map(stat => (
+                                            <div className="rp-stat-box" key={stat.label}>
+                                                <div className="rp-stat-val" style={{ color: stat.color }}>{stat.val}</div>
+                                                <div className="rp-stat-lbl">{stat.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Section>
 
-                                {/* Proctoring Summary */}
-                                <div className="rp-section-title">🔒 Proctoring Summary</div>
-                                <div className="rp-violations-grid">
-                                    {[
-                                        { icon: '⚠️', label: 'Total Violations',  val: selectedSession.totalViolations     ?? 0, danger: (selectedSession.totalViolations     ?? 0) > 0  },
-                                        { icon: '🔄', label: 'Tab Switches',       val: selectedSession.tabSwitchCount      ?? 0, danger: (selectedSession.tabSwitchCount      ?? 0) > 3  },
-                                        { icon: '🖥',  label: 'Fullscreen Exits',  val: selectedSession.fullscreenExitCount ?? 0, danger: (selectedSession.fullscreenExitCount ?? 0) > 2  },
-                                        { icon: '🛠',  label: 'DevTools Opens',    val: selectedSession.devToolsCount       ?? 0, danger: (selectedSession.devToolsCount       ?? 0) > 0  },
-                                        { icon: '📋', label: 'Copy Attempts',      val: selectedSession.copyPasteCount      ?? 0, danger: (selectedSession.copyPasteCount      ?? 0) > 0  },
-                                        { icon: '📸', label: 'Snapshots',          val: selectedSession.totalSnapshots      ?? 0, danger: false },
-                                        { icon: '🚩', label: 'Flagged Snaps',      val: selectedSession.flaggedSnapshots    ?? 0, danger: (selectedSession.flaggedSnapshots    ?? 0) > 0  },
-                                        { icon: '🎯', label: 'Risk Score',         val: `${selectedSession.riskScore ?? 0}%`,   danger: (selectedSession.riskScore           ?? 0) > 60 },
-                                    ].map(v => (
-                                        <div className="rp-violation-box" key={v.label}>
-                                            <div className="rp-violation-icon">{v.icon}</div>
-                                            <div className="rp-violation-val" style={{ color: v.danger ? '#e03b3b' : 'var(--ink)' }}>{v.val}</div>
-                                            <div className="rp-violation-lbl">{v.label}</div>
-                                        </div>
-                                    ))}
-                                </div>
+                                {/* ══ Question Review ══ */}
+                                <Section id="questions" icon="📝" title="Question Review"
+                                    badge={topicGroups.length > 0 ? `${topicGroups.length} topic${topicGroups.length !== 1 ? 's' : ''}` : undefined}
+                                    open={openSections.questions} onToggle={handleToggleQuestions}>
 
-                                {/* Badges */}
-                                <div className="rp-badges-row">
-                                    <div>
-                                        <div className="rp-badge-label">Risk Level</div>
-                                        <span className="rp-badge" style={{ color: riskColor(selectedSession.riskLevel).color, background: riskColor(selectedSession.riskLevel).bg }}>
-                                            {selectedSession.riskLevel || 'N/A'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <div className="rp-badge-label">Review Status</div>
-                                        <span className="rp-badge" style={{ color: reviewColor(selectedSession.reviewStatus).color, background: reviewColor(selectedSession.reviewStatus).bg }}>
-                                            {selectedSession.reviewStatus || 'Pending'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <div className="rp-badge-label">Screen Recording</div>
-                                        <span className="rp-badge" style={{ color: selectedSession.screenRecordingEnabled ? '#00c271' : 'var(--muted)', background: selectedSession.screenRecordingEnabled ? 'rgba(0,194,113,.1)' : 'rgba(138,138,138,.1)' }}>
-                                            {selectedSession.screenRecordingEnabled ? '✓ Recorded' : '✗ Off'}
-                                        </span>
-                                    </div>
-                                    {selectedSession.recordingUrl && (
-                                        <div>
-                                            <div className="rp-badge-label">Recording</div>
-                                            <a href={selectedSession.recordingUrl} target="_blank" rel="noreferrer"
-                                               className="rp-badge rp-badge-link" style={{ color: 'var(--accent2)', background: 'rgba(0,87,255,.1)' }}>▶ Watch</a>
+                                    {loadingQuestions ? (
+                                        <div className="rp-qr-loading">⏳ Loading questions…</div>
+                                    ) : topicGroups.length === 0 ? (
+                                        <div className="rp-qr-empty">No question data available for this attempt.</div>
+                                    ) : (
+                                        <div className="rp-qr-layout">
+                                            {/* Topic sidebar */}
+                                            <div className="rp-qr-topics">
+                                                <div className="rp-qr-topics-title">Topics</div>
+                                                {topicGroups.map(g => {
+                                                    const correct = g.questions.filter(q => q.isCorrect).length;
+                                                    const total   = g.questions.length;
+                                                    const pct     = total > 0 ? Math.round((correct / total) * 100) : 0;
+                                                    return (
+                                                        <div key={g.topicId}
+                                                            className={`rp-qr-topic-item ${selectedTopic === g.topicId ? 'active' : ''}`}
+                                                            onClick={() => setSelectedTopic(g.topicId)}>
+                                                            <div className="rp-qr-topic-name">{g.topicName}</div>
+                                                            <div className="rp-qr-topic-meta">
+                                                                <span>{total} Q</span>
+                                                                <span className="rp-qr-topic-score" style={{ color: pct >= 50 ? '#00c271' : '#e03b3b' }}>
+                                                                    {correct}/{total} correct
+                                                                </span>
+                                                            </div>
+                                                            <div className="rp-qr-topic-bar">
+                                                                <div className="rp-qr-topic-bar-fill"
+                                                                    style={{ width: `${pct}%`, background: pct >= 50 ? '#00c271' : '#e03b3b' }} />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Questions list */}
+                                            <div className="rp-qr-questions">
+                                                {currentTopicQuestions.length === 0 ? (
+                                                    <div className="rp-qr-empty">No questions in this topic.</div>
+                                                ) : currentTopicQuestions.map((q, qi) => (
+                                                    <div key={q.attemptQuestionId}
+                                                        className={`rp-qr-question ${q.isCorrect ? 'rp-qr-correct' : q.selectedAnswer ? 'rp-qr-wrong' : 'rp-qr-unattempted'}`}>
+
+                                                        {/* Question header */}
+                                                        <div className="rp-qr-q-header">
+                                                            <div className="rp-qr-q-num">Q{q.questionOrder || qi + 1}</div>
+                                                            <div className="rp-qr-q-type">{q.questionType || 'MCQ'}</div>
+                                                            <div className={`rp-qr-q-status ${q.isCorrect ? 'correct' : q.selectedAnswer ? 'wrong' : 'skipped'}`}>
+                                                                {q.isCorrect ? '✓ Correct' : q.selectedAnswer ? '✗ Wrong' : '— Skipped'}
+                                                            </div>
+                                                            <div className="rp-qr-q-marks" style={{ color: q.isCorrect ? '#00c271' : q.selectedAnswer ? '#e03b3b' : 'var(--muted)' }}>
+                                                                {q.isCorrect ? `+${q.marksPerQuestion}` : q.selectedAnswer && negativeMarks > 0 ? `-${negativeMarks}` : '0'} marks
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Question text */}
+                                                        <div className="rp-qr-q-text" dangerouslySetInnerHTML={{ __html: q.questionText }} />
+
+                                                        {/* MCQ Options */}
+                                                        {!isTextQuestion(q) && q.options.length > 0 && (
+                                                            <div className="rp-qr-options">
+                                                                {q.options.map(opt => {
+                                                                    const state      = getOptionState(q, opt);
+                                                                    const isSelected = getSelectedIds(q).has(opt.optionId.toLowerCase());
+                                                                    return (
+                                                                        <div key={opt.optionId}
+                                                                            className={`rp-qr-option rp-qr-option-${state} ${isSelected ? 'rp-qr-option-selected' : ''}`}>
+                                                                            <div className="rp-qr-option-indicator">
+                                                                                {state === 'correct' ? '✓' : state === 'wrong' ? '✗' : '○'}
+                                                                            </div>
+                                                                            <div className="rp-qr-option-body">
+                                                                                {opt.imageUrl
+                                                                                    ? <img src={opt.imageUrl} alt="option" className="rp-qr-option-img" />
+                                                                                    : <span>{opt.optionText}</span>}
+                                                                            </div>
+                                                                            <div className="rp-qr-option-tags">
+                                                                                {opt.isCorrect && <span className="rp-qr-tag rp-qr-tag-correct">Correct Answer</span>}
+                                                                                {isSelected    && <span className={`rp-qr-tag ${opt.isCorrect ? 'rp-qr-tag-correct' : 'rp-qr-tag-wrong'}`}>Candidate's Answer</span>}
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Open Text */}
+                                                        {isTextQuestion(q) && (
+                                                            <div className="rp-qr-text-answers">
+                                                                <div className="rp-qr-text-row">
+                                                                    <div className="rp-qr-text-label">✓ Correct Answer</div>
+                                                                    <div className="rp-qr-text-val rp-qr-text-correct">{q.correctTextAnswer || '—'}</div>
+                                                                </div>
+                                                                <div className="rp-qr-text-row">
+                                                                    <div className="rp-qr-text-label">Candidate's Answer</div>
+                                                                    <div className={`rp-qr-text-val ${q.isCorrect ? 'rp-qr-text-correct' : q.selectedAnswer ? 'rp-qr-text-wrong' : 'rp-qr-text-skipped'}`}>
+                                                                        {q.selectedAnswer || <em>Not answered</em>}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* MCQ but options not loaded */}
+                                                        {!isTextQuestion(q) && q.options.length === 0 && (
+                                                            <div className="rp-qr-text-answers">
+                                                                <div className="rp-qr-text-row">
+                                                                    <div className="rp-qr-text-label">Candidate's Answer</div>
+                                                                    <div className={`rp-qr-text-val ${q.isCorrect ? 'rp-qr-text-correct' : q.selectedAnswer ? 'rp-qr-text-wrong' : 'rp-qr-text-skipped'}`}>
+                                                                        {q.selectedAnswer || <em>Not answered</em>}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
-                                    {totalSnapsCount > 0 && (
-                                        <div>
-                                            <div className="rp-badge-label">Proctoring Images</div>
-                                            <button className="rp-badge rp-snap-btn" onClick={openPhotoModal}>
-                                                <span>📷</span>
-                                                <span>View Photos</span>
-                                                <span className="rp-snap-count" style={{
-                                                    background: flaggedCount > 0 ? '#e03b3b' : 'rgba(224,123,0,.25)',
-                                                    color:      flaggedCount > 0 ? '#fff'    : '#b85c00',
-                                                }}>
-                                                    {totalSnapsCount}{flaggedCount > 0 && <> · 🚩{flaggedCount}</>}
-                                                </span>
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+                                </Section>
 
-                                {/* Timing */}
-                                <div className="rp-section-title">⏱ Timing</div>
-                                <div className="rp-timing-row">
-                                    <div className="rp-timing-box"><div className="rp-timing-label">Started At</div><div className="rp-timing-val">{fmtDT(selectedSession.startedAt)}</div></div>
-                                    <div className="rp-timing-box">
-                                        <div className="rp-timing-label">Submitted At</div>
-                                        <div className="rp-timing-val">
-                                            {selectedSession.endedAt ? fmtDT(selectedSession.endedAt) : <span style={{ color: '#f5a623' }}>In Progress</span>}
+                                {/* ══ Proctoring Summary ══ */}
+                                <Section id="proctoring" icon="🔒" title="Proctoring Summary"
+                                    badge={selectedSession.totalViolations > 0 ? `${selectedSession.totalViolations} violations` : undefined}
+                                    open={openSections.proctoring} onToggle={() => toggleSection('proctoring')}>
+                                    <div className="rp-violations-grid">
+                                        {[
+                                            { icon: '⚠️', label: 'Total Violations',  val: selectedSession.totalViolations     ?? 0, danger: (selectedSession.totalViolations     ?? 0) > 0 },
+                                            { icon: '🔄', label: 'Tab Switches',       val: selectedSession.tabSwitchCount      ?? 0, danger: (selectedSession.tabSwitchCount      ?? 0) > 3 },
+                                            { icon: '🖥',  label: 'Fullscreen Exits',  val: selectedSession.fullscreenExitCount ?? 0, danger: (selectedSession.fullscreenExitCount ?? 0) > 2 },
+                                            { icon: '🛠',  label: 'DevTools Opens',    val: selectedSession.devToolsCount       ?? 0, danger: (selectedSession.devToolsCount       ?? 0) > 0 },
+                                            { icon: '📋', label: 'Copy Attempts',      val: selectedSession.copyPasteCount      ?? 0, danger: (selectedSession.copyPasteCount      ?? 0) > 0 },
+                                            { icon: '📸', label: 'Snapshots',          val: selectedSession.totalSnapshots      ?? 0, danger: false },
+                                            { icon: '🚩', label: 'Flagged Snaps',      val: selectedSession.flaggedSnapshots    ?? 0, danger: (selectedSession.flaggedSnapshots    ?? 0) > 0 },
+                                            { icon: '🎯', label: 'Risk Score',         val: `${selectedSession.riskScore ?? 0}%`,   danger: (selectedSession.riskScore           ?? 0) > 60 },
+                                        ].map(v => (
+                                            <div className="rp-violation-box" key={v.label}>
+                                                <div className="rp-violation-icon">{v.icon}</div>
+                                                <div className="rp-violation-val" style={{ color: v.danger ? '#e03b3b' : 'var(--ink)' }}>{v.val}</div>
+                                                <div className="rp-violation-lbl">{v.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="rp-badges-row">
+                                        <div><div className="rp-badge-label">Risk Level</div>
+                                            <span className="rp-badge" style={{ color: riskColor(selectedSession.riskLevel).color, background: riskColor(selectedSession.riskLevel).bg }}>{selectedSession.riskLevel || 'N/A'}</span>
+                                        </div>
+                                        <div><div className="rp-badge-label">Review Status</div>
+                                            <span className="rp-badge" style={{ color: reviewColor(selectedSession.reviewStatus).color, background: reviewColor(selectedSession.reviewStatus).bg }}>{selectedSession.reviewStatus || 'Pending'}</span>
+                                        </div>
+                                        <div><div className="rp-badge-label">Screen Recording</div>
+                                            <span className="rp-badge" style={{ color: selectedSession.screenRecordingEnabled ? '#00c271' : 'var(--muted)', background: selectedSession.screenRecordingEnabled ? 'rgba(0,194,113,.1)' : 'rgba(138,138,138,.1)' }}>
+                                                {selectedSession.screenRecordingEnabled ? '✓ Recorded' : '✗ Off'}
+                                            </span>
+                                        </div>
+                                        {selectedSession.recordingUrl && (
+                                            <div><div className="rp-badge-label">Recording</div>
+                                                <a href={selectedSession.recordingUrl} target="_blank" rel="noreferrer" className="rp-badge rp-badge-link" style={{ color: 'var(--accent2)', background: 'rgba(0,87,255,.1)' }}>▶ Watch</a>
+                                            </div>
+                                        )}
+                                        {totalSnapsCount > 0 && (
+                                            <div><div className="rp-badge-label">Proctoring Images</div>
+                                                <button className="rp-badge rp-snap-btn" onClick={openPhotoModal}>
+                                                    <span>📷</span><span>View Photos</span>
+                                                    <span className="rp-snap-count" style={{ background: flaggedCount > 0 ? '#e03b3b' : 'rgba(224,123,0,.25)', color: flaggedCount > 0 ? '#fff' : '#b85c00' }}>
+                                                        {totalSnapsCount}{flaggedCount > 0 && <> · 🚩{flaggedCount}</>}
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </Section>
+
+                                {/* ══ Timing ══ */}
+                                <Section id="timing" icon="⏱" title="Timing"
+                                    open={openSections.timing} onToggle={() => toggleSection('timing')}>
+                                    <div className="rp-timing-row">
+                                        <div className="rp-timing-box">
+                                            <div className="rp-timing-label">Started At</div>
+                                            <div className="rp-timing-val">{fmtDT(selectedSession.startedAt)}</div>
+                                        </div>
+                                        <div className="rp-timing-box">
+                                            <div className="rp-timing-label">Submitted At</div>
+                                            <div className="rp-timing-val">
+                                                {selectedSession.endedAt ? fmtDT(selectedSession.endedAt) : <span style={{ color: '#f5a623' }}>In Progress</span>}
+                                            </div>
+                                        </div>
+                                        <div className="rp-timing-box">
+                                            <div className="rp-timing-label">Duration Taken</div>
+                                            <div className="rp-timing-val">
+                                                {selectedSession.startedAt && selectedSession.endedAt
+                                                    ? `${Math.round((new Date(selectedSession.endedAt).getTime() - new Date(selectedSession.startedAt).getTime()) / 60000)} min`
+                                                    : '—'}
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="rp-timing-box">
-                                        <div className="rp-timing-label">Duration Taken</div>
-                                        <div className="rp-timing-val">
-                                            {selectedSession.startedAt && selectedSession.endedAt
-                                                ? `${Math.round((new Date(selectedSession.endedAt).getTime() - new Date(selectedSession.startedAt).getTime()) / 60000)} min`
-                                                : '—'}
-                                        </div>
-                                    </div>
-                                </div>
+                                </Section>
+
                             </div>
                         </>
                     )}
@@ -648,15 +935,12 @@ const AssessmentReport: React.FC = () => {
                                 <button className="rp-modal-close" onClick={() => setPhotoModal(false)}>✕</button>
                             </div>
                         </div>
-
                         <div className="rp-modal-body rp-photo-modal-body">
                             <div className="rp-photo-stats-bar">
                                 <span><strong style={{ color: 'var(--ink)' }}>{totalSnapsCount}</strong><span style={{ color: 'var(--muted)', marginLeft: '4px' }}>Total Snapshots</span></span>
                                 {flaggedCount > 0 && <span><strong style={{ color: '#e03b3b' }}>{flaggedCount}</strong><span style={{ color: 'var(--muted)', marginLeft: '4px' }}>Flagged</span></span>}
-                                {snapItems.some(s => s.loading) && <span style={{ color: 'var(--muted)', fontSize: '11px' }}>⏳ Loading images…</span>}
                                 <span style={{ color: 'var(--muted)', fontSize: '11px', marginLeft: 'auto' }}>← → keys · Esc to close</span>
                             </div>
-
                             {snapItems.length > 0 ? (
                                 <>
                                     <div className="rp-photo-viewer">
@@ -664,28 +948,18 @@ const AssessmentReport: React.FC = () => {
                                         {currentSnap?.capturedAt && <div className="rp-photo-time-badge">🕐 {fmtDT(currentSnap.capturedAt)}</div>}
                                         <div className="rp-photo-counter-badge">{photoIndex + 1} / {snapItems.length}</div>
                                         <button className="rp-photo-nav rp-photo-nav-prev" onClick={() => goPhoto(-1)} disabled={photoIndex === 0}>‹</button>
-
                                         {currentSnap?.loading ? (
-                                            <div className="rp-photo-loading">
-                                                <div className="rp-photo-spinner" />
-                                                <div style={{ marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,.5)' }}>Loading image…</div>
-                                            </div>
+                                            <div className="rp-photo-loading"><div className="rp-photo-spinner" /></div>
                                         ) : currentSnap?.error ? (
-                                            <div className="rp-photo-error">
-                                                <div style={{ fontSize: '32px', marginBottom: '8px' }}>🖼️</div>
-                                                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,.6)' }}>Image could not be loaded</div>
-                                                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.35)', marginTop: '6px', wordBreak: 'break-all', maxWidth: '340px', textAlign: 'center' }}>{currentSnap.originalUrl}</div>
-                                            </div>
+                                            <div className="rp-photo-error"><div style={{ fontSize: '32px' }}>🖼️</div><div style={{ fontSize: '13px', color: 'rgba(255,255,255,.6)' }}>Image could not be loaded</div></div>
                                         ) : (
                                             <img key={photoIndex} src={currentSnap?.blobUrl} alt={`Snapshot ${photoIndex + 1}`} className="rp-photo-img" />
                                         )}
-
                                         <button className="rp-photo-nav rp-photo-nav-next" onClick={() => goPhoto(1)} disabled={photoIndex === snapItems.length - 1}>›</button>
                                     </div>
-
                                     <div className="rp-photo-thumbstrip">
                                         {snapItems.map((snap, idx) => (
-                                            <div key={idx} className={`rp-photo-thumb ${idx === photoIndex ? 'active' : ''} ${snap.isFlagged ? 'flagged' : ''}`} onClick={() => setPhotoIndex(idx)} title={snap.isFlagged ? `Snapshot ${idx + 1} — Flagged` : `Snapshot ${idx + 1}`}>
+                                            <div key={idx} className={`rp-photo-thumb ${idx === photoIndex ? 'active' : ''} ${snap.isFlagged ? 'flagged' : ''}`} onClick={() => setPhotoIndex(idx)}>
                                                 {snap.loading ? <div className="rp-thumb-loading"><div className="rp-thumb-spinner" /></div>
                                                 : snap.error  ? <div className="rp-thumb-error">✕</div>
                                                 : <img src={snap.blobUrl} alt={`Thumb ${idx + 1}`} />}
@@ -698,11 +972,7 @@ const AssessmentReport: React.FC = () => {
                             ) : (
                                 <div className="rp-photo-empty">
                                     <div style={{ fontSize: '40px', marginBottom: '12px' }}>📷</div>
-                                    {totalSnapsCount > 0 ? (
-                                        <><div className="rp-photo-spinner" style={{ marginBottom: '12px' }} /><div style={{ fontSize: '13px', color: 'var(--muted)' }}>Fetching snapshots…</div></>
-                                    ) : (
-                                        <div style={{ color: 'var(--muted)', fontSize: '14px' }}>No snapshots captured for this attempt.</div>
-                                    )}
+                                    <div style={{ color: 'var(--muted)', fontSize: '14px' }}>No snapshots captured for this attempt.</div>
                                 </div>
                             )}
                         </div>
@@ -727,7 +997,7 @@ const AssessmentReport: React.FC = () => {
                                 </button>
                                 <button className="rp-share-option rp-share-pdf" onClick={() => { handleDownloadPDF(); setShareModal(false); }}>📄 Download PDF</button>
                                 <button className="rp-share-option rp-share-email" onClick={() => {
-                                    const s    = selectedSession!;
+                                    const s   = selectedSession!;
                                     const sub  = encodeURIComponent(`Exam Report — ${assessmentTitle}`);
                                     const body = encodeURIComponent(`Candidate: ${s.candidateEmail}\nScore: ${s.obtainedMarks ?? s.score ?? '—'} / ${computeTotalMarks(s)}\nStatus: ${s.status ?? '—'}\nViolations: ${s.totalViolations ?? 0}`);
                                     window.location.href = `mailto:${s.candidateEmail}?subject=${sub}&body=${body}`;

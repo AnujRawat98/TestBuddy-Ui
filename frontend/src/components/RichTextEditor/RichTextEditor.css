@@ -1,3 +1,6 @@
+/* ─── FONT IMPORT ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
+
 /* ── Wrapper ─────────────────────────────────────────────────────────────── */
 .rte-wrap {
     border: 1.5px solid var(--border);
@@ -6,6 +9,7 @@
     overflow: hidden;
     transition: border-color .18s, box-shadow .18s;
 }
+
 .rte-wrap.focused {
     border-color: var(--accent2);
     box-shadow: 0 0 0 3px rgba(0,87,255,.07);
@@ -24,7 +28,7 @@
 }
 
 .rte-btn {
-    all: unset;                   /* ← reset ALL inherited styles */
+    all: unset;
     box-sizing: border-box;
     width: 30px;
     height: 28px;
@@ -37,19 +41,14 @@
     font-family: 'DM Sans', sans-serif;
     font-weight: 500;
     color: var(--ink);
-    text-decoration: none !important;  /* ← prevent inheritance */
+    text-decoration: none !important;
     transition: background .12s;
 }
-.rte-btn:hover { background: rgba(0,87,255,.09); color: var(--accent2); }
+
+.rte-btn:hover  { background: rgba(0,87,255,.09); color: var(--accent2); }
 .rte-btn:active { background: rgba(0,87,255,.16); }
 
-/* Ensure icon children don't inherit button styles weirdly */
-.rte-btn * {
-    text-decoration: none;
-    font-style: normal;
-    pointer-events: none;
-}
-/* Re-apply intentional styles for formatting icons */
+.rte-btn * { text-decoration: none; font-style: normal; pointer-events: none; }
 .rte-btn strong { font-weight: 700; }
 .rte-btn em     { font-style: italic !important; }
 
@@ -71,15 +70,17 @@
     background: rgba(0,87,255,.04);
     border-bottom: 1px solid rgba(0,87,255,.1);
 }
+
 .rte-math-label {
     font-size: 11px;
     font-weight: 700;
     color: var(--accent2);
     white-space: nowrap;
-    font-family: 'Syne', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     text-transform: uppercase;
     letter-spacing: .5px;
 }
+
 .rte-math-input {
     flex: 1;
     padding: 5px 10px;
@@ -91,7 +92,9 @@
     color: var(--ink);
     outline: none;
 }
+
 .rte-math-input:focus { border-color: var(--accent2); }
+
 .rte-math-ok {
     padding: 5px 12px;
     background: var(--accent2);
@@ -100,9 +103,11 @@
     border-radius: 7px;
     font-size: 12px;
     font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
     cursor: pointer;
     white-space: nowrap;
 }
+
 .rte-math-x {
     padding: 5px 8px;
     background: transparent;
@@ -112,6 +117,7 @@
     font-size: 14px;
     border-radius: 6px;
 }
+
 .rte-math-x:hover { background: var(--surface); }
 
 /* ── Editor area ─────────────────────────────────────────────────────────── */
@@ -123,11 +129,10 @@
     color: var(--ink);
     line-height: 1.65;
     word-break: break-word;
-    /* NO text-decoration here — must be clean */
     text-decoration: none;
 }
 
-/* ── Placeholder — completely isolated ───────────────────────────────────── */
+/* ── Placeholder ─────────────────────────────────────────────────────────── */
 .rte-ph {
     position: absolute;
     top: 12px;
@@ -138,7 +143,6 @@
     color: #bbb;
     pointer-events: none;
     line-height: 1.65;
-    /* Explicitly reset everything to prevent any inheritance */
     font-weight: normal;
     font-style: normal;
     text-decoration: none !important;
@@ -153,16 +157,8 @@
 .rte-editor u                     { text-decoration: underline; }
 .rte-editor s, .rte-editor strike { text-decoration: line-through; }
 
-.rte-editor ul {
-    list-style: disc;
-    padding-left: 22px;
-    margin: 5px 0;
-}
-.rte-editor ol {
-    list-style: decimal;
-    padding-left: 22px;
-    margin: 5px 0;
-}
+.rte-editor ul { list-style: disc;    padding-left: 22px; margin: 5px 0; }
+.rte-editor ol { list-style: decimal; padding-left: 22px; margin: 5px 0; }
 .rte-editor li { margin: 2px 0; }
 
 /* Code block */
@@ -179,6 +175,7 @@
     border: 1px solid rgba(255,255,255,.07);
     text-decoration: none;
 }
+
 .rte-editor pre.rte-code code {
     background: none;
     padding: 0;
@@ -227,23 +224,26 @@
     margin: 8px 0;
 }
 
-/* ── ExamScreen q-text rendering (copy-paste to ExamScreen.css too) ──────── */
+/* ── ExamScreen q-text rendering ─────────────────────────────────────────── */
 .q-text pre.rte-code {
     background: #0d1117; color: #e2e8f0;
     border-radius: 8px; padding: 13px 16px;
     font-family: monospace; font-size: 13px;
     line-height: 1.7; overflow-x: auto; margin: 8px 0;
 }
+
 .q-text .rte-math {
     display: inline-block;
     background: rgba(139,92,246,.09); color: #8b5cf6;
     padding: 2px 8px; border-radius: 5px;
     font-style: italic; font-size: 15px;
 }
+
 .q-text .rte-img {
     max-width: 100%; max-height: 240px;
     border-radius: 8px; border: 1px solid var(--border);
     display: block; margin: 8px 0;
 }
+
 .q-text ul { list-style: disc;    padding-left: 22px; margin: 5px 0; }
 .q-text ol { list-style: decimal; padding-left: 22px; margin: 5px 0; }

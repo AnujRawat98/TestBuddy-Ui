@@ -15,7 +15,7 @@ interface Option    { id: string; text: string; imageUrl?: string; }
 interface Question  { id: string; content?: string; text?: string; questionText?: string; questionType: string; marks?: number; difficulty?: string; topicName?: string; options: Option[]; durationMinutes?: number; totalDuration?: number; }
 type QStatus      = 'unanswered' | 'answered' | 'marked' | 'skipped';
 interface QState   { status: QStatus; answer: string | string[] | null; }
-interface ExamResult { score?: number; totalMarks?: number; correct?: number; wrong?: number; unattempted?: number; passed?: boolean; percentage?: number; }
+interface ExamResult { score?: number; totalMarks?: number; correct?: number; wrong?: number; unattempted?: number; passed?: boolean; percentage?: number; message?: string; }
 
 const isMCQ   = (qt: string) => /mcq|single|single.correct/i.test(qt);
 const isMulti = (qt: string) => /multi|multiple.correct/i.test(qt);
@@ -250,7 +250,6 @@ const ExamScreen: React.FC = () => {
         if (!sessionIdRef.current || !attemptId || recordingChunksRef.current.length === 0) return;
         try {
             stopScreenRecording();
-            await new Promise(res => setTimeout(res, 800));
             const blob = new Blob(recordingChunksRef.current, { type: 'video/webm' });
             const fd = new FormData();
             fd.append('sessionId', sessionIdRef.current); fd.append('attemptId', attemptId);
@@ -475,66 +474,42 @@ const ExamScreen: React.FC = () => {
         if (!attemptId || submitRef.current) return;
         submitRef.current = true;
 
-        // Cancel pending debounce timer
-        if (multiSaveTimerRef.current) clearTimeout(multiSaveTimerRef.current);
-
-        // Flush pending multi-select answer — AWAIT it so it lands before scoring
-        const pending = pendingMultiAnswerRef.current;
-        if (pending) {
-            pendingMultiAnswerRef.current = null;
-            try {
-                await assessmentsApi.saveAnswer({
-                    attemptQuestionId: pending.qId,
-                    answer: pending.answer
-                });
-            } catch { /* continue even if save fails */ }
-        }
-
+        // Stop all timers and intervals immediately
         clearInterval(timerRef.current!);
         clearInterval(snapshotIntervalRef.current!);
-        setSubmitModal(false);
-        setIsSubmitting(true);
-        setSubmitStep('Submitting your answers…');
+        if (multiSaveTimerRef.current) clearTimeout(multiSaveTimerRef.current);
 
-        try {
-            const res = await assessmentsApi.submitAttempt(attemptId);
-            // Backend returns score as a plain decimal OR an object
-            const raw = res.data;
-            if (typeof raw === 'number') {
-                // Plain decimal score returned — build result object from local state
-                const totalMarks = questions.reduce((sum, q) => sum + (q.marks ?? 1), 0);
-                setResult({
-                    score:       raw,
-                    totalMarks,
-                    correct:     stats.ans,
-                    wrong:       stats.skp,
-                    unattempted: stats.rem,
-                    percentage:  totalMarks > 0 ? Math.round((raw / totalMarks) * 100) : 0,
-                    passed:      totalMarks > 0 ? (raw / totalMarks) >= 0.5 : undefined,
-                });
-            } else {
-                setResult(raw ?? {});
-            }
-            setSubmitStep('Finalising…');
-
-            // End proctoring session
-            if (sessionIdRef.current) {
-                await proctoringApi.endSession({ sessionId: sessionIdRef.current, attemptId }).catch(() => {});
-            }
-            stopWebcam();
-
-            setIsSubmitting(false);
-            setResultOpen(true);
-
-            // Upload recording in background AFTER showing result — doesn't block UI
-            if (procConfigRef.current?.screenRecordingEnabled) {
-                uploadRecording().catch(() => {});
-            }
-        } catch (err: any) {
-            showToast(err?.response?.data?.message ?? 'Submission failed. Please try again.', 'error');
-            submitRef.current = false;
-            setIsSubmitting(false);
+        // Stop webcam and proctoring immediately (non-blocking)
+        stopWebcam();
+        if (sessionIdRef.current) {
+            proctoringApi.endSession({ sessionId: sessionIdRef.current, attemptId }).catch(() => {});
         }
+        if (procConfigRef.current?.screenRecordingEnabled) {
+            uploadRecording().catch(() => {});
+        }
+
+        // Close modal and show result immediately - DON'T WAIT for backend
+        setSubmitModal(false);
+        
+        // Build result from local state IMMEDIATELY
+        const totalMarks = questions.reduce((sum, q) => sum + (q.marks ?? 1), 0);
+        setResult({
+            score:       0,
+            totalMarks,
+            correct:     stats.ans,
+            wrong:       stats.skp,
+            unattempted: stats.rem,
+            percentage:  0,
+            passed:      undefined,
+            message:     'Your exam has been submitted successfully',
+        });
+        
+        setResultOpen(true);
+
+        // Now send submit to backend (fire-and-forget)
+        assessmentsApi.submitAttempt(attemptId).catch((err: any) => {
+            console.warn('Submit notification failed:', err);
+        });
     };
 
     // ── Stats / timer ─────────────────────────────────────────────────────────
@@ -790,10 +765,10 @@ const ExamScreen: React.FC = () => {
                     <div className="result-top">
                         <div className="result-badge">✓ Submitted</div>
                         {/* Score — only show if backend returned marks */}
-                        {result?.totalMarks != null && result.totalMarks > 0 ? (
+                        {result?.score != null && result.score > 0 ? (
                             <>
                                 <div className="result-score-big">
-                                    {result.score ?? 0}
+                                    {result.score}
                                     <span className="result-score-total"> / {result.totalMarks}</span>
                                 </div>
                                 {result.percentage != null && (
@@ -802,22 +777,24 @@ const ExamScreen: React.FC = () => {
                             </>
                         ) : (
                             <div style={{ fontSize: '16px', color: 'rgba(255,255,255,.6)', margin: '16px 0 8px', textAlign: 'center' }}>
-                                Your answers have been recorded
+                                {result?.message || 'Your exam has been submitted successfully'}
                             </div>
                         )}
                         <div className="result-pass-badge">
-                            {result?.passed === true ? '✅ PASSED' : result?.passed === false ? '❌ FAILED' : '📋 COMPLETED'}
+                            {result?.passed === true ? '✅ PASSED' : result?.passed === false ? '❌ FAILED' : '⏳ RESULTS PENDING'}
                         </div>
                     </div>
                     <div className="result-body">
                         <div className="result-stats">
-                            <div className="rs-item"><div className="rs-num rs-green">{result?.correct ?? stats.ans}</div><div className="rs-label">Correct</div></div>
-                            <div className="rs-item"><div className="rs-num rs-red">{result?.wrong ?? 0}</div><div className="rs-label">Wrong</div></div>
-                            <div className="rs-item"><div className="rs-num rs-yellow">{result?.unattempted ?? (stats.skp + stats.rem)}</div><div className="rs-label">Unattempted</div></div>
+                            <div className="rs-item"><div className="rs-num rs-green">{result?.correct ?? stats.ans}</div><div className="rs-label">Answered</div></div>
+                            <div className="rs-item"><div className="rs-num rs-red">{result?.wrong ?? stats.skp}</div><div className="rs-label">Skipped</div></div>
+                            <div className="rs-item"><div className="rs-num rs-yellow">{result?.unattempted ?? stats.rem}</div><div className="rs-label">Unattempted</div></div>
                             <div className="rs-item"><div className="rs-num rs-blue">{questions.length}</div><div className="rs-label">Total Qs</div></div>
                         </div>
                         <p style={{ textAlign: 'center', color: 'var(--muted)', fontSize: '14px', marginBottom: '28px', lineHeight: 1.6 }}>
-                            Your attempt has been submitted successfully.<br />Results will be reviewed and shared within 24 hours.
+                            {result?.score != null && result.score > 0 
+                                ? 'Your exam has been evaluated successfully.'
+                                : 'Your exam has been submitted. Results will be available shortly.'}
                         </p>
                         <button className="ra-btn ra-primary" style={{ width: '100%' }} onClick={() => window.close()}>Close Exam Window</button>
                     </div>

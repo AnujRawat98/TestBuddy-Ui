@@ -5,6 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:716
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: { 'Content-Type': 'application/json' },
+    timeout: 60000, // 60 seconds timeout
 });
 
 api.interceptors.request.use((config) => {

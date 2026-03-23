@@ -695,11 +695,13 @@ const AIGenerator: React.FC = () => {
                                                                     <div className="q-options">
                                                                         {q.options.map((o, oi) => (
                                                                             <div key={oi} className={`q-option ${o.correct ? 'correct' : ''}`}>
-                                                                                <div className="q-radio" />
+                                                                                <div className="q-radio">
+                                                                                    {o.correct && <span style={{ color: '#fff', fontSize: '10px', fontWeight: 'bold' }}>✓</span>}
+                                                                                </div>
                                                                                 {o.imageUrl
                                                                                     ? <img src={o.imageUrl} alt="" style={{ maxHeight: '56px', borderRadius: '6px' }} />
                                                                                     : <span>{o.text}</span>}
-                                                                                {o.correct && <span className="correct-tag">✓</span>}
+                                                                                {o.correct && <span className="correct-tag">✓ Correct</span>}
                                                                             </div>
                                                                         ))}
                                                                     </div>

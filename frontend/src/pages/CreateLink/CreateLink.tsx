@@ -11,9 +11,9 @@ const toInt = (v: string | number, fallback = 0): number => {
     return isNaN(n) ? fallback : n;
 };
 
-// ═════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // BULK UPLOAD MODAL
-// ═════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 interface BulkUploadModalProps {
     isOpen: boolean;
@@ -60,11 +60,11 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onUp
                         setLoading(false); return;
                     }
                     if (jsonData.length > 500) {
-                        setErrors([{ row: 0, email: '', error: 'Maximum 500 users allowed per upload' }]);
+                        setErrors([{ row: 0, email: '', error: 'Maximum 500 candidates allowed per upload' }]);
                         setLoading(false); return;
                     }
 
-                    const processedEmails: string[]      = [];
+                    const processedEmails: string[]          = [];
                     const validationErrors: ValidationError[] = [];
                     const emailSet = new Set<string>();
 
@@ -115,14 +115,13 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onUp
         }
     };
 
-    // ── Download sample CSV ───────────────────────────────────────────────────
     const handleDownloadSample = () => {
         const csv  = 'Email\nalice@example.com\nbob@example.com\ncarol@example.com\ndavid@example.com';
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
         a.href     = url;
-        a.download = 'sample_students.csv';
+        a.download = 'sample_candidates.csv';
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -141,25 +140,22 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onUp
             <div className="modal" style={{ width: '600px', maxWidth: '90vw' }}>
                 <div className="modal-header">
                     <h2 className="modal-title">
-                        {step === 'success' ? '✓ Upload Successful' : 'Bulk Upload Students'}
+                        {step === 'success' ? '✓ Upload Successful' : 'Bulk Upload Candidates'}
                     </h2>
                     <button className="modal-close" onClick={() => { resetModal(); onClose(); }} disabled={step === 'uploading'}>✕</button>
                 </div>
 
                 <div className="modal-body" style={{ padding: '28px 24px' }}>
 
-                    {/* ── STEP: initial ── */}
                     {step === 'initial' && (
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ width: '80px', height: '80px', margin: '0 auto 20px', background: 'rgba(0,87,255,.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px' }}>
                                 📊
                             </div>
-                            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>Upload Student List</h3>
+                            <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px' }}>Upload Candidate List</h3>
                             <p style={{ fontSize: '13px', color: '#888', marginBottom: '20px', lineHeight: '1.6' }}>
-                                Select an Excel or CSV file with student emails. Max 500 students per file.
+                                Select an Excel or CSV file with candidate emails. Max 500 candidates per file.
                             </p>
-
-                            {/* Choose file button */}
                             <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: '#0057FF', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
                                 onMouseEnter={e => (e.currentTarget.style.background = '#0040bb')}
                                 onMouseLeave={e => (e.currentTarget.style.background = '#0057FF')}
@@ -168,27 +164,17 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onUp
                                 <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileSelect} disabled={loading} style={{ display: 'none' }} />
                             </label>
 
-                            {/* Format hint + sample download */}
                             <div style={{ marginTop: '24px', padding: '16px', background: '#f5f5f5', borderRadius: '10px', fontSize: '12px', color: '#666', textAlign: 'left' }}>
                                 <div style={{ marginBottom: '10px' }}>
                                     <strong>Format:</strong> Excel (.xlsx, .xls) or CSV with a single <code>Email</code> column
                                 </div>
-
-                                {/* Sample preview */}
                                 <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px', overflow: 'hidden', marginBottom: '12px', fontFamily: 'monospace' }}>
-                                    <div style={{ padding: '6px 12px', background: '#f0f4ff', borderBottom: '1px solid #e5e7eb', fontSize: '11px', fontWeight: 700, color: '#0040bb', letterSpacing: '0.5px' }}>
-                                        Email
-                                    </div>
+                                    <div style={{ padding: '6px 12px', background: '#f0f4ff', borderBottom: '1px solid #e5e7eb', fontSize: '11px', fontWeight: 700, color: '#0040bb', letterSpacing: '0.5px' }}>Email</div>
                                     {['alice@example.com', 'bob@example.com', 'carol@example.com'].map((e, i) => (
-                                        <div key={i} style={{ padding: '5px 12px', borderBottom: i < 2 ? '1px solid #f3f4f6' : 'none', fontSize: '11px', color: '#444' }}>
-                                            {e}
-                                        </div>
+                                        <div key={i} style={{ padding: '5px 12px', borderBottom: i < 2 ? '1px solid #f3f4f6' : 'none', fontSize: '11px', color: '#444' }}>{e}</div>
                                     ))}
                                 </div>
-
-                                {/* Download sample button */}
-                                <button
-                                    onClick={handleDownloadSample}
+                                <button onClick={handleDownloadSample}
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', background: '#fff', border: '1.5px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#333', transition: 'border-color .15s' }}
                                     onMouseEnter={e => e.currentTarget.style.borderColor = '#0057FF'}
                                     onMouseLeave={e => e.currentTarget.style.borderColor = '#d1d5db'}
@@ -199,7 +185,6 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onUp
                         </div>
                     )}
 
-                    {/* ── STEP: preview ── */}
                     {step === 'preview' && (
                         <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: '#f0f7ff', border: '1px solid rgba(0,87,255,.2)', borderRadius: '8px', marginBottom: '18px', fontSize: '13px', color: '#0040bb' }}>
@@ -222,29 +207,25 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onUp
                                 <div style={{ fontSize: '12px', fontWeight: '600', marginBottom: '10px' }}>Preview ({Math.min(3, emails.length)} of {emails.length}):</div>
                                 <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
                                     {emails.slice(0, 3).map((email, idx) => (
-                                        <div key={idx} style={{ padding: '10px 12px', borderBottom: idx < Math.min(3, emails.length) - 1 ? '1px solid #e5e7eb' : 'none', fontSize: '12px', fontFamily: 'monospace' }}>
-                                            {email}
-                                        </div>
+                                        <div key={idx} style={{ padding: '10px 12px', borderBottom: idx < Math.min(3, emails.length) - 1 ? '1px solid #e5e7eb' : 'none', fontSize: '12px', fontFamily: 'monospace' }}>{email}</div>
                                     ))}
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* ── STEP: uploading ── */}
                     {step === 'uploading' && (
                         <div style={{ textAlign: 'center', padding: '20px 0' }}>
                             <div style={{ width: '60px', height: '60px', margin: '0 auto 20px', background: 'rgba(0,87,255,.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', animation: 'spin 1s linear infinite' }}>⏳</div>
-                            <p style={{ fontSize: '14px', fontWeight: '500' }}>Adding {emails.length} student{emails.length !== 1 ? 's' : ''}...</p>
+                            <p style={{ fontSize: '14px', fontWeight: '500' }}>Adding {emails.length} candidate{emails.length !== 1 ? 's' : ''}...</p>
                         </div>
                     )}
 
-                    {/* ── STEP: success ── */}
                     {step === 'success' && (
                         <div style={{ textAlign: 'center', padding: '20px 0' }}>
                             <div style={{ width: '80px', height: '80px', margin: '0 auto 20px', background: 'rgba(0,194,113,.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>✓</div>
                             <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>Added to list!</h3>
-                            <p style={{ fontSize: '13px', color: '#888' }}>{emails.length} student{emails.length !== 1 ? 's' : ''} added. They'll be sent when you generate the link.</p>
+                            <p style={{ fontSize: '13px', color: '#888' }}>{emails.length} candidate{emails.length !== 1 ? 's' : ''} added. They'll be sent when you generate the link.</p>
                         </div>
                     )}
                 </div>
@@ -259,16 +240,15 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onUp
                         </button>
                     </div>
                 )}
-
                 <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
             </div>
         </div>
     );
 };
 
-// ═════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
-// ═════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 const CreateLink: React.FC = () => {
     const location = useLocation();
@@ -306,13 +286,13 @@ const CreateLink: React.FC = () => {
     const [screenQuality,  setScreenQuality]  = useState<'Low' | 'Medium' | 'High'>('Medium');
     const anyProctor = procWeb || procImage || procScreen;
 
-    const [startupInst,   setStartupInst]   = useState('Please ensure you are in a quiet room with good lighting. Keep your camera on throughout the exam. Do not switch browser tabs — it will be flagged and reported.');
-    const [compMsg,       setCompMsg]       = useState('Thank you for completing the assessment. Your responses have been recorded. Results will be reviewed and shared within 24 hours.');
+    const [startupInst, setStartupInst] = useState('Please ensure you are in a quiet room with good lighting. Keep your camera on throughout the exam. Do not switch browser tabs — it will be flagged and reported.');
+    const [compMsg,     setCompMsg]     = useState('Thank you for completing the assessment. Your responses have been recorded. Results will be reviewed and shared within 24 hours.');
     const [generatedLink, setGeneratedLink] = useState<string | null>(null);
 
     const [sessionLinks, setSessionLinks] = useState<{
         name: string; url: string; accessCode: string;
-        isCredential: boolean; userCount: number;
+        isCredential: boolean; candidateCount: number;
         startDate: string; endDate: string;
     }[]>([]);
 
@@ -333,13 +313,10 @@ const CreateLink: React.FC = () => {
                     const exists = list.some(a => (a.id ?? a.Id) === prefill.assessmentId);
                     if (!exists) {
                         finalList = [{
-                            id:               prefill.assessmentId,
-                            title:            prefill.assessmentTitle,
-                            totalQuestions:   prefill.totalQuestions,
-                            durationMinutes:  prefill.durationMinutes,
-                            marksPerQuestion: prefill.marksPerQuestion,
-                            negativeMarks:    prefill.negativeMarks ?? 0,
-                            isActive:         prefill.isActive ?? true,
+                            id: prefill.assessmentId, title: prefill.assessmentTitle,
+                            totalQuestions: prefill.totalQuestions, durationMinutes: prefill.durationMinutes,
+                            marksPerQuestion: prefill.marksPerQuestion, negativeMarks: prefill.negativeMarks ?? 0,
+                            isActive: prefill.isActive ?? true,
                         }, ...list];
                     }
                     setSelectedAssessmentId(prefill.assessmentId);
@@ -351,7 +328,6 @@ const CreateLink: React.FC = () => {
                 showToast('Failed to load assessments', 'error');
             }
         })();
-
         refreshCode();
         const now    = new Date();
         const future = new Date(now.getTime() + 2 * 60 * 60 * 1000);
@@ -376,6 +352,9 @@ const CreateLink: React.FC = () => {
         isCredentialBased:       opts.credAccess,
         accessCode:              accessCode.trim(),
         maxAttempts:             toInt(attempts, 1),
+        // ── shuffleQuestions: when true, each candidate sees questions in a
+        // different random order. All candidates get the same questions but
+        // the sequence differs — prevents copying from neighbours.
         shuffleQuestions:        opts.shuffleQs,
         startupInstruction:      startupInst,
         completeInstruction:     compMsg,
@@ -406,7 +385,7 @@ const CreateLink: React.FC = () => {
             setAddedEmails(opts.credAccess ? [...pendingEmails] : []);
             setSessionLinks(prev => [{
                 name: linkName.trim(), url: fullUrl, accessCode: accessCode.trim(),
-                isCredential: opts.credAccess, userCount: opts.credAccess ? pendingEmails.length : 0,
+                isCredential: opts.credAccess, candidateCount: opts.credAccess ? pendingEmails.length : 0,
                 startDate, endDate,
             }, ...prev]);
             setPendingEmails([]);
@@ -420,14 +399,11 @@ const CreateLink: React.FC = () => {
     };
 
     const selectedInfo = realAssessments.find(a => (a.id ?? a.Id) === selectedAssessmentId) ?? null;
-
-    const fmtDate = (r: string) => !r ? '—' : new Date(r).toLocaleString('en-US', {
-        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-    });
+    const fmtDate = (r: string) => !r ? '—' : new Date(r).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
     const capLabel = opts.credAccess
-        ? `${pendingEmails.length} students (auto)`
-        : cap ? (cap !== '0' ? `${cap} students` : 'Unlimited') : 'Unlimited';
+        ? `${pendingEmails.length} candidates (auto)`
+        : cap ? (cap !== '0' ? `${cap} candidates` : 'Unlimited') : 'Unlimited';
 
     const parseEmails = (raw: string): string[] =>
         raw.split(/[,;\n\s]+/).map(e => e.trim().toLowerCase()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
@@ -438,7 +414,7 @@ const CreateLink: React.FC = () => {
         if (!deduped.length) { showToast('All emails already in list.', 'info'); return; }
         setPendingEmails(prev => [...prev, ...deduped]);
         setEmailInput('');
-        showToast(`${deduped.length} email${deduped.length !== 1 ? 's' : ''} added to list.`);
+        showToast(`${deduped.length} candidate${deduped.length !== 1 ? 's' : ''} added to list.`);
     };
 
     const handleBulkUpload = async (emails: string[]) => { handleAddToList(emails); };
@@ -453,7 +429,7 @@ const CreateLink: React.FC = () => {
                     <div className="page-title">
                         Create {prefill?.assessmentTitle ?? selectedInfo?.title ?? selectedInfo?.Title ?? ''} Exam Link
                     </div>
-                    <div className="page-sub">Generate a shareable link for students to access this assessment.</div>
+                    <div className="page-sub">Generate a shareable link for candidates to access this assessment.</div>
                 </div>
                 <div className="header-actions">
                     <button className="btn btn-secondary btn-sm" onClick={() => (window.location.href = '/assessments')}>← Back</button>
@@ -486,8 +462,8 @@ const CreateLink: React.FC = () => {
                                     </div>
                                     <div className="form-hint">
                                         {opts.credAccess
-                                            ? '🔐 Credential-based: each student gets their own unique code.'
-                                            : 'Shared access code for all students.'}
+                                            ? '🔐 Credential-based: each candidate gets their own unique code.'
+                                            : 'Shared access code for all candidates.'}
                                     </div>
                                 </div>
                             </div>
@@ -505,7 +481,7 @@ const CreateLink: React.FC = () => {
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">Max Attempts Per Student</label>
+                                    <label className="form-label">Max Attempts Per Candidate</label>
                                     <select value={attempts} onChange={e => setAttempts(e.target.value)}>
                                         <option value="1">1 attempt only</option>
                                         <option value="2">2 attempts</option>
@@ -515,17 +491,17 @@ const CreateLink: React.FC = () => {
                                     <div className="form-hint">Applies to both credential and direct access.</div>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label" style={{ opacity: opts.credAccess ? 0.45 : 1 }}>Max Students (Cap)</label>
+                                    <label className="form-label" style={{ opacity: opts.credAccess ? 0.45 : 1 }}>Max Candidates (Cap)</label>
                                     <input
                                         type="number" min={1}
                                         value={opts.credAccess ? '' : cap}
-                                        placeholder={opts.credAccess ? 'Auto — set by email list' : 'e.g. 100'}
+                                        placeholder={opts.credAccess ? 'Auto — set by candidate list' : 'e.g. 100'}
                                         onChange={e => setCap(e.target.value)}
                                         disabled={opts.credAccess}
                                         style={{ opacity: opts.credAccess ? 0.45 : 1, cursor: opts.credAccess ? 'not-allowed' : 'text' }}
                                     />
                                     <div className="form-hint">
-                                        {opts.credAccess ? '🔐 Credential-based: cap = number of listed students.' : 'Leave empty for no limit.'}
+                                        {opts.credAccess ? '🔐 Credential-based: cap = number of listed candidates.' : 'Leave empty for no limit.'}
                                     </div>
                                 </div>
                             </div>
@@ -539,8 +515,8 @@ const CreateLink: React.FC = () => {
                         </div>
                         <div className="section-body">
                             {[
-                                { k: 'credAccess' as const, label: 'Credential-Based Access', sub: 'Each student gets a unique personal access code.' },
-                                { k: 'shuffleQs'  as const, label: 'Shuffle Questions',       sub: 'Randomise question order for each student.' },
+                                { k: 'credAccess' as const, label: 'Credential-Based Access',    sub: 'Each candidate gets a unique personal access code.' },
+                                { k: 'shuffleQs'  as const, label: 'Shuffle Questions Per Candidate', sub: 'All candidates get the same questions but in a different random order — prevents copying. Each candidate sees a unique sequence.' },
                             ].map(s => (
                                 <div className="toggle-row" key={s.k}>
                                     <div className="toggle-info">
@@ -567,7 +543,7 @@ const CreateLink: React.FC = () => {
                                     <div className="form-group" style={{ flex: 1 }}>
                                         <label className="form-label">On Violation — Warning Action</label>
                                         <select value={warnAction} onChange={e => setWarnAction(e.target.value as 'warn' | 'terminate')}>
-                                            <option value="warn">Warn student only</option>
+                                            <option value="warn">Warn candidate only</option>
                                             <option value="terminate">Terminate exam immediately</option>
                                         </select>
                                     </div>
@@ -592,7 +568,7 @@ const CreateLink: React.FC = () => {
                                 </div>
                             )}
                             <div className="toggle-row">
-                                <div className="toggle-info"><div className="toggle-label">Image / Snapshot Proctoring</div><div className="toggle-sub">Captures webcam snapshots.</div></div>
+                                <div className="toggle-info"><div className="toggle-label">Image / Snapshot Proctoring</div><div className="toggle-sub">Captures webcam snapshots during exam.</div></div>
                                 <div className={`toggle blue ${procImage ? 'on' : ''}`} onClick={() => setProcImage(v => !v)} />
                             </div>
                             {procImage && (
@@ -630,47 +606,47 @@ const CreateLink: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* ══ Student Instructions ══ */}
+                    {/* ══ Candidate Instructions ══ */}
                     <div className="section-card">
                         <div className="section-header">
-                            <div className="section-title"><div className="section-title-icon si-yellow">📋</div>Student Instructions</div>
+                            <div className="section-title"><div className="section-title-icon si-yellow">📋</div>Candidate Instructions</div>
                         </div>
                         <div className="section-body">
                             <div className="form-row full" style={{ marginBottom: '16px' }}>
                                 <div className="form-group">
                                     <label className="form-label">Startup Instructions</label>
                                     <textarea value={startupInst} onChange={e => setStartupInst(e.target.value)} />
-                                    <div className="form-hint">Shown to students before the exam starts.</div>
+                                    <div className="form-hint">Shown to candidates before the exam starts.</div>
                                 </div>
                             </div>
                             <div className="form-row full">
                                 <div className="form-group">
                                     <label className="form-label">Completion Message</label>
                                     <textarea value={compMsg} onChange={e => setCompMsg(e.target.value)} />
-                                    <div className="form-hint">Shown to students after they submit.</div>
+                                    <div className="form-hint">Shown to candidates after they submit.</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* ══ User Management (Credential-Based only) ══ */}
+                    {/* ══ Candidate Management (Credential-Based only) ══ */}
                     {opts.credAccess && (
                         <div className="section-card">
                             <div className="section-header">
-                                <div className="section-title"><div className="section-title-icon si-purple">👥</div>User Management</div>
+                                <div className="section-title"><div className="section-title-icon si-purple">👥</div>Candidate Management</div>
                                 <span className="badge badge-active" style={{ fontSize: '11px' }}><span className="bdot" /> Credential-Based</span>
                             </div>
                             <div className="section-body">
                                 <div className="user-mgmt-note">
                                     <span>🔐</span>
                                     <span>
-                                        Since this link is <strong>Credential-Based</strong>, only listed students can attempt the exam.
-                                        Each student will receive a <strong>unique personal access code</strong> saved to <code>AssessmentLinkUser</code>.
+                                        Since this link is <strong>Credential-Based</strong>, only listed candidates can attempt the exam.
+                                        Each candidate will receive a <strong>unique personal access code</strong> saved to <code>AssessmentLinkUser</code>.
                                     </span>
                                 </div>
 
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '18px', marginBottom: '10px' }}>
-                                    <label className="form-label" style={{ margin: 0 }}>Student Emails</label>
+                                    <label className="form-label" style={{ margin: 0 }}>Candidate Emails</label>
                                     <button
                                         onClick={() => setModalBulkUpload(true)}
                                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '500', color: '#0057FF' }}
@@ -695,17 +671,17 @@ const CreateLink: React.FC = () => {
                                 </div>
 
                                 <button className="btn btn-primary btn-sm" style={{ marginTop: '8px', width: '100%' }} onClick={handleManualAdd} disabled={pendingEmails.length === 0}>
-                                    {`+ Add ${pendingEmails.length > 0 ? pendingEmails.length + ' ' : ''}Email${pendingEmails.length !== 1 ? 's' : ''} to List`}
+                                    {`+ Add ${pendingEmails.length > 0 ? pendingEmails.length + ' ' : ''}Candidate${pendingEmails.length !== 1 ? 's' : ''} to List`}
                                 </button>
 
                                 {!generatedLink && pendingEmails.length > 0 && (
                                     <div className="form-hint" style={{ marginTop: '6px', color: 'var(--accent2)' }}>
-                                        ℹ️ {pendingEmails.length} email{pendingEmails.length !== 1 ? 's' : ''} will be sent with the link on Generate.
+                                        ℹ️ {pendingEmails.length} candidate{pendingEmails.length !== 1 ? 's' : ''} will be sent with the link on Generate.
                                     </div>
                                 )}
                                 {generatedLink && addedEmails.length > 0 && (
                                     <div className="form-hint" style={{ marginTop: '6px', color: 'var(--green)' }}>
-                                        ✅ {addedEmails.length} student{addedEmails.length !== 1 ? 's' : ''} sent with this link.
+                                        ✅ {addedEmails.length} candidate{addedEmails.length !== 1 ? 's' : ''} sent with this link.
                                     </div>
                                 )}
 
@@ -764,20 +740,22 @@ const CreateLink: React.FC = () => {
                         <div className="info-panel-header"><div className="info-panel-title">📋 Link Summary</div></div>
                         <div className="info-panel-body">
                             {[
-                                { key: 'Assessment',    val: selectedInfo?.title ?? selectedInfo?.Title ?? 'None' },
-                                { key: 'Name',          val: linkName || '—' },
-                                { key: 'Access Code',   val: opts.credAccess ? 'Per-student (unique)' : (accessCode || 'XXXXXX') },
-                                { key: 'Window Opens',  val: fmtDate(startDate) },
-                                { key: 'Window Closes', val: fmtDate(endDate) },
-                                { key: 'Max Attempts',  val: attempts === '0' ? 'Unlimited' : `${attempts} attempt${attempts !== '1' ? 's' : ''}` },
-                                { key: 'Student Cap',   val: capLabel },
-                                { key: 'Proctoring',    val: anyProctor ? [procWeb && 'Web', procImage && 'Image', procScreen && 'Screen'].filter(Boolean).join(', ') : 'None' },
+                                { key: 'Assessment',      val: selectedInfo?.title ?? selectedInfo?.Title ?? 'None' },
+                                { key: 'Name',            val: linkName || '—' },
+                                { key: 'Access Code',     val: opts.credAccess ? 'Per-candidate (unique)' : (accessCode || 'XXXXXX') },
+                                { key: 'Window Opens',    val: fmtDate(startDate) },
+                                { key: 'Window Closes',   val: fmtDate(endDate) },
+                                { key: 'Max Attempts',    val: attempts === '0' ? 'Unlimited' : `${attempts} attempt${attempts !== '1' ? 's' : ''}` },
+                                { key: 'Candidate Cap',   val: capLabel },
+                                { key: 'Shuffle Qs',      val: opts.shuffleQs ? '✓ On — unique order per candidate' : '✗ Off — same order for all' },
+                                { key: 'Proctoring',      val: anyProctor ? [procWeb && 'Web', procImage && 'Image', procScreen && 'Screen'].filter(Boolean).join(', ') : 'None' },
                             ].map(r => (
                                 <div className="summary-row" key={r.key}>
                                     <span className="summary-key">{r.key}</span>
                                     <span className="summary-val" style={
                                         r.key === 'Access Code' && !opts.credAccess ? { fontFamily: '"Syne",sans-serif', letterSpacing: '2px', color: 'var(--accent2)' } :
-                                        r.key === 'Proctoring' && anyProctor ? { color: 'var(--green)' } : {}
+                                        r.key === 'Proctoring' && anyProctor ? { color: 'var(--green)' } :
+                                        r.key === 'Shuffle Qs' && opts.shuffleQs ? { color: 'var(--green)' } : {}
                                     }>{r.val}</span>
                                 </div>
                             ))}

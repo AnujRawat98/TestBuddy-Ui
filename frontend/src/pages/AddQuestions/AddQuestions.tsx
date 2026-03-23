@@ -1,34 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { topicsApi, questionsApi } from '../../services/api';
-import { compressImage } from '../../utils/compressImage';   // ← NEW
+import { topicsApi, questionsApi, aiQuestionsApi } from '../../services/api';
+import { compressImage } from '../../utils/compressImage';
 import './AddQuestions.css';
 import RichTextEditor from '../../components/RichTextEditor/RichTextEditor';
 
 type QuestionType      = 'MCQ' | 'Multi-Select' | 'Text' | 'Image' | '';
 type DifficultyStatus  = 'Easy' | 'Medium' | 'Hard' | '';
 
-// ── Image option: text = label, imageUrl = URL stored in Options.ImageUrl ──
 interface ImageOption {
-    label:    string;   // → Options.Text
-    imageUrl: string;   // → Options.ImageUrl
-    isCorrect: boolean; // → Options.IsCorrect
+    label:    string;
+    imageUrl: string;
+    isCorrect: boolean;
 }
 
 interface Question {
     id:           number;
     apiId?:       string;
     type:         QuestionType;
-    text:         string;        // → questionText (the question itself)
+    text:         string;
     topic:        string;
     level:        DifficultyStatus;
     status:       'Active' | 'Draft';
-    // MCQ / Multi-Select
     options:      string[];
     correct:      number | number[];
-    // Open Text — model answer → sent as textAnswer → stored in Questions.Text (DB)
     textAnswer:   string;
-    // Image Select — each item has label + imageUrl + isCorrect
     imageOptions: ImageOption[];
 }
 
@@ -47,9 +43,15 @@ const TYPE_IDS: Record<string, string> = {
     'Image':        'DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD',
 };
 
+const TYPE_API_MAP: Record<string, string> = {
+    'MCQ':          'SingleSelect',
+    'Multi-Select': 'MultiSelect',
+    'Text':         'OpenText',
+    'Image':        'ImageSelect',
+};
+
 const EMPTY_IMAGE_OPT = (): ImageOption => ({ label: '', imageUrl: '', isCorrect: false });
 
-// ── Map raw API question → local Question ──────────────────────────────
 const mapApiQuestion = (q: any, localId: number, fallbackTopicId: string): Question => {
     const rawOpts = q.options ?? q.answerOptions ?? [];
     const optStrings: string[] = Array.isArray(rawOpts)
@@ -58,10 +60,10 @@ const mapApiQuestion = (q: any, localId: number, fallbackTopicId: string): Quest
 
     let type: QuestionType = 'MCQ';
     const rawType = (q.questionType ?? q.type ?? '').toLowerCase();
-    if      (rawType.includes('multi'))                              type = 'Multi-Select';
-    else if (rawType.includes('text') || rawType.includes('open'))   type = 'Text';
-    else if (rawType.includes('image'))                              type = 'Image';
-    else                                                             type = 'MCQ';
+    if      (rawType.includes('multi'))                            type = 'Multi-Select';
+    else if (rawType.includes('text') || rawType.includes('open')) type = 'Text';
+    else if (rawType.includes('image'))                            type = 'Image';
+    else                                                           type = 'MCQ';
 
     let correct: number | number[] = 0;
     if (type === 'Multi-Select') {
@@ -77,90 +79,70 @@ const mapApiQuestion = (q: any, localId: number, fallbackTopicId: string): Quest
     if      (lv.includes('hard')) level = 'Hard';
     else if (lv.includes('med'))  level = 'Medium';
 
-    // Image options from API
     const imageOptions: ImageOption[] = type === 'Image' && Array.isArray(rawOpts)
         ? rawOpts.map((o: any) => ({
             label:     typeof o === 'string' ? o : (o.text ?? o.optionText ?? ''),
             imageUrl:  typeof o === 'object' ? (o.imageUrl ?? '') : '',
             isCorrect: typeof o === 'object' ? (o.isCorrect ?? false) : false,
-        }))
+          }))
         : [EMPTY_IMAGE_OPT(), EMPTY_IMAGE_OPT(), EMPTY_IMAGE_OPT(), EMPTY_IMAGE_OPT()];
 
     return {
-        id:           localId,
-        apiId:        String(q.id ?? q.questionId ?? ''),
-        type,
-        text:         q.questionText ?? q.text ?? '',
-        topic:        q.topicId ?? q.topic ?? fallbackTopicId,
-        level,
-        status:       q.status === 'Draft' ? 'Draft' : 'Active',
-        options:      optStrings.length ? optStrings : (type !== 'Text' && type !== 'Image' ? ['', '', '', ''] : []),
-        correct,
-        textAnswer:   q.textAnswer ?? q.modelAnswer ?? '',
+        id: localId, apiId: String(q.id ?? q.questionId ?? ''),
+        type, text: q.questionText ?? q.text ?? '',
+        topic: q.topicId ?? q.topic ?? fallbackTopicId,
+        level, status: q.status === 'Draft' ? 'Draft' : 'Active',
+        options: optStrings.length ? optStrings : (type !== 'Text' && type !== 'Image' ? ['', '', '', ''] : []),
+        correct, textAnswer: q.textAnswer ?? q.modelAnswer ?? '',
         imageOptions,
     };
 };
 
-// ── Build Options payload for MCQ / Multi-Select ──────────────────────
 const buildMCQOptions = (q: Question) =>
     q.options.map((text, i) => ({
         text,
         isCorrect: Array.isArray(q.correct) ? q.correct.includes(i) : q.correct === i,
-        imageUrl:  '',
+        imageUrl: '',
     }));
 
-// ── Build Options payload for Image Select ────────────────────────────
 const buildImageOptions = (q: Question) =>
     q.imageOptions.map(opt => ({
-        text:      opt.label,
-        isCorrect: opt.isCorrect,
-        imageUrl:  opt.imageUrl,
+        text: opt.label, isCorrect: opt.isCorrect, imageUrl: opt.imageUrl,
     }));
 
-// ─────────────────────────────────────────────────────────────────────
 const AddQuestions: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const routeState          = (location.state as any) ?? {};
-    const editMode            = !!routeState.editMode;
-    const presetTopicId       = routeState.topicId    ?? '';
-    const presetTopicName     = routeState.topicName  ?? '';
+    const routeState              = (location.state as any) ?? {};
+    const editMode                = !!routeState.editMode;
+    const presetTopicId           = routeState.topicId   ?? '';
+    const presetTopicName         = routeState.topicName ?? '';
     const existingQuestions: any[] = routeState.existingQuestions ?? [];
 
-    const [activeTab,       setActiveTab]       = useState<'manual' | 'ai'>('manual');
-    const [questions,       setQuestions]       = useState<Question[]>([]);
-    const [qCounter,        setQCounter]        = useState(0);
-    const [collapsedCards,  setCollapsedCards]  = useState<Record<number, boolean>>({});
-    const [realTopics,      setRealTopics]      = useState<any[]>([]);
-    const [isSaving,        setIsSaving]        = useState(false);
-    const [toast,           setToast]           = useState({ show: false, msg: '', type: 'success' });
-    const [importedIds,     setImportedIds]     = useState<Set<string>>(new Set());
-    // Refs for image option file inputs — keyed by questionId
+    const [activeTab,      setActiveTab]      = useState<'manual' | 'ai'>('manual');
+    const [questions,      setQuestions]      = useState<Question[]>([]);
+    const [qCounter,       setQCounter]       = useState(0);
+    const [collapsedCards, setCollapsedCards] = useState<Record<number, boolean>>({});
+    const [realTopics,     setRealTopics]     = useState<any[]>([]);
+    const [isSaving,       setIsSaving]       = useState(false);
+    const [toast,          setToast]          = useState({ show: false, msg: '', type: 'success' });
+    const [importedIds,    setImportedIds]    = useState<Set<string>>(new Set());
+
     const fileRefsMap = useRef<Record<number, (HTMLInputElement | null)[]>>({});
-    const getFileRefs = (qId: number): (HTMLInputElement | null)[] => {
+    const getFileRefs = (qId: number) => {
         if (!fileRefsMap.current[qId]) fileRefsMap.current[qId] = [];
         return fileRefsMap.current[qId];
     };
 
-    // Sidebar AI
-    const [aiTopic,       setAiTopic]       = useState('');
-    const [aiLevel,       setAiLevel]       = useState('');
-    const [aiType,        setAiType]        = useState('');
-    const [aiCount,       setAiCount]       = useState(3);
-    const [isGenerating,  setIsGenerating]  = useState(false);
-    const [aiResults,     setAiResults]     = useState<any[]>([]);
+    // AI state (kept minimal — full generation moved to /ai-generator page)
+    const [aiTopic,      setAiTopic]      = useState('');
+    const [aiLevel,      setAiLevel]      = useState('');
+    const [aiType,       setAiType]       = useState('MCQ');
+    const [aiCount,      setAiCount]      = useState(3);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [aiResults,    setAiResults]    = useState<any[]>([]);
 
-    // Full-tab AI
-    const [ai2Topic,      setAi2Topic]      = useState('');
-    const [ai2Level,      setAi2Level]      = useState('');
-    const [ai2Type,       setAi2Type]       = useState('');
-    const [ai2Count,      setAi2Count]      = useState(3);
-    const [isGenerating2, setIsGenerating2] = useState(false);
-    const [ai2Results,    setAi2Results]    = useState<any[]>([]);
-    const [ai2Prompt,     setAi2Prompt]     = useState('');
-
-    // ── On mount ────────────────────────────────────────────────────
     useEffect(() => {
         topicsApi.getAll().then(res => {
             const list = Array.isArray(res.data) ? res.data : (res.data?.items ?? res.data?.data ?? []);
@@ -180,7 +162,7 @@ const AddQuestions: React.FC = () => {
                 correct: 0, textAnswer: '', imageOptions: [],
             }]);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -216,13 +198,12 @@ const AddQuestions: React.FC = () => {
                     next.options = ['', '', '', ''];
                     next.correct = type === 'Multi-Select' ? [] : 0;
                 } else {
-                    if (type === 'MCQ'          && Array.isArray(next.correct))         next.correct = next.correct[0] ?? 0;
+                    if (type === 'MCQ'          && Array.isArray(next.correct))      next.correct = next.correct[0] ?? 0;
                     if (type === 'Multi-Select' && typeof next.correct === 'number') next.correct = [next.correct];
                 }
             }
-            if (type === 'Image' && (!next.imageOptions || next.imageOptions.length === 0)) {
+            if (type === 'Image' && (!next.imageOptions || next.imageOptions.length === 0))
                 next.imageOptions = [EMPTY_IMAGE_OPT(), EMPTY_IMAGE_OPT(), EMPTY_IMAGE_OPT(), EMPTY_IMAGE_OPT()];
-            }
             return next;
         }));
     };
@@ -230,25 +211,17 @@ const AddQuestions: React.FC = () => {
     const toggleCollapse = (id: number) =>
         setCollapsedCards(prev => ({ ...prev, [id]: !prev[id] }));
 
-    // ── MCQ / Multi-Select options renderer (plain function, not component — prevents focus loss) ──
     const renderOptions = (q: Question) => {
         const isMulti = q.type === 'Multi-Select';
-        const updateOpt = (idx: number, val: string) => {
-            const o = [...q.options]; o[idx] = val; updateQuestion(q.id, { options: o });
-        };
-        const toggleOpt = (idx: number) => {
+        const updateOpt  = (idx: number, val: string) => { const o = [...q.options]; o[idx] = val; updateQuestion(q.id, { options: o }); };
+        const toggleOpt  = (idx: number) => {
             if (isMulti) {
                 let c = (q.correct as number[]) || [];
                 c = c.includes(idx) ? c.filter(x => x !== idx) : [...c, idx];
                 updateQuestion(q.id, { correct: c });
-            } else {
-                updateQuestion(q.id, { correct: idx });
-            }
+            } else { updateQuestion(q.id, { correct: idx }); }
         };
-        const addOpt = () => {
-            if (q.options.length >= 8) { showToast('Max 8 options.', 'error'); return; }
-            updateQuestion(q.id, { options: [...q.options, ''] });
-        };
+        const addOpt = () => { if (q.options.length >= 8) { showToast('Max 8 options.', 'error'); return; } updateQuestion(q.id, { options: [...q.options, ''] }); };
         const remOpt = (idx: number) => {
             if (q.options.length <= 2) { showToast('Min 2 options.', 'error'); return; }
             const o = q.options.filter((_, i) => i !== idx);
@@ -260,16 +233,14 @@ const AddQuestions: React.FC = () => {
         return (
             <>
                 <div className="section-divider">
-                    <div className="section-divider-line"></div>
-                    <div className="section-divider-text">{isMulti ? 'Answer Options (select all correct)' : 'Answer Options (select one correct)'}</div>
-                    <div className="section-divider-line"></div>
+                    <div className="section-divider-line" /><div className="section-divider-text">{isMulti ? 'Answer Options (select all correct)' : 'Answer Options (select one correct)'}</div><div className="section-divider-line" />
                 </div>
                 <div className="options-builder">
                     {q.options.map((opt, i) => {
                         const ok = isMulti ? (q.correct as number[]).includes(i) : q.correct === i;
                         return (
                             <div key={i} className={`option-row ${ok ? 'is-correct' : ''}`}>
-                                <div className="correct-toggle" onClick={() => toggleOpt(i)}><div className="correct-toggle-inner"></div></div>
+                                <div className="correct-toggle" onClick={() => toggleOpt(i)}><div className="correct-toggle-inner" /></div>
                                 <input className="opt-input" value={opt} onChange={e => updateOpt(i, e.target.value)} placeholder={`Option ${i + 1}`} />
                                 {ok && <span className="opt-correct-label">✓ Correct</span>}
                                 <button className="opt-del" onClick={() => remOpt(i)}>✕</button>
@@ -282,159 +253,125 @@ const AddQuestions: React.FC = () => {
         );
     };
 
-    // ── Image Select renderer (plain function — prevents focus loss) ────
     const renderImageOptions = (q: Question) => {
-
         const updateImageOpt = (idx: number, updates: Partial<ImageOption>) => {
-            const opts = [...q.imageOptions];
-            opts[idx] = { ...opts[idx], ...updates };
-            updateQuestion(q.id, { imageOptions: opts });
+            const opts = [...q.imageOptions]; opts[idx] = { ...opts[idx], ...updates }; updateQuestion(q.id, { imageOptions: opts });
         };
-
         const setCorrect = (idx: number) => {
-            const opts = q.imageOptions.map((o, i) => ({ ...o, isCorrect: i === idx }));
-            updateQuestion(q.id, { imageOptions: opts });
+            const opts = q.imageOptions.map((o, i) => ({ ...o, isCorrect: i === idx })); updateQuestion(q.id, { imageOptions: opts });
         };
-
-        // ── CHANGED: compress before storing ──────────────────────────
-        // Before: reader.readAsDataURL(file) → raw base64 (200 KB+)
-        // After:  compressImage(file, 300, 300, 0.6) → WebP base64 (~5-15 KB)
-        // Display is identical — <img src={base64} /> works with both formats.
         const handleFileChange = async (idx: number, file: File | null) => {
             if (!file) return;
             try {
                 const compressed = await compressImage(file, 300, 300, 0.6);
                 updateImageOpt(idx, { imageUrl: compressed });
             } catch {
-                // Fallback to raw base64 if compression fails (e.g. unsupported format)
                 const reader = new FileReader();
                 reader.onload = e => updateImageOpt(idx, { imageUrl: e.target?.result as string });
                 reader.readAsDataURL(file);
             }
         };
-
-        const addImageOpt = () => {
-            if (q.imageOptions.length >= 6) { showToast('Max 6 image options.', 'error'); return; }
-            updateQuestion(q.id, { imageOptions: [...q.imageOptions, EMPTY_IMAGE_OPT()] });
-        };
-
-        const removeImageOpt = (idx: number) => {
-            if (q.imageOptions.length <= 2) { showToast('Min 2 image options.', 'error'); return; }
-            const opts = q.imageOptions.filter((_, i) => i !== idx);
-            updateQuestion(q.id, { imageOptions: opts });
-        };
+        const addImageOpt    = () => { if (q.imageOptions.length >= 6) { showToast('Max 6 image options.', 'error'); return; } updateQuestion(q.id, { imageOptions: [...q.imageOptions, EMPTY_IMAGE_OPT()] }); };
+        const removeImageOpt = (idx: number) => { if (q.imageOptions.length <= 2) { showToast('Min 2 image options.', 'error'); return; } updateQuestion(q.id, { imageOptions: q.imageOptions.filter((_, i) => i !== idx) }); };
 
         return (
             <>
                 <div className="section-divider">
-                    <div className="section-divider-line"></div>
-                    <div className="section-divider-text">Image Options — click ○ to mark correct</div>
-                    <div className="section-divider-line"></div>
+                    <div className="section-divider-line" /><div className="section-divider-text">Image Options — click ○ to mark correct</div><div className="section-divider-line" />
                 </div>
-
                 <div className="image-options-grid">
                     {q.imageOptions.map((opt, idx) => (
                         <div key={idx} className={`image-opt-card ${opt.isCorrect ? 'is-correct' : ''}`}>
-
-                            {/* Correct marker */}
                             <div className="img-opt-correct-row">
-                                <div
-                                    className={`img-opt-radio ${opt.isCorrect ? 'selected' : ''}`}
-                                    onClick={() => setCorrect(idx)}
-                                    title="Mark as correct"
-                                />
+                                <div className={`img-opt-radio ${opt.isCorrect ? 'selected' : ''}`} onClick={() => setCorrect(idx)} title="Mark as correct" />
                                 {opt.isCorrect && <span className="img-opt-correct-tag">✓ Correct</span>}
                                 <button className="img-opt-del" onClick={() => removeImageOpt(idx)}>✕</button>
                             </div>
-
-                            {/* Image preview / upload */}
-                            <div
-                                className="img-opt-preview"
-                                onClick={() => getFileRefs(q.id)[idx]?.click()}
-                                title="Click to upload image"
-                            >
+                            <div className="img-opt-preview" onClick={() => getFileRefs(q.id)[idx]?.click()} title="Click to upload image">
                                 {opt.imageUrl ? (
-                                    <img
-                                        src={opt.imageUrl}
-                                        alt={opt.label || `Option ${idx + 1}`}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
-                                    />
+                                    <img src={opt.imageUrl} alt={opt.label || `Option ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
                                 ) : (
                                     <div className="img-opt-placeholder">
                                         <div className="img-opt-placeholder-icon">🖼️</div>
                                         <div className="img-opt-placeholder-text">Click to upload</div>
                                     </div>
                                 )}
-                                {/* Hidden file input */}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    style={{ display: 'none' }}
+                                <input type="file" accept="image/*" style={{ display: 'none' }}
                                     ref={el => { getFileRefs(q.id)[idx] = el; }}
-                                    onChange={e => handleFileChange(idx, e.target.files?.[0] ?? null)}
-                                />
+                                    onChange={e => handleFileChange(idx, e.target.files?.[0] ?? null)} />
                             </div>
-
-                            {/* URL input — alternative to file upload */}
                             <div className="img-opt-url-row">
-                                <input
-                                    className="img-opt-url-input"
-                                    type="text"
-                                    placeholder="or paste image URL…"
+                                <input className="img-opt-url-input" type="text" placeholder="or paste image URL…"
                                     value={opt.imageUrl.startsWith('data:') ? '' : opt.imageUrl}
-                                    onChange={e => updateImageOpt(idx, { imageUrl: e.target.value })}
-                                />
+                                    onChange={e => updateImageOpt(idx, { imageUrl: e.target.value })} />
                             </div>
-
-                            {/* Label input */}
-                            <input
-                                className="img-opt-label-input"
-                                type="text"
-                                placeholder={`Label (e.g. Option ${String.fromCharCode(65 + idx)})`}
-                                value={opt.label}
-                                onChange={e => updateImageOpt(idx, { label: e.target.value })}
-                            />
+                            <input className="img-opt-label-input" type="text" placeholder={`Label (e.g. Option ${String.fromCharCode(65 + idx)})`}
+                                value={opt.label} onChange={e => updateImageOpt(idx, { label: e.target.value })} />
                         </div>
                     ))}
                 </div>
-
-                <button className="add-option-btn" style={{ marginTop: '10px' }} onClick={addImageOpt}>
-                    🖼️ + Add Image Option
-                </button>
+                <button className="add-option-btn" style={{ marginTop: '10px' }} onClick={addImageOpt}>🖼️ + Add Image Option</button>
                 <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '8px' }}>
-                    Images are compressed to 300×300 WebP (~5–15 KB) before saving.
-                    Upload a file or paste a URL. Click ○ to mark the correct option.
+                    Images are compressed to 300×300 WebP (~5–15 KB) before saving. Upload a file or paste a URL.
                 </div>
             </>
         );
     };
 
-    // ── AI generation ────────────────────────────────────────────────
-    const runGenerate = (
+    // ── AI Generation — calls real Gemini API ─────────────────────────────────
+    const runGenerate = async (
         topic: string, level: string, count: number,
         setResults: (r: any[]) => void,
         setGenerating: (b: boolean) => void,
+        type: string = 'MCQ',
     ) => {
         if (!topic) { showToast('Please select a topic.', 'error'); return; }
         setGenerating(true);
-        setTimeout(() => {
-            const topicName = realTopics.find(t => (t.topicId ?? t.id) === topic)?.name || 'Topic';
-            const templates = [
-                { text: `What is a key concept in ${topicName}?`,               type: 'MCQ'          as any, options: ['Concept A', 'Concept B', 'Concept C', 'Concept D'], correct: 1,      textAnswer: '', imageOptions: [] },
-                { text: `Which features belong to ${topicName}? (select all)`,  type: 'Multi-Select' as any, options: ['Feature 1', 'Feature 2', 'Feature 3', 'Feature 4'], correct: [0, 1], textAnswer: '', imageOptions: [] },
-                { text: `What does the main function do in ${topicName}?`,       type: 'MCQ'          as any, options: ['Option A', 'Option B', 'Option C', 'Option D'],     correct: 2,      textAnswer: '', imageOptions: [] },
-                { text: `Explain the purpose of ${topicName}.`,                  type: 'Text'         as any, options: [], correct: 0, textAnswer: 'Model answer here.',     imageOptions: [] },
-                { text: `Which statement about ${topicName} is correct?`,        type: 'MCQ'          as any, options: ['A', 'B', 'C', 'D'], correct: 0,                     textAnswer: '', imageOptions: [] },
-            ];
-            setResults(templates.slice(0, count).map((t, i) => ({
-                ...t, topic, level: level || ['Easy', 'Medium', 'Hard'][i % 3], status: 'Active', id: Date.now() + i,
-            })));
+
+        const topicName = realTopics.find(t => (t.topicId ?? t.id) === topic)?.name ?? 'General';
+        const apiType   = TYPE_API_MAP[type] ?? 'SingleSelect';
+        const apiLevel  = level || 'Mixed';
+
+        try {
+            const res = await aiQuestionsApi.generate({
+                topic:         topicName,
+                level:         apiLevel,
+                questionType:  apiType,
+                questionCount: count,
+            });
+
+            const raw: any[] = Array.isArray(res.data) ? res.data : [];
+
+            const mapped = raw.map((q: any, i: number) => {
+                const opts: string[] = (q.options ?? []).map((o: any) => o.text ?? o.Text ?? '');
+                const correctIdx     = (q.options ?? []).findIndex((o: any) => o.isCorrect ?? o.IsCorrect ?? false);
+                return {
+                    id:           Date.now() + i,
+                    text:         q.questionText ?? q.QuestionText ?? '',
+                    type,
+                    level:        level || 'Easy',
+                    topic,
+                    status:       'Active',
+                    options:      opts,
+                    correct:      correctIdx >= 0 ? correctIdx : 0,
+                    textAnswer:   q.textAnswer ?? q.TextAnswer ?? '',
+                    imageOptions: [],
+                };
+            });
+
+            setResults(mapped);
+            if (mapped.length > 0) showToast(`${mapped.length} questions generated!`);
+            else showToast('AI returned no questions. Try again.', 'error');
+
+        } catch (err: any) {
+            const msg = err?.response?.data?.message ?? err?.message ?? 'AI generation failed';
+            showToast(msg.toLowerCase().includes('quota') ? 'AI quota exceeded — get a new API key' : 'AI generation failed', 'error');
+        } finally {
             setGenerating(false);
-        }, 1500);
+        }
     };
 
-    const handleGenerateAI  = () => runGenerate(aiTopic,  aiLevel,  aiCount,  setAiResults,  setIsGenerating);
-    const handleGenerateAI2 = () => runGenerate(ai2Topic, ai2Level, ai2Count, setAi2Results, setIsGenerating2);
+    const handleGenerateAI = () => runGenerate(aiTopic, aiLevel, aiCount, setAiResults, setIsGenerating, aiType || 'MCQ');
 
     const importQuestion = (q: any, idx: number, key?: string) => {
         const k = key || `${q.id}-${idx}`;
@@ -445,7 +382,6 @@ const AddQuestions: React.FC = () => {
         showToast('Question added to builder!');
     };
 
-    // ── SAVE ─────────────────────────────────────────────────────────
     const saveAll = async (isDraft = false) => {
         for (const [idx, q] of questions.entries()) {
             if (!isDraft) {
@@ -457,12 +393,8 @@ const AddQuestions: React.FC = () => {
                 }
                 if (q.type === 'Image') {
                     const filled = q.imageOptions.filter(o => o.imageUrl.trim() || o.label.trim());
-                    if (filled.length < 2) {
-                        showToast(`Q${idx + 1}: Add at least 2 image options.`, 'error'); return;
-                    }
-                    if (!q.imageOptions.some(o => o.isCorrect)) {
-                        showToast(`Q${idx + 1}: Mark one image option as correct.`, 'error'); return;
-                    }
+                    if (filled.length < 2) { showToast(`Q${idx + 1}: Add at least 2 image options.`, 'error'); return; }
+                    if (!q.imageOptions.some(o => o.isCorrect)) { showToast(`Q${idx + 1}: Mark one image option as correct.`, 'error'); return; }
                 }
             }
         }
@@ -471,7 +403,7 @@ const AddQuestions: React.FC = () => {
 
         const getOptions = (q: Question) => {
             if (q.type === 'MCQ' || q.type === 'Multi-Select') return buildMCQOptions(q);
-            if (q.type === 'Image')                            return buildImageOptions(q);
+            if (q.type === 'Image') return buildImageOptions(q);
             return [];
         };
 
@@ -481,22 +413,14 @@ const AddQuestions: React.FC = () => {
                 try {
                     if (q.apiId) {
                         const putPayload: any = { questionText: q.text, status: q.status };
-                        if (q.type === 'Text') { putPayload.textAnswer = q.textAnswer; }
-                        else                   { putPayload.options    = getOptions(q); }
+                        if (q.type === 'Text') putPayload.textAnswer = q.textAnswer;
+                        else                   putPayload.options    = getOptions(q);
                         await questionsApi.update(q.apiId, putPayload);
                     } else {
-                        const postPayload = {
+                        await questionsApi.createMultiple({
                             isSaveAsDraft: isDraft,
-                            questions: [{
-                                questionText:   q.text,
-                                topicId:        q.topic || presetTopicId,
-                                levelId:        LEVEL_IDS[q.level] || LEVEL_IDS['Easy'],
-                                questionTypeId: TYPE_IDS[q.type]   || TYPE_IDS['MCQ'],
-                                options:        getOptions(q),
-                                textAnswer:     q.type === 'Text' ? q.textAnswer : '',
-                            }],
-                        };
-                        await questionsApi.createMultiple(postPayload);
+                            questions: [{ questionText: q.text, topicId: q.topic || presetTopicId, levelId: LEVEL_IDS[q.level] || LEVEL_IDS['Easy'], questionTypeId: TYPE_IDS[q.type] || TYPE_IDS['MCQ'], options: getOptions(q), textAnswer: q.type === 'Text' ? q.textAnswer : '' }],
+                        });
                     }
                     ok++;
                 } catch { fail++; }
@@ -504,10 +428,9 @@ const AddQuestions: React.FC = () => {
             setIsSaving(false);
             if (fail === 0) { showToast(`✅ ${ok} question(s) saved!`); setTimeout(() => navigate('/topics'), 1500); }
             else showToast(`${ok} saved, ${fail} failed.`, 'error');
-
         } else {
             try {
-                const payload = {
+                await questionsApi.createMultiple({
                     isSaveAsDraft: isDraft,
                     questions: questions.map(q => ({
                         questionText:   q.text,
@@ -517,8 +440,7 @@ const AddQuestions: React.FC = () => {
                         options:        getOptions(q),
                         textAnswer:     q.type === 'Text' ? q.textAnswer : '',
                     })),
-                };
-                await questionsApi.createMultiple(payload);
+                });
                 showToast(`✅ ${questions.length} question(s) saved!`);
                 setTimeout(() => navigate('/topics'), 1500);
             } catch {
@@ -529,12 +451,11 @@ const AddQuestions: React.FC = () => {
         }
     };
 
-    // ── AI Result List ───────────────────────────────────────────────
     const AiResultList = ({ results, generating, keyPrefix }: { results: any[], generating: boolean, keyPrefix: string }) => (
         <>
             {generating && (
                 <div className="ai-loading visible" style={{ marginTop: '14px' }}>
-                    <div className="ai-loading-bar"><div className="ai-loading-fill"></div></div>
+                    <div className="ai-loading-bar"><div className="ai-loading-fill" /></div>
                     <div className="ai-loading-text">Generating questions with AI…</div>
                 </div>
             )}
@@ -547,8 +468,8 @@ const AddQuestions: React.FC = () => {
                             <div key={i} className={`ai-result-card ${done ? 'imported' : ''}`} onClick={() => importQuestion(q, i, key)}>
                                 <div className="ai-result-q">{q.text}</div>
                                 <div className="ai-result-meta">
-                                    <span className="ai-result-badge" style={{ background: 'rgba(0,87,255,.25)',   color: '#93c5fd' }}>{q.type}</span>
-                                    <span className="ai-result-badge" style={{ background: 'rgba(0,194,113,.2)',   color: '#6ee7b7' }}>{q.level}</span>
+                                    <span className="ai-result-badge" style={{ background: 'rgba(0,87,255,.25)',  color: '#93c5fd' }}>{q.type}</span>
+                                    <span className="ai-result-badge" style={{ background: 'rgba(0,194,113,.2)', color: '#6ee7b7' }}>{q.level}</span>
                                     <span className="ai-result-import">{done ? '✓ Added' : '+ Add to Builder'}</span>
                                 </div>
                             </div>
@@ -559,18 +480,12 @@ const AddQuestions: React.FC = () => {
         </>
     );
 
-    // ── RENDER ───────────────────────────────────────────────────────
     return (
         <div className="add-questions-container">
-
             <div className="page-header">
                 <div>
                     <div className="page-title">{editMode ? `Editing — ${presetTopicName}` : 'Add Questions'}</div>
-                    <div className="page-sub">
-                        {editMode
-                            ? `${existingQuestions.length} question(s) loaded · edit and save to update`
-                            : 'Build questions manually or generate them with AI.'}
-                    </div>
+                    <div className="page-sub">{editMode ? `${existingQuestions.length} question(s) loaded · edit and save to update` : 'Build questions manually or generate them with AI.'}</div>
                 </div>
                 <div className="header-actions">
                     <button className="btn btn-secondary btn-sm" onClick={() => navigate('/topics')}>← Back to Topics</button>
@@ -595,7 +510,6 @@ const AddQuestions: React.FC = () => {
                 </div>
             )}
 
-            {/* ── MANUAL / EDIT TAB ── */}
             {(activeTab === 'manual' || editMode) && (
                 <div className="add-layout">
                     <div>
@@ -605,17 +519,10 @@ const AddQuestions: React.FC = () => {
                                     <div className="q-card-header" onClick={() => toggleCollapse(q.id)}>
                                         <div className="q-card-num">{idx + 1}</div>
                                         <div className={`q-card-preview ${q.text ? 'has-text' : ''}`}>
-                                            {q.text
-                                            ? (() => {
-                                                const plain = q.text.replace(/<[^>]+>/g, '').trim();
-                                                return plain.length > 70 ? plain.slice(0, 70) + '…' : plain || 'New Question';
-                                              })()
-                                            : 'New Question'}
+                                            {q.text ? (() => { const plain = q.text.replace(/<[^>]+>/g, '').trim(); return plain.length > 70 ? plain.slice(0, 70) + '…' : plain || 'New Question'; })() : 'New Question'}
                                         </div>
                                         {q.apiId && (
-                                            <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', background: 'rgba(0,87,255,.1)', color: '#0057ff', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                                Existing
-                                            </span>
+                                            <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '100px', background: 'rgba(0,87,255,.1)', color: '#0057ff', whiteSpace: 'nowrap', flexShrink: 0 }}>Existing</span>
                                         )}
                                         <div className="q-card-actions" onClick={e => e.stopPropagation()}>
                                             <div className="q-card-collapse" onClick={() => toggleCollapse(q.id)}>{collapsedCards[q.id] ? '▼' : '▲'}</div>
@@ -624,23 +531,15 @@ const AddQuestions: React.FC = () => {
                                     </div>
 
                                     <div className="q-card-body">
-                                        <div className="section-divider">
-                                            <div className="section-divider-line"></div>
-                                            <div className="section-divider-text">Question Type</div>
-                                            <div className="section-divider-line"></div>
-                                        </div>
+                                        <div className="section-divider"><div className="section-divider-line" /><div className="section-divider-text">Question Type</div><div className="section-divider-line" /></div>
                                         <div className="type-selector">
                                             {[
-                                                { key: 'MCQ',          icon: '🔘', name: 'Single Select',  desc: 'One correct answer'   },
-                                                { key: 'Multi-Select', icon: '☑️', name: 'Multi-Select',   desc: 'Multiple correct'     },
-                                                { key: 'Text',         icon: '📝', name: 'Open Text',      desc: 'Free-form answer'     },
-                                                { key: 'Image',        icon: '🖼️', name: 'Image Select',   desc: 'Pick correct image'   },
+                                                { key: 'MCQ',          icon: '🔘', name: 'Single Select', desc: 'One correct answer'  },
+                                                { key: 'Multi-Select', icon: '☑️', name: 'Multi-Select',  desc: 'Multiple correct'    },
+                                                { key: 'Text',         icon: '📝', name: 'Open Text',     desc: 'Free-form answer'    },
+                                                { key: 'Image',        icon: '🖼️', name: 'Image Select',  desc: 'Pick correct image'  },
                                             ].map(t => (
-                                                <div
-                                                    key={t.key}
-                                                    className={`type-opt t-${t.key.toLowerCase().replace('-select', '')} ${q.type === t.key ? 'selected' : ''}`}
-                                                    onClick={() => handleTypeSelect(q.id, t.key as QuestionType)}
-                                                >
+                                                <div key={t.key} className={`type-opt t-${t.key.toLowerCase().replace('-select','')} ${q.type === t.key ? 'selected' : ''}`} onClick={() => handleTypeSelect(q.id, t.key as QuestionType)}>
                                                     <div className="type-opt-icon">{t.icon}</div>
                                                     <div className="type-opt-name">{t.name}</div>
                                                     <div className="type-opt-desc">{t.desc}</div>
@@ -653,9 +552,7 @@ const AddQuestions: React.FC = () => {
                                                 <label>Topic <span style={{ color: 'var(--red)' }}>*</span></label>
                                                 <select value={q.topic} onChange={e => updateQuestion(q.id, { topic: e.target.value })}>
                                                     <option value="">Select…</option>
-                                                    {realTopics.map(t => (
-                                                        <option key={t.topicId ?? t.id} value={t.topicId ?? t.id}>{t.name}</option>
-                                                    ))}
+                                                    {realTopics.map(t => <option key={t.topicId ?? t.id} value={t.topicId ?? t.id}>{t.name}</option>)}
                                                 </select>
                                             </div>
                                             <div className="form-group">
@@ -681,7 +578,7 @@ const AddQuestions: React.FC = () => {
                                                     key={`rte-${q.id}`}
                                                     value={q.text}
                                                     onChange={(html: string) => updateQuestion(q.id, { text: html })}
-                                                    placeholder="Type the question here… (use toolbar for bold, code, math, images)"
+                                                    placeholder="Type the question here…"
                                                     minHeight={130}
                                                 />
                                             </div>
@@ -692,52 +589,32 @@ const AddQuestions: React.FC = () => {
                                                 ↑ Select a question type to configure answer options
                                             </div>
                                         )}
-
                                         {(q.type === 'MCQ' || q.type === 'Multi-Select') && renderOptions(q)}
-
                                         {q.type === 'Text' && (
                                             <>
-                                                <div className="section-divider">
-                                                    <div className="section-divider-line"></div>
-                                                    <div className="section-divider-text">Model Answer</div>
-                                                    <div className="section-divider-line"></div>
-                                                </div>
+                                                <div className="section-divider"><div className="section-divider-line" /><div className="section-divider-text">Model Answer</div><div className="section-divider-line" /></div>
                                                 <div className="form-group">
                                                     <label>Model / Expected Answer</label>
-                                                    <textarea
-                                                        placeholder="Enter the expected answer for reference or auto-grading…"
-                                                        rows={4}
-                                                        value={q.textAnswer}
-                                                        onChange={e => updateQuestion(q.id, { textAnswer: e.target.value })}
-                                                    />
+                                                    <textarea placeholder="Enter the expected answer…" rows={4} value={q.textAnswer} onChange={e => updateQuestion(q.id, { textAnswer: e.target.value })} />
                                                 </div>
                                             </>
                                         )}
-
                                         {q.type === 'Image' && renderImageOptions(q)}
                                     </div>
                                 </div>
                             ))}
                         </div>
-
                         <button className="add-q-btn" style={{ marginTop: '12px' }} onClick={() => handleAddQuestion()}>
                             <span>＋</span> Add {editMode ? 'New' : 'Another'} Question
                         </button>
                     </div>
 
-                    {/* Right Panel */}
                     <div className="right-panel">
                         <div className="info-panel">
-                            <div className="info-panel-header">
-                                <div className="info-panel-title">📋 {editMode ? 'Edit Summary' : 'Session Summary'}</div>
-                            </div>
+                            <div className="info-panel-header"><div className="info-panel-title">📋 {editMode ? 'Edit Summary' : 'Session Summary'}</div></div>
                             <div className="info-panel-body">
                                 <div className="summary-count">{questions.length}</div>
-                                <div className="summary-label">
-                                    {editMode
-                                        ? `${questions.filter(q => !!q.apiId).length} existing · ${questions.filter(q => !q.apiId).length} new`
-                                        : 'Question(s) in this session'}
-                                </div>
+                                <div className="summary-label">{editMode ? `${questions.filter(q => !!q.apiId).length} existing · ${questions.filter(q => !q.apiId).length} new` : 'Question(s) in this session'}</div>
                                 <div>
                                     {[
                                         { label: 'MCQ',          color: 'var(--accent2)', type: 'MCQ'          },
@@ -746,10 +623,7 @@ const AddQuestions: React.FC = () => {
                                         { label: 'Image Select', color: 'var(--green)',   type: 'Image'        },
                                     ].map(row => (
                                         <div className="summary-type-row" key={row.type}>
-                                            <span className="summary-type-name">
-                                                <span className="summary-type-dot" style={{ background: row.color }}></span>
-                                                {row.label}
-                                            </span>
+                                            <span className="summary-type-name"><span className="summary-type-dot" style={{ background: row.color }} />{row.label}</span>
                                             <span className="summary-type-num">{questions.filter(q => q.type === row.type).length}</span>
                                         </div>
                                     ))}
@@ -759,60 +633,36 @@ const AddQuestions: React.FC = () => {
                                         {isSaving ? 'Saving…' : editMode ? '💾 Save Changes' : '💾 Save as Published'}
                                     </button>
                                     {!editMode && (
-                                        <button className="btn btn-secondary" style={{ justifyContent: 'center' }} onClick={() => saveAll(true)} disabled={isSaving}>
-                                            📄 Save as Draft
-                                        </button>
+                                        <button className="btn btn-secondary" style={{ justifyContent: 'center' }} onClick={() => saveAll(true)} disabled={isSaving}>📄 Save as Draft</button>
                                     )}
                                 </div>
                             </div>
                         </div>
 
                         {!editMode && (
-                            <div className="ai-panel">
-                                <div className="ai-panel-header">
-                                    <div className="ai-panel-title">🤖 AI Generator</div>
-                                    <div className="ai-panel-sub">Generate from topic &amp; difficulty</div>
+                            <div className="info-panel">
+                                <div className="info-panel-header">
+                                    <div className="info-panel-title">🤖 AI Generator</div>
                                 </div>
-                                <div className="ai-panel-body">
-                                    <div className="ai-input-group">
-                                        <div className="ai-input-label">Topic</div>
-                                        <select className="ai-select" value={aiTopic} onChange={e => setAiTopic(e.target.value)}>
-                                            <option value="">Select topic…</option>
-                                            {realTopics.map(t => <option key={t.topicId ?? t.id} value={t.topicId ?? t.id}>{t.name}</option>)}
-                                        </select>
+                                <div className="info-panel-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <div style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.5 }}>
+                                        Use the AI Generator to create questions with full control over difficulty mix, question type distribution and batch generation.
                                     </div>
-                                    <div className="ai-input-group">
-                                        <div className="ai-input-label">Difficulty</div>
-                                        <select className="ai-select" value={aiLevel} onChange={e => setAiLevel(e.target.value)}>
-                                            <option value="">Any difficulty</option>
-                                            {LEVELS.map(l => <option key={l}>{l}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="ai-input-group">
-                                        <div className="ai-input-label">Type</div>
-                                        <select className="ai-select" value={aiType} onChange={e => setAiType(e.target.value)}>
-                                            <option value="">Mixed</option>
-                                            <option>MCQ</option><option>Multi-Select</option><option>Text</option>
-                                        </select>
-                                    </div>
-                                    <div className="ai-input-label" style={{ color: 'rgba(255,255,255,.4)', marginBottom: '6px' }}>How many?</div>
-                                    <div className="ai-count-row">
-                                        {[3, 5, 10, 15].map(n => (
-                                            <div key={n} className={`ai-count-btn ${aiCount === n ? 'selected' : ''}`} onClick={() => setAiCount(n)}>{n}</div>
-                                        ))}
-                                    </div>
-                                    <button className="ai-generate-btn" onClick={handleGenerateAI} disabled={isGenerating}>
-                                        {isGenerating ? 'Generating…' : '✨ Generate Questions'}
+                                    <button
+                                        className="btn btn-primary"
+                                        style={{ justifyContent: 'center' }}
+                                        onClick={() => navigate('/ai-generator')}>
+                                        ✨ Open AI Generator
                                     </button>
-                                    <AiResultList results={aiResults} generating={isGenerating} keyPrefix="sb" />
+                                    <div style={{ fontSize: '11px', color: 'var(--muted)', textAlign: 'center' }}>
+                                        Generate questions then save them to any topic from there.
+                                    </div>
                                 </div>
                             </div>
                         )}
 
                         <div className="info-panel">
-                            <div className="info-panel-header">
-                                <div className="info-panel-title">💡 Tips</div>
-                            </div>
+                            <div className="info-panel-header"><div className="info-panel-title">💡 Tips</div></div>
                             <div className="info-panel-body">
                                 {(editMode ? [
                                     { icon: '✏️', text: 'All existing questions are pre-loaded. Edit any field and save.' },
@@ -821,14 +671,11 @@ const AddQuestions: React.FC = () => {
                                 ] : [
                                     { icon: '🎯', text: 'Click the radio circle to mark the correct answer.' },
                                     { icon: '✅', text: 'Multi-Select allows multiple correct answers.' },
-                                    { icon: '🖼️', text: 'Images compressed to 300×300 WebP (~5–15 KB) automatically.' },
+                                    { icon: '🖼️', text: 'Images compressed to 300×300 WebP automatically.' },
                                     { icon: '📝', text: 'Open Text: enter a model answer for grading reference.' },
                                     { icon: '🤖', text: 'Use AI Generate to create questions instantly.' },
                                 ]).map((tip, i) => (
-                                    <div className="tip-row" key={i}>
-                                        <div className="tip-icon">{tip.icon}</div>
-                                        <div className="tip-text">{tip.text}</div>
-                                    </div>
+                                    <div className="tip-row" key={i}><div className="tip-icon">{tip.icon}</div><div className="tip-text">{tip.text}</div></div>
                                 ))}
                             </div>
                         </div>
@@ -836,67 +683,28 @@ const AddQuestions: React.FC = () => {
                 </div>
             )}
 
-            {/* ── AI FULL TAB ── */}
             {activeTab === 'ai' && !editMode && (
-                <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-                    <div className="ai-panel">
-                        <div className="ai-panel-header" style={{ padding: '24px 28px 16px' }}>
-                            <div className="ai-panel-title" style={{ fontSize: '20px' }}>🤖 AI Question Generator</div>
-                            <div className="ai-panel-sub" style={{ fontSize: '13px', marginTop: '6px' }}>Generate high-quality questions instantly.</div>
-                        </div>
-                        <div className="ai-panel-body" style={{ padding: '0 28px 28px' }}>
-                            <div className="form-row triple" style={{ marginBottom: '14px' }}>
-                                <div className="ai-input-group" style={{ marginBottom: 0 }}>
-                                    <div className="ai-input-label">Topic</div>
-                                    <select className="ai-select" value={ai2Topic} onChange={e => setAi2Topic(e.target.value)}>
-                                        <option value="">Select topic…</option>
-                                        {realTopics.map(t => <option key={t.topicId ?? t.id} value={t.topicId ?? t.id}>{t.name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="ai-input-group" style={{ marginBottom: 0 }}>
-                                    <div className="ai-input-label">Difficulty</div>
-                                    <select className="ai-select" value={ai2Level} onChange={e => setAi2Level(e.target.value)}>
-                                        <option value="">Any</option>
-                                        {LEVELS.map(l => <option key={l}>{l}</option>)}
-                                    </select>
-                                </div>
-                                <div className="ai-input-group" style={{ marginBottom: 0 }}>
-                                    <div className="ai-input-label">Type</div>
-                                    <select className="ai-select" value={ai2Type} onChange={e => setAi2Type(e.target.value)}>
-                                        <option value="">Mixed</option>
-                                        <option>MCQ</option><option>Multi-Select</option><option>Text</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="ai-input-group">
-                                <div className="ai-input-label">Custom Prompt (optional)</div>
-                                <input type="text" className="ai-input" placeholder="e.g. Focus on ES6 features…"
-                                    value={ai2Prompt} onChange={e => setAi2Prompt(e.target.value)} />
-                            </div>
-                            <div className="ai-input-label" style={{ color: 'rgba(255,255,255,.4)', marginBottom: '6px' }}>Number of questions</div>
-                            <div className="ai-count-row" style={{ marginBottom: '14px' }}>
-                                {[3, 5, 10, 15, 20].map(n => (
-                                    <div key={n} className={`ai-count-btn ${ai2Count === n ? 'selected' : ''}`} onClick={() => setAi2Count(n)}>{n}</div>
-                                ))}
-                            </div>
-                            <button className="ai-generate-btn" onClick={handleGenerateAI2} disabled={isGenerating2}>
-                                {isGenerating2 ? 'Generating…' : '✨ Generate Now'}
-                            </button>
-                            <AiResultList results={ai2Results} generating={isGenerating2} keyPrefix="ai2" />
-                            {ai2Results.length > 0 && !isGenerating2 && (
-                                <button className="btn btn-green" style={{ width: '100%', justifyContent: 'center', marginTop: '14px' }}
-                                    onClick={() => ai2Results.forEach((q, i) => importQuestion(q, i, `ai2-${q.id}-${i}`))}>
-                                    + Import All to Builder
-                                </button>
-                            )}
-                        </div>
+                <div style={{ maxWidth: '500px', margin: '60px auto', textAlign: 'center' }}>
+                    <div style={{ fontSize: '52px', marginBottom: '16px' }}>🤖</div>
+                    <div style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', color: 'var(--ink)' }}>
+                        AI Question Generator
+                    </div>
+                    <div style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '28px' }}>
+                        The AI Generator has moved to a dedicated page with full distribution controls — set difficulty mix, question type percentages, and generate in batches.
+                    </div>
+                    <button
+                        className="btn btn-primary"
+                        style={{ justifyContent: 'center', padding: '12px 32px', fontSize: '15px' }}
+                        onClick={() => navigate('/ai-generator')}>
+                        ✨ Open AI Generator
+                    </button>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '12px' }}>
+                        You can save generated questions to any topic from there.
                     </div>
                 </div>
             )}
 
-            {/* Toast */}
-            <div className={`toast ${toast.show ? 'show' : ''}`}
-                style={{ background: toast.type === 'error' ? '#c0392b' : '#0d1117' }}>
+            <div className={`toast ${toast.show ? 'show' : ''}`} style={{ background: toast.type === 'error' ? '#c0392b' : '#0d1117' }}>
                 <span>{toast.type === 'error' ? '❌' : toast.type === 'info' ? 'ℹ️' : '✅'}</span>
                 <span>{toast.msg}</span>
             </div>

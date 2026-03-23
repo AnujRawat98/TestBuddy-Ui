@@ -31,9 +31,21 @@ export const adminApi = {
 };
 
 // ─── AI QUESTIONS ─────────────────────────────────────────────────────────────
+// Matches GenerateQuestionsRequestDto (camelCase per Swagger)
 export const aiQuestionsApi = {
-    generate: (data: { topic: string; level?: string; questionType?: string; questionCount: number }) =>
+    generate: (data: { topic: string; level: string; questionType: string; questionCount: number }) =>
         api.post('/ai/questions/generate', data),
+};
+
+// ─── LEVELS & QUESTION TYPES ──────────────────────────────────────────────────
+// These call the new LevelsController and QuestionTypesController.
+// Even if they fail, AIGenerator.tsx falls back to hardcoded seeded GUIDs.
+export const levelsApi = {
+    getAll: () => api.get('/levels'),
+};
+
+export const questionTypesApi = {
+    getAll: () => api.get('/question-types'),
 };
 
 // ─── ASSESSMENT LINKS ─────────────────────────────────────────────────────────
@@ -52,19 +64,11 @@ export const assessmentsApi = {
     create:              (data: any)                                            => api.post('/Assessments', data),
     updateStatus:        (id: string, isActive: boolean)                       => api.put(`/Assessments/${id}/status`, { isActive }),
     start:               (assessmentId: string, userEmail: string)             => api.post(`/Assessments/${assessmentId}/start?userEmail=${userEmail}`),
-
-    // Exam delivery — used during the exam (no correct answers exposed)
     getAttemptQuestions: (attemptId: string)                                   => api.get(`/Assessments/attempt/${attemptId}/questions`),
-
     saveAnswer:          (data: { attemptQuestionId: string; answer: string }) => api.post('/Assessments/attempt/answer', data),
     submitAttempt:       (attemptId: string)                                   => api.post(`/Assessments/attempt/${attemptId}/submit`),
     getAttemptsByLink:   (linkId: string)                                      => api.get(`/Assessments/attempts/by-link/${linkId}`),
-
-    // Full performance + proctoring report (calls GetAttemptFullReport SP)
-    getAttemptFullReport: (attemptId: string)                                  => api.get(`/Assessments/attempt/${attemptId}/full-report`),
-
-    // Admin question review — topics + questions + options + correct answers + candidate's answers
-    // Response: { topics: [ { topicId, topicName, questions: [ { ..., options: [...] } ] } ] }
+    getAttemptFullReport:     (attemptId: string)                              => api.get(`/Assessments/attempt/${attemptId}/full-report`),
     getAttemptQuestionReview: (attemptId: string)                              => api.get(`/Assessments/attempt/${attemptId}/question-review`),
 };
 

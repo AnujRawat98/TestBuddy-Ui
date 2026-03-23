@@ -170,7 +170,7 @@ const AssessmentReport: React.FC = () => {
     const negativeMarks    = state?.negativeMarks    ?? 0;
     const passingMarks     = state?.passingMarks     ?? undefined;
 
-    const [linkType,        setLinkType]        = useState<'credential' | 'direct'>('credential');
+    const [linkType, setLinkType] = useState<'credential' | 'direct'>('direct');
     const [links,           setLinks]           = useState<AssessmentLink[]>([]);
     const [selectedLink,    setSelectedLink]    = useState<AssessmentLink | null>(null);
     const [sessions,        setSessions]        = useState<CandidateSession[]>([]);
@@ -427,7 +427,33 @@ const AssessmentReport: React.FC = () => {
     const computeTotalMarks = (s: CandidateSession): string | number =>
         (s.totalMarks ?? (totalQuestions * marksPerQuestion)) || '—';
 
-    const handleDownloadPDF = () => { if (!selectedSession) return; window.print(); showToast('Preparing PDF…', 'info'); };
+    const handleDownloadPDF = () => {
+    if (!selectedSession) return;
+
+    // Open all sections
+    setOpenSections({
+        score: true,
+        performance: true,
+        questions: true,
+        proctoring: true,
+        timing: true,
+    });
+
+    // Load questions if not already loaded
+    if (!questionsLoaded && selectedSession) {
+        loadQuestionReview(selectedSession.assessmentAttemptId).then(() => {
+            setTimeout(() => {
+                window.print();
+            }, 800); // wait for questions to render
+        });
+    } else {
+        setTimeout(() => {
+            window.print();
+        }, 300); // wait for sections to expand
+    }
+
+    showToast('Preparing PDF…', 'info');
+};
 
     const handleShareWA = () => {
         if (!selectedSession || !selectedLink) return;

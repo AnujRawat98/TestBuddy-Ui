@@ -326,6 +326,12 @@ const AddQuestions: React.FC = () => {
         type: string = 'MCQ',
     ) => {
         if (!topic) { showToast('Please select a topic.', 'error'); return; }
+        
+        if (type === 'Image') {
+            showToast('AI generation for Image Select is not supported. Please use Single Select, Multi-Select, or Text.', 'error');
+            return;
+        }
+        
         setGenerating(true);
 
         const topicName = realTopics.find(t => (t.topicId ?? t.id) === topic)?.name ?? 'General';

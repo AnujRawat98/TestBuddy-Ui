@@ -273,7 +273,7 @@ const CreateLink: React.FC = () => {
     const [attempts,   setAttempts]   = useState('1');
     const [cap,        setCap]        = useState('100');
 
-    const [opts, setOpts] = useState({ credAccess: true, shuffleQs: true });
+    const [opts, setOpts] = useState({ credAccess: true, shuffleQs: true, sendInvitations: true });
     const toggleOpt = (k: keyof typeof opts) => setOpts(p => ({ ...p, [k]: !p[k] }));
 
     const [procWeb,        setProcWeb]        = useState<boolean>(false);
@@ -368,35 +368,8 @@ const CreateLink: React.FC = () => {
         screenRecordingQuality:  procScreen ? screenQuality : 'Medium',
         warningAction:           anyProctor ? warnAction : 'warn',
         credentialBasedUsers:    opts.credAccess ? pendingEmails : [],
+        sendInvitations:         opts.sendInvitations,
     });
-
-    const handleGenerate = async () => {
-        if (!selectedAssessmentId) { showToast('Please select an assessment.',    'error'); return; }
-        if (!linkName.trim())      { showToast('Please enter a link name.',       'error'); return; }
-        if (!accessCode.trim())    { showToast('Please set an access code.',      'error'); return; }
-        if (!startDate || !endDate){ showToast('Please set start and end dates.', 'error'); return; }
-
-        setLoading(true);
-        try {
-            const res     = await assessmentLinksApi.create(buildPayload());
-            const linkId  = res.data?.id ?? res.data?.Id ?? res.data;
-            const fullUrl = `${window.location.origin}/exam-entry/${linkId}`;
-            setGeneratedLink(fullUrl);
-            setAddedEmails(opts.credAccess ? [...pendingEmails] : []);
-            setSessionLinks(prev => [{
-                name: linkName.trim(), url: fullUrl, accessCode: accessCode.trim(),
-                isCredential: opts.credAccess, candidateCount: opts.credAccess ? pendingEmails.length : 0,
-                startDate, endDate,
-            }, ...prev]);
-            setPendingEmails([]);
-            setEmailInput('');
-            showToast('Exam link generated successfully!', 'success');
-        } catch (err: any) {
-            showToast(err?.response?.data?.message ?? err?.response?.data?.title ?? JSON.stringify(err?.response?.data) ?? 'Failed to generate exam link.', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const selectedInfo = realAssessments.find(a => (a.id ?? a.Id) === selectedAssessmentId) ?? null;
     const fmtDate = (r: string) => !r ? '—' : new Date(r).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -420,6 +393,41 @@ const CreateLink: React.FC = () => {
     const handleBulkUpload = async (emails: string[]) => { handleAddToList(emails); };
     const handleManualAdd  = () => { handleAddToList(parseEmails(emailInput)); };
     const removeEmail      = (email: string) => setPendingEmails(prev => prev.filter(e => e !== email));
+
+    const handleGenerate = async () => {
+        if (!selectedAssessmentId) { showToast('Please select an assessment.',    'error'); return; }
+        if (!linkName.trim())      { showToast('Please enter a link name.',       'error'); return; }
+        if (!accessCode.trim())    { showToast('Please set an access code.',      'error'); return; }
+        if (!startDate || !endDate){ showToast('Please set start and end dates.', 'error'); return; }
+
+        setLoading(true);
+        try {
+            const res     = await assessmentLinksApi.create(buildPayload());
+            const responseData = res.data;
+            const linkId  = responseData?.linkId ?? responseData?.LinkId ?? responseData?.id ?? responseData?.Id;
+            const fullUrl = `${window.location.origin}/exam-entry/${linkId}`;
+            setGeneratedLink(fullUrl);
+            setAddedEmails(opts.credAccess ? [...pendingEmails] : []);
+            setSessionLinks(prev => [{
+                name: linkName.trim(), url: fullUrl, accessCode: accessCode.trim(),
+                isCredential: opts.credAccess, candidateCount: opts.credAccess ? pendingEmails.length : 0,
+                startDate, endDate,
+            }, ...prev]);
+            setPendingEmails([]);
+            setEmailInput('');
+            
+            const emailCount = responseData?.createdUsers?.length ?? pendingEmails.length;
+            if (opts.sendInvitations && emailCount > 0) {
+                showToast(`Exam link generated! Invitation emails queued for ${emailCount} candidate${emailCount !== 1 ? 's' : ''}.`, 'success');
+            } else {
+                showToast('Exam link generated successfully!', 'success');
+            }
+        } catch (err: any) {
+            showToast(err?.response?.data?.message ?? err?.response?.data?.title ?? JSON.stringify(err?.response?.data) ?? 'Failed to generate exam link.', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="create-link-container">
@@ -517,6 +525,7 @@ const CreateLink: React.FC = () => {
                             {[
                                 { k: 'credAccess' as const, label: 'Credential-Based Access',    sub: 'Each candidate gets a unique personal access code.' },
                                 { k: 'shuffleQs'  as const, label: 'Shuffle Questions Per Candidate', sub: 'All candidates get the same questions but in a different random order — prevents copying. Each candidate sees a unique sequence.' },
+                                { k: 'sendInvitations' as const, label: 'Send Invitation Emails', sub: 'Automatically email candidates with their personal access codes via RabbitMQ queue.' },
                             ].map(s => (
                                 <div className="toggle-row" key={s.k}>
                                     <div className="toggle-info">
@@ -676,7 +685,7 @@ const CreateLink: React.FC = () => {
 
                                 {!generatedLink && pendingEmails.length > 0 && (
                                     <div className="form-hint" style={{ marginTop: '6px', color: 'var(--accent2)' }}>
-                                        ℹ️ {pendingEmails.length} candidate{pendingEmails.length !== 1 ? 's' : ''} will be sent with the link on Generate.
+                                        ℹ️ {pendingEmails.length} candidate{pendingEmails.length !== 1 ? 's' : ''} will receive invitation emails {opts.sendInvitations ? 'on Generate (via RabbitMQ)' : 'only if sent manually later'}.
                                     </div>
                                 )}
                                 {generatedLink && addedEmails.length > 0 && (

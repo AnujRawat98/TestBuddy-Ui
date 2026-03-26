@@ -10,6 +10,7 @@ interface DistSlice {
     apiKey:  string;   // sent to AI
     pct:     number;   // 0-100
     color:   string;
+    disabled?: boolean;
 }
 
 interface AIOption {
@@ -79,23 +80,28 @@ function distribute(total: number, slices: DistSlice[]): number[] {
 }
 
 // ─── Percentage slider row ────────────────────────────────────────────────────
-const SliceRow: React.FC<{
+interface SliceRowProps {
     label:    string;
     pct:      number;
     color:    string;
     count:    number;
+    disabled?: boolean;
     onChange: (v: number) => void;
-}> = ({ label, pct, color, count, onChange }) => (
-    <div className="slice-row">
+}
+
+const SliceRow: React.FC<SliceRowProps> = ({ label, pct, color, count, disabled, onChange }) => (
+    <div className="slice-row" style={{ opacity: disabled ? 0.5 : 1 }}>
         <div className="slice-label">
             <span className="slice-dot" style={{ background: color }} />
             <span>{label}</span>
+            {disabled && <span style={{ fontSize: '10px', color: '#999', marginLeft: '4px' }}>(Not available)</span>}
         </div>
         <div className="slice-slider-wrap">
             <input type="range" min={0} max={100} step={5} value={pct}
-                onChange={e => onChange(Number(e.target.value))}
+                onChange={e => !disabled && onChange(Number(e.target.value))}
                 className="slice-slider"
-                style={{ '--thumb-color': color } as React.CSSProperties} />
+                style={{ '--thumb-color': color, cursor: disabled ? 'not-allowed' : 'pointer' } as React.CSSProperties}
+                disabled={disabled} />
         </div>
         <div className="slice-pct" style={{ color }}>{pct}%</div>
         <div className="slice-count">{count}Q</div>
@@ -122,7 +128,7 @@ const AIGenerator: React.FC = () => {
         { key: 'Single Select', apiKey: 'SingleSelect', pct: 60, color: TYPE_COLORS[0] },
         { key: 'Multi Select',  apiKey: 'MultiSelect',  pct: 20, color: TYPE_COLORS[1] },
         { key: 'Open Text',     apiKey: 'OpenText',     pct: 20, color: TYPE_COLORS[2] },
-        { key: 'Image Select',  apiKey: 'ImageSelect',  pct: 0,  color: TYPE_COLORS[3] },
+        { key: 'Image Select',  apiKey: 'ImageSelect',  pct: 0,  color: TYPE_COLORS[3], disabled: true },
     ]);
 
     // ── Lookup data ───────────────────────────────────────────────────────────
@@ -164,7 +170,7 @@ const AIGenerator: React.FC = () => {
 
     // ── Validation ────────────────────────────────────────────────────────────
     const levelTotal = levelDist.reduce((a, s) => a + s.pct, 0);
-    const typeTotal  = typeDist.reduce((a,  s) => a + s.pct, 0);
+    const typeTotal  = typeDist.filter(s => !s.disabled).reduce((a,  s) => a + s.pct, 0);
     const isValid    = levelTotal === 100 && typeTotal === 100
                     && (topicMode === 'existing' ? !!selectedTopicId : newTopicName.trim().length > 0)
                     && totalCount > 0;
@@ -464,7 +470,7 @@ const AIGenerator: React.FC = () => {
                                 {topicMode === 'existing' && !selectedTopicId && '• Select a topic  '}
                                 {topicMode === 'new' && !newTopicName.trim() && '• Enter new topic name  '}
                                 {levelTotal !== 100 && `• Difficulty = ${levelTotal}%  `}
-                                {typeTotal  !== 100 && `• Type = ${typeTotal}%`}
+                                {typeTotal  !== 100 && `• Type = ${typeTotal}% (Image Select disabled)`}
                             </div>
                         )}
                     </div>
@@ -544,6 +550,7 @@ const AIGenerator: React.FC = () => {
                             {typeDist.map((s, i) => (
                                 <SliceRow key={s.key} label={s.key} pct={s.pct}
                                     color={s.color} count={typeCounts[i]}
+                                    disabled={s.disabled}
                                     onChange={v => updateTypePct(i, v)} />
                             ))}
                         </div>
@@ -554,14 +561,16 @@ const AIGenerator: React.FC = () => {
                             {[
                                 { label: 'MCQ Only',    vals: [100,0,0,0] },
                                 { label: 'Mixed',       vals: [50,25,25,0] },
-                                { label: 'With Image',  vals: [40,20,20,20] },
-                                { label: 'No Image',    vals: [50,30,20,0] },
+                                { label: 'No OpenText', vals: [60,20,0,0] },
                             ].map(p => (
                                 <button key={p.label} className="preset-btn"
                                     onClick={() => setTypeDist(prev => prev.map((s, i) => ({ ...s, pct: p.vals[i] })))}>
                                     {p.label}
                                 </button>
                             ))}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#999', marginTop: '8px', padding: '8px', background: '#f5f5f5', borderRadius: '6px' }}>
+                            ⚠️ Image Select is disabled (requires vision-capable AI models)
                         </div>
                     </div>
                 </div>

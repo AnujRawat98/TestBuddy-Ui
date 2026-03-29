@@ -828,17 +828,23 @@
 /* ─── QR MODAL ─────────────────────────────────────────── */
 .create-link-container .modal-overlay {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(13, 17, 23, .6);
-    z-index: 200;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(13, 17, 23, .65) !important;
+    z-index: 9999 !important;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 .create-link-container .modal-overlay.open {
-    display: flex;
+    display: flex !important;
 }
 
 .create-link-container .modal {

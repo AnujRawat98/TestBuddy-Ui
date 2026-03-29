@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './Dashboard.css';
-import { topicsApi, assessmentsApi, assessmentLinksApi, questionsApi } from '../../services/api';
+import { topicsApi, assessmentsApi, assessmentLinksApi, questionsApi, interviewsApi, interviewLinksApi } from '../../services/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Assessment {
@@ -9,6 +9,13 @@ interface Assessment {
     durationMinutes?: number; DurationMinutes?: number;
     isActive?: boolean; IsActive?: boolean;
     createdAt?: string; CreatedAt?: string;
+}
+
+interface Interview {
+    id: string; name?: string; difficulty?: string;
+    totalQuestions?: number; durationMinutes?: number;
+    instructions?: string; topics?: { id: string; name: string }[];
+    createdAt?: string; UpdatedAt?: string;
 }
 
 interface Topic {
@@ -25,6 +32,13 @@ interface ExamLink {
     isCredentialBased?: boolean;
 }
 
+interface InterviewLink {
+    Id: string; InterviewId?: string; Name?: string;
+    StartTime?: string; EndTime?: string;
+    IsActive?: boolean;
+    TotalCandidates?: number; CompletedCandidates?: number;
+}
+
 interface DashboardStats {
     totalTopics:       number;
     totalQuestions:    number;
@@ -32,6 +46,8 @@ interface DashboardStats {
     activeLinks:       number;
     activeAssessments: number;
     draftAssessments:  number;
+    totalInterviews:   number;
+    activeInterviewLinks: number;
 }
 
 // ── Count-up hook ─────────────────────────────────────────────────────────────
@@ -56,21 +72,25 @@ const Skeleton: React.FC<{ w?: string; h?: string; r?: string }> = ({ w = '100%'
     <div style={{ width: w, height: h, borderRadius: r, background: 'linear-gradient(90deg, var(--border) 25%, var(--surface) 50%, var(--border) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
 );
 
-const fmtDate     = (s?: string) => !s ? '—' : new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-const fmtDateTime = (s?: string) => !s ? '—' : new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const fmtDate = (s?: string) => !s ? '—' : new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 const Dashboard: React.FC = () => {
-    const [stats,       setStats]       = useState<DashboardStats>({ totalTopics: 0, totalQuestions: 0, totalAssessments: 0, activeLinks: 0, activeAssessments: 0, draftAssessments: 0 });
-    const [assessments, setAssessments] = useState<Assessment[]>([]);
-    const [topics,      setTopics]      = useState<Topic[]>([]);
-    const [allLinks,    setAllLinks]    = useState<ExamLink[]>([]);
-    const [loading,     setLoading]     = useState(true);
-    const [error,       setError]       = useState('');
+    const [stats,           setStats]           = useState<DashboardStats>({ totalTopics: 0, totalQuestions: 0, totalAssessments: 0, activeLinks: 0, activeAssessments: 0, draftAssessments: 0, totalInterviews: 0, activeInterviewLinks: 0 });
+    const [assessments,     setAssessments]     = useState<Assessment[]>([]);
+    const [interviews,      setInterviews]      = useState<Interview[]>([]);
+    const [topics,          setTopics]          = useState<Topic[]>([]);
+    const [allLinks,        setAllLinks]        = useState<ExamLink[]>([]);
+    const [allInterviewLinks, setAllInterviewLinks] = useState<InterviewLink[]>([]);
+    const [loading,         setLoading]         = useState(true);
+    const [error,           setError]           = useState('');
+    const [linksTab,        setLinksTab]        = useState<'exam' | 'interview'>('exam');
 
-    const cntTopics      = useCountUp(stats.totalTopics,      900);
-    const cntQuestions   = useCountUp(stats.totalQuestions,   1400);
-    const cntAssessments = useCountUp(stats.totalAssessments, 800);
-    const cntLinks       = useCountUp(stats.activeLinks,      600);
+    const cntTopics        = useCountUp(stats.totalTopics,      900);
+    const cntQuestions     = useCountUp(stats.totalQuestions,   1400);
+    const cntAssessments   = useCountUp(stats.totalAssessments, 800);
+    const cntLinks         = useCountUp(stats.activeLinks,      600);
+    const cntInterviews    = useCountUp(stats.totalInterviews,  600);
+    const cntInterviewLinks = useCountUp(stats.activeInterviewLinks, 600);
 
     useEffect(() => { loadDashboard(); }, []);
 
@@ -78,10 +98,10 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            // ── Step 1: topics + assessments in parallel ──────────────────────
-            const [topicsRes, assessmentsRes] = await Promise.allSettled([
+            const [topicsRes, assessmentsRes, interviewsRes] = await Promise.allSettled([
                 topicsApi.getAll(),
                 assessmentsApi.getAll(),
+                interviewsApi.getAll(),
             ]);
 
             // ── Topics ────────────────────────────────────────────────────────
@@ -89,8 +109,6 @@ const Dashboard: React.FC = () => {
                 ? (Array.isArray(topicsRes.value.data) ? topicsRes.value.data : topicsRes.value.data?.items ?? topicsRes.value.data?.value ?? [])
                 : [];
 
-            // ── Step 2: fetch question count per topic by topicVersionId ──────
-            // Same as Topics page — counts only the LATEST version questions
             const topicList: Topic[] = await Promise.all(
                 rawTopicList.map(async (t: any) => {
                     const tvId: string = t.topicVersionId ?? t.TopicVersionId ?? '';
@@ -102,9 +120,7 @@ const Dashboard: React.FC = () => {
                             questionCount = Array.isArray(d)
                                 ? d.length
                                 : (d?.totalCount ?? d?.count ?? d?.items?.length ?? 0);
-                        } catch {
-                            // keep 0
-                        }
+                        } catch { /* keep 0 */ }
                     }
                     return {
                         id:             t.topicId ?? t.TopicId ?? t.id,
@@ -115,8 +131,6 @@ const Dashboard: React.FC = () => {
                 })
             );
             setTopics(topicList);
-
-            // ── Step 3: sum question counts ───────────────────────────────────
             const totalQuestions = topicList.reduce((sum, t) => sum + (t.questionCount ?? 0), 0);
 
             // ── Assessments ───────────────────────────────────────────────────
@@ -125,7 +139,13 @@ const Dashboard: React.FC = () => {
                 : [];
             setAssessments(assessmentList);
 
-            // ── Step 4: fetch links in batches ────────────────────────────────
+            // ── Interviews ───────────────────────────────────────────────────
+            const interviewList: Interview[] = interviewsRes.status === 'fulfilled'
+                ? (Array.isArray(interviewsRes.value.data) ? interviewsRes.value.data : interviewsRes.value.data?.items ?? interviewsRes.value.data?.value ?? [])
+                : [];
+            setInterviews(interviewList);
+
+            // ── Exam Links ────────────────────────────────────────────────────
             const batchSize = 5;
             const links: ExamLink[] = [];
             for (let i = 0; i < assessmentList.length; i += batchSize) {
@@ -144,10 +164,43 @@ const Dashboard: React.FC = () => {
             }
             setAllLinks(links);
 
+            // ── Interview Links ───────────────────────────────────────────────
+            const interviewLinks: InterviewLink[] = [];
+            for (let i = 0; i < interviewList.length; i += batchSize) {
+                const batch   = interviewList.slice(i, i + batchSize);
+                const results = await Promise.allSettled(
+                    batch.map(interview =>
+                        interviewLinksApi.getByInterview(interview.id)
+                            .then(r => {
+                                const list = Array.isArray(r.data) ? r.data : r.data?.items ?? r.data?.value ?? [];
+                                return list.map((l: any) => ({ 
+                                    Id: l.id ?? l.Id,
+                                    InterviewId: l.interviewId ?? l.InterviewId ?? interview.id,
+                                    Name: l.name ?? l.Name,
+                                    StartTime: l.startTime ?? l.StartTime,
+                                    EndTime: l.endTime ?? l.EndTime,
+                                    IsActive: l.isActive ?? l.IsActive ?? true,
+                                    TotalCandidates: l.totalCandidates ?? l.TotalCandidates ?? 0,
+                                    CompletedCandidates: l.completedCandidates ?? l.CompletedCandidates ?? 0,
+                                }));
+                            })
+                            .catch(() => [])
+                    )
+                );
+                results.forEach(r => { if (r.status === 'fulfilled') interviewLinks.push(...r.value); });
+            }
+            setAllInterviewLinks(interviewLinks);
+
             const now          = new Date();
             const activeLinks  = links.filter(l => l.isActive !== false && new Date(l.examEndDateTime ?? '') > now).length;
             const activeAssess = assessmentList.filter(a => a.isActive ?? a.IsActive).length;
             const draftAssess  = assessmentList.filter(a => !(a.isActive ?? a.IsActive)).length;
+            
+            const activeInterviewLinks = interviewLinks.filter(l => {
+                const end = new Date(l.EndTime ?? '');
+                const start = new Date(l.StartTime ?? '');
+                return l.IsActive !== false && start <= now && end > now;
+            }).length;
 
             setStats({
                 totalTopics:       rawTopicList.length,
@@ -156,6 +209,8 @@ const Dashboard: React.FC = () => {
                 activeLinks,
                 activeAssessments: activeAssess,
                 draftAssessments:  draftAssess,
+                totalInterviews:   interviewList.length,
+                activeInterviewLinks,
             });
 
         } catch {
@@ -166,13 +221,23 @@ const Dashboard: React.FC = () => {
     };
 
     // ── Derived ───────────────────────────────────────────────────────────────
-    const now             = new Date();
-    const recentAssess    = [...assessments].slice(0, 5);
-    const activeExamLinks = allLinks.filter(l => l.isActive !== false && new Date(l.examEndDateTime ?? '') > now).slice(0, 5);
-    const maxQCount       = Math.max(...topics.map(t => t.questionCount ?? 0), 1);
+    const now              = new Date();
+    const recentAssess     = [...assessments].slice(0, 5);
+    const activeExamLinks   = allLinks.filter(l => l.isActive !== false && new Date(l.examEndDateTime ?? '') > now).slice(0, 5);
+    const activeInterviewLinksList = allInterviewLinks.filter(l => {
+        const end = new Date(l.EndTime ?? '');
+        const start = new Date(l.StartTime ?? '');
+        return l.IsActive !== false && start <= now && end > now;
+    }).slice(0, 5);
+    const maxQCount = Math.max(...topics.map(t => t.questionCount ?? 0), 1);
 
     const getAssessmentTitle = (id: string) =>
         assessments.find(a => a.id === id)?.title ?? assessments.find(a => a.id === id)?.Title ?? '—';
+    
+    const getInterviewName = (id: string) => {
+        const found = interviews.find(i => i.id === id);
+        return found?.name ?? '—';
+    };
 
     return (
         <>
@@ -204,10 +269,12 @@ const Dashboard: React.FC = () => {
             {/* ── Stat Cards ── */}
             <div className="stats-grid">
                 {[
-                    { cls: 's1', icon: '🗂',  num: cntTopics,      label: 'Total Topics',      sub: `Across ${stats.totalTopics} version${stats.totalTopics !== 1 ? 's' : ''}`,    trend: `${stats.totalTopics} total`          },
-                    { cls: 's2', icon: '❓',  num: cntQuestions,   label: 'Total Questions',   sub: `Across ${stats.totalTopics} topic${stats.totalTopics !== 1 ? 's' : ''}`,       trend: `${stats.totalQuestions} total`       },
-                    { cls: 's3', icon: '📝',  num: cntAssessments, label: 'Assessments',       sub: `${stats.activeAssessments} active · ${stats.draftAssessments} inactive`,       trend: `↑ ${stats.activeAssessments} active` },
-                    { cls: 's4', icon: '🔗',  num: cntLinks,       label: 'Active Exam Links', sub: `Out of ${allLinks.length} total links`,                                        trend: `${stats.activeLinks} live`           },
+                    { cls: 's1', icon: '🗂',  num: cntTopics,       label: 'Total Topics',       sub: `Across ${stats.totalTopics} version${stats.totalTopics !== 1 ? 's' : ''}`,     trend: `${stats.totalTopics} total`            },
+                    { cls: 's2', icon: '❓',  num: cntQuestions,    label: 'Total Questions',    sub: `Across ${stats.totalTopics} topic${stats.totalTopics !== 1 ? 's' : ''}`,        trend: `${stats.totalQuestions} total`         },
+                    { cls: 's3', icon: '📝',  num: cntAssessments,  label: 'Assessments',        sub: `${stats.activeAssessments} active · ${stats.draftAssessments} inactive`,        trend: `↑ ${stats.activeAssessments} active`   },
+                    { cls: 's4', icon: '🔗',  num: cntLinks,        label: 'Active Exam Links',  sub: `Out of ${allLinks.length} total links`,                                         trend: `${stats.activeLinks} live`             },
+                    { cls: 's5', icon: '🎙',  num: cntInterviews,   label: 'AI Interviews',      sub: `${stats.totalInterviews} total interviews`,                                     trend: `${stats.totalInterviews} total`        },
+                    { cls: 's6', icon: '📡',  num: cntInterviewLinks, label: 'Active Interviews', sub: `Out of ${allInterviewLinks.length} total`,                                      trend: `${stats.activeInterviewLinks} live`     },
                 ].map(s => (
                     <div key={s.label} className={`stat-card ${s.cls}`}>
                         <div className="stat-top">
@@ -223,7 +290,7 @@ const Dashboard: React.FC = () => {
                 ))}
             </div>
 
-            {/* ── Row 2: Recent Assessments + Quick Actions + Active Links ── */}
+            {/* ── Row 2: Recent Assessments + Quick Actions + Recent Interviews ── */}
             <div className="grid-3">
 
                 {/* Recent Assessments */}
@@ -248,17 +315,15 @@ const Dashboard: React.FC = () => {
                                         <th>Assessment</th>
                                         <th>Questions</th>
                                         <th>Duration</th>
-                                        <th>Created</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {recentAssess.map(a => {
-                                        const title   = a.title ?? a.Title ?? 'Untitled';
-                                        const qs      = a.totalQuestions ?? a.TotalQuestions ?? 0;
-                                        const dur     = a.durationMinutes ?? a.DurationMinutes ?? 0;
-                                        const active  = a.isActive ?? a.IsActive ?? false;
-                                        const created = a.createdAt ?? a.CreatedAt;
+                                        const title  = a.title ?? a.Title ?? 'Untitled';
+                                        const qs     = a.totalQuestions ?? a.TotalQuestions ?? 0;
+                                        const dur    = a.durationMinutes ?? a.DurationMinutes ?? 0;
+                                        const active = a.isActive ?? a.IsActive ?? false;
                                         return (
                                             <tr key={a.id}>
                                                 <td>
@@ -267,7 +332,6 @@ const Dashboard: React.FC = () => {
                                                 </td>
                                                 <td>{qs}</td>
                                                 <td>{dur} min</td>
-                                                <td style={{ fontSize: '12px', color: 'var(--muted)' }}>{fmtDateTime(created)}</td>
                                                 <td>
                                                     <span className={`badge ${active ? 'badge-active' : 'badge-draft'}`}>
                                                         <span className="badge-dot" />{active ? 'Active' : 'Draft'}
@@ -290,10 +354,12 @@ const Dashboard: React.FC = () => {
                         <div className="card-header"><div className="card-title">⚡ Quick Actions</div></div>
                         <div className="quick-grid">
                             {[
-                                { icon: '➕', label: 'New Question',   href: '/questions/add'      },
-                                { icon: '🤖', label: 'AI Generate',    href: '/ai-generator'       },
-                                { icon: '📝', label: 'New Assessment', href: '/assessments/create' },
-                                { icon: '🔗', label: 'Create Link',    href: '/assessments'        },
+                                { icon: '➕', label: 'New Question',     href: '/questions/add'      },
+                                { icon: '🤖', label: 'AI Generate',      href: '/ai-generator'       },
+                                { icon: '📝', label: 'New Assessment',  href: '/assessments/create' },
+                                { icon: '🎙', label: 'New Interview',   href: '/interviews'         },
+                                { icon: '🔗', label: 'Exam Links',      href: '/assessments'        },
+                                { icon: '📡', label: 'Interview Links',  href: '/interviews'         },
                             ].map(q => (
                                 <div key={q.label} className="quick-btn" onClick={() => window.location.href = q.href}>
                                     <div className="quick-icon">{q.icon}</div>
@@ -303,41 +369,77 @@ const Dashboard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Active Exam Links */}
+                    {/* Active Links (Exam + Interview tabs) */}
                     <div className="card" style={{ flex: 1 }}>
                         <div className="card-header">
                             <div className="card-title">🔗 Active Links</div>
-                            <span style={{ fontSize: '12px', color: 'var(--green)', fontWeight: 600 }}>{stats.activeLinks} live</span>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                <button 
+                                    className={`btn btn-sm ${linksTab === 'exam' ? 'btn-primary' : 'btn-secondary'}`}
+                                    onClick={() => setLinksTab('exam')}
+                                    style={{ padding: '4px 10px', fontSize: '11px' }}
+                                >
+                                    📝 Exam
+                                </button>
+                                <button 
+                                    className={`btn btn-sm ${linksTab === 'interview' ? 'btn-primary' : 'btn-secondary'}`}
+                                    onClick={() => setLinksTab('interview')}
+                                    style={{ padding: '4px 10px', fontSize: '11px' }}
+                                >
+                                    🎙 Interview
+                                </button>
+                            </div>
                         </div>
                         <div className="activity-list">
                             {loading ? (
                                 <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     {[1,2,3].map(i => <Skeleton key={i} h="52px" r="8px" />)}
                                 </div>
-                            ) : activeExamLinks.length === 0 ? (
-                                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>No active exam links right now.</div>
-                            ) : activeExamLinks.map((link, i) => {
-                                const colors   = ['rgba(255,92,0,.1)', 'rgba(0,87,255,.1)', 'rgba(0,194,113,.1)'];
-                                const expires  = new Date(link.examEndDateTime ?? '');
-                                const daysLeft = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                                const expiring = daysLeft <= 2;
-                                return (
-                                    <div key={link.id} className="link-item">
-                                        <div className="link-icon" style={{ background: colors[i % colors.length] }}>📝</div>
-                                        <div className="link-info">
-                                            <div className="link-title">{link.name || 'Exam Link'}</div>
-                                            <div className="link-meta">{getAssessmentTitle(link.assessmentId ?? '')} · Ends {fmtDate(link.examEndDateTime)}</div>
+                            ) : linksTab === 'exam' ? (
+                                activeExamLinks.length === 0 ? (
+                                    <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>No active exam links right now.</div>
+                                ) : activeExamLinks.map((link, i) => {
+                                    const colors   = ['rgba(255,92,0,.1)', 'rgba(0,87,255,.1)', 'rgba(0,194,113,.1)'];
+                                    const expires  = new Date(link.examEndDateTime ?? '');
+                                    const daysLeft = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                    const expiring = daysLeft <= 2;
+                                    return (
+                                        <div key={link.id} className="link-item">
+                                            <div className="link-icon" style={{ background: colors[i % colors.length] }}>📝</div>
+                                            <div className="link-info">
+                                                <div className="link-title">{link.name || 'Exam Link'}</div>
+                                                <div className="link-meta">{getAssessmentTitle(link.assessmentId ?? '')} · Ends {fmtDate(link.examEndDateTime)}</div>
+                                            </div>
+                                            <div className={`link-time ${expiring ? 'expiring' : ''}`}>{expiring ? '⚠ Expiring' : 'Active'}</div>
                                         </div>
-                                        <div className={`link-time ${expiring ? 'expiring' : ''}`}>{expiring ? '⚠ Expiring' : 'Active'}</div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            ) : (
+                                activeInterviewLinksList.length === 0 ? (
+                                    <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>No active interview links right now.</div>
+                                ) : activeInterviewLinksList.map((link, i) => {
+                                    const colors   = ['rgba(139,92,246,.1)', 'rgba(245,166,35,.1)', 'rgba(0,194,113,.1)'];
+                                    const expires  = new Date(link.EndTime ?? '');
+                                    const daysLeft = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                    const expiring = daysLeft <= 2;
+                                    return (
+                                        <div key={link.Id} className="link-item">
+                                            <div className="link-icon" style={{ background: colors[i % colors.length] }}>🎙</div>
+                                            <div className="link-info">
+                                                <div className="link-title">{link.Name || 'Interview Link'}</div>
+                                                <div className="link-meta">{getInterviewName(link.InterviewId ?? '')} · Ends {fmtDate(link.EndTime)}</div>
+                                            </div>
+                                            <div className={`link-time ${expiring ? 'expiring' : ''}`}>{expiring ? '⚠ Expiring' : 'Active'}</div>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* ── Row 3: Topics + All Links ── */}
+            {/* ── Row 3: Topics + All Links (with tabs) ── */}
             <div className="grid-2">
 
                 {/* Topics with question counts */}
@@ -379,43 +481,85 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* All Exam Links */}
+                {/* All Links (Exam + Interview) */}
                 <div className="card">
                     <div className="card-header">
-                        <div className="card-title">🔗 All Exam Links</div>
-                        <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{allLinks.length} total</span>
+                        <div className="card-title">🔗 All Links</div>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            <button 
+                                className={`btn btn-sm ${linksTab === 'exam' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setLinksTab('exam')}
+                                style={{ padding: '4px 10px', fontSize: '11px' }}
+                            >
+                                📝 Exam ({allLinks.length})
+                            </button>
+                            <button 
+                                className={`btn btn-sm ${linksTab === 'interview' ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setLinksTab('interview')}
+                                style={{ padding: '4px 10px', fontSize: '11px' }}
+                            >
+                                🎙 Interview ({allInterviewLinks.length})
+                            </button>
+                        </div>
                     </div>
                     <div className="activity-list">
                         {loading ? (
                             <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {[1,2,3,4,5].map(i => <Skeleton key={i} h="52px" r="8px" />)}
                             </div>
-                        ) : allLinks.length === 0 ? (
-                            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>
-                                No exam links yet. <a href="/assessments" style={{ color: 'var(--accent2)' }}>Create one →</a>
-                            </div>
-                        ) : allLinks.slice(0, 6).map(link => {
-                            const end        = new Date(link.examEndDateTime ?? '');
-                            const expired    = end < now;
-                            const daysLeft   = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                            const expiring   = !expired && daysLeft <= 2;
-                            const statusText = expired ? 'Expired' : expiring ? '⚠ Expiring' : 'Active';
-                            const statusCls  = expired ? 'badge-draft' : 'badge-active';
-                            return (
-                                <div key={link.id} className="link-item">
-                                    <div className="link-icon" style={{ background: link.isCredentialBased ? 'rgba(139,92,246,.1)' : 'rgba(0,87,255,.08)' }}>
-                                        {link.isCredentialBased ? '🔐' : '🔓'}
-                                    </div>
-                                    <div className="link-info">
-                                        <div className="link-title">{link.name || 'Exam Link'}</div>
-                                        <div className="link-meta">{getAssessmentTitle(link.assessmentId ?? '')} · {fmtDate(link.examStartDateTime)} → {fmtDate(link.examEndDateTime)}</div>
-                                    </div>
-                                    <span className={`badge ${statusCls}`} style={{ fontSize: '11px', padding: '3px 9px' }}>
-                                        <span className="badge-dot" />{statusText}
-                                    </span>
+                        ) : linksTab === 'exam' ? (
+                            allLinks.length === 0 ? (
+                                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>
+                                    No exam links yet. <a href="/assessments" style={{ color: 'var(--accent2)' }}>Create one →</a>
                                 </div>
-                            );
-                        })}
+                            ) : allLinks.slice(0, 6).map(link => {
+                                const end        = new Date(link.examEndDateTime ?? '');
+                                const expired    = end < now;
+                                const daysLeft   = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                const expiring   = !expired && daysLeft <= 2;
+                                const statusText = expired ? 'Expired' : expiring ? '⚠ Expiring' : 'Active';
+                                const statusCls  = expired ? 'badge-draft' : 'badge-active';
+                                return (
+                                    <div key={link.id} className="link-item">
+                                        <div className="link-icon" style={{ background: link.isCredentialBased ? 'rgba(139,92,246,.1)' : 'rgba(0,87,255,.08)' }}>
+                                            {link.isCredentialBased ? '🔐' : '📝'}
+                                        </div>
+                                        <div className="link-info">
+                                            <div className="link-title">{link.name || 'Exam Link'}</div>
+                                            <div className="link-meta">{getAssessmentTitle(link.assessmentId ?? '')} · {fmtDate(link.examStartDateTime)} → {fmtDate(link.examEndDateTime)}</div>
+                                        </div>
+                                        <span className={`badge ${statusCls}`} style={{ fontSize: '11px', padding: '3px 9px' }}>
+                                            <span className="badge-dot" />{statusText}
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            allInterviewLinks.length === 0 ? (
+                                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>
+                                    No interview links yet. <a href="/interviews" style={{ color: 'var(--accent2)' }}>Create one →</a>
+                                </div>
+                            ) : allInterviewLinks.slice(0, 6).map(link => {
+                                const end        = new Date(link.EndTime ?? '');
+                                const expired    = end < now;
+                                const daysLeft   = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                                const expiring   = !expired && daysLeft <= 2;
+                                const statusText = expired ? 'Expired' : expiring ? '⚠ Expiring' : 'Active';
+                                const statusCls  = expired ? 'badge-draft' : 'badge-active';
+                                return (
+                                    <div key={link.Id} className="link-item">
+                                        <div className="link-icon" style={{ background: 'rgba(139,92,246,.1)' }}>🎙</div>
+                                        <div className="link-info">
+                                            <div className="link-title">{link.Name || 'Interview Link'}</div>
+                                            <div className="link-meta">{getInterviewName(link.InterviewId ?? '')} · {fmtDate(link.StartTime)} → {fmtDate(link.EndTime)}</div>
+                                        </div>
+                                        <span className={`badge ${statusCls}`} style={{ fontSize: '11px', padding: '3px 9px' }}>
+                                            <span className="badge-dot" />{statusText}
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </div>
             </div>

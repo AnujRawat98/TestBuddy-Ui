@@ -4,7 +4,7 @@
 /* ─── STAT CARDS ───────────────────────────────────────────── */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 14px;
     margin-bottom: 20px;
     animation: fadeUp .4s ease both .1s;
@@ -27,9 +27,11 @@
 }
 
 .stat-card:nth-child(1) { animation: fadeUp .4s ease both .08s; }
-.stat-card:nth-child(2) { animation: fadeUp .4s ease both .12s; }
-.stat-card:nth-child(3) { animation: fadeUp .4s ease both .16s; }
-.stat-card:nth-child(4) { animation: fadeUp .4s ease both .20s; }
+.stat-card:nth-child(2) { animation: fadeUp .4s ease both .10s; }
+.stat-card:nth-child(3) { animation: fadeUp .4s ease both .12s; }
+.stat-card:nth-child(4) { animation: fadeUp .4s ease both .14s; }
+.stat-card:nth-child(5) { animation: fadeUp .4s ease both .16s; }
+.stat-card:nth-child(6) { animation: fadeUp .4s ease both .18s; }
 
 /* colored top border */
 .stat-card::before {
@@ -44,6 +46,8 @@
 .stat-card.s2::before { background: var(--accent2); }
 .stat-card.s3::before { background: var(--green); }
 .stat-card.s4::before { background: var(--yellow); }
+.stat-card.s5::before { background: #8b5cf6; }
+.stat-card.s6::before { background: #ec4899; }
 
 .stat-card::after {
     content: attr(data-bg);
@@ -78,6 +82,8 @@
 .s2 .stat-icon-wrap { background: rgba(0, 87, 255, .1); }
 .s3 .stat-icon-wrap { background: rgba(0, 194, 113, .1); }
 .s4 .stat-icon-wrap { background: rgba(245, 166, 35, .1); }
+.s5 .stat-icon-wrap { background: rgba(139, 92, 246, .1); }
+.s6 .stat-icon-wrap { background: rgba(236, 72, 153, .1); }
 
 .stat-trend {
     display: inline-flex;
@@ -436,5 +442,6 @@ tbody tr:hover td { background: #fafaf7; }
     to   { opacity: 1; transform: translateY(0);    }
 }
 
-@media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1400px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1000px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px)  { .stats-grid { grid-template-columns: 1fr; }           }

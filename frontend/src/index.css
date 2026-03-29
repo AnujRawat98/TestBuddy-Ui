@@ -79,3 +79,22 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0,0,0,0.25);
 }
+
+/* GLOBAL MODAL OVERLAY - Ensures full screen blur */
+.modal-overlay,
+.modal-overlay.open {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(13, 17, 23, .65) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}

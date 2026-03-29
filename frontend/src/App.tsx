@@ -12,6 +12,12 @@ import AssessmentReport from './pages/Reports/Assessmentreport';
 import CreateLink from './pages/CreateLink/CreateLink';
 import StudentEntry from './pages/StudentEntry/StudentEntry';
 import ExamScreen from './pages/ExamScreen/ExamScreen';
+import InterviewList from './pages/Interviews/InterviewList';
+import InterviewReport from './pages/Interviews/InterviewReport';
+import InterviewCandidateLogin from './pages/Interviews/InterviewCandidateLogin';
+import InterviewSystemCheck from './pages/Interviews/InterviewSystemCheck';
+import InterviewLive from './pages/Interviews/InterviewLive';
+import InterviewComplete from './pages/Interviews/InterviewComplete';
 
 function App() {
   return (
@@ -28,13 +34,21 @@ function App() {
           <Route path="/ai-generator"                       element={<AIGenerator />} />
           <Route path="/assessments"                        element={<Assessments />} />
           <Route path="/assessments/create"                 element={<CreateAssessment />} />
-          <Route path="/assessments/:assessmentId/report"   element={<AssessmentReport />} />  {/* ← FIXED */}
+          <Route path="/assessments/:assessmentId/report"   element={<AssessmentReport />} />
           <Route path="/links/create"                       element={<CreateLink />} />
+          <Route path="/interviews"                         element={<InterviewList />} />
+          <Route path="/interviews/reports/:candidateId"    element={<InterviewReport />} />
         </Route>
 
         {/* Student Routes */}
         <Route path="/exam-entry/:linkId"   element={<StudentEntry />} />
         <Route path="/exam/:attemptId"      element={<ExamScreen />} />
+
+        {/* Interview Candidate Routes */}
+        <Route path="/interview/:linkId"         element={<InterviewCandidateLogin />} />
+        <Route path="/interview-system-check/:candidateId" element={<InterviewSystemCheck />} />
+        <Route path="/interview-live/:candidateId"         element={<InterviewLive />} />
+        <Route path="/interview-complete"                  element={<InterviewComplete />} />
       </Routes>
     </Router>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { topicsApi, questionsApi, aiQuestionsApi } from '../../services/api';
+import { topicsApi, questionsApi } from '../../services/api';
 import { compressImage } from '../../utils/compressImage';
 import './AddQuestions.css';
 import RichTextEditor from '../../components/RichTextEditor/RichTextEditor';
@@ -41,13 +41,6 @@ const TYPE_IDS: Record<string, string> = {
     'Multi-Select': 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB',
     'Text':         'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC',
     'Image':        'DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD',
-};
-
-const TYPE_API_MAP: Record<string, string> = {
-    'MCQ':          'SingleSelect',
-    'Multi-Select': 'MultiSelect',
-    'Text':         'OpenText',
-    'Image':        'ImageSelect',
 };
 
 const EMPTY_IMAGE_OPT = (): ImageOption => ({ label: '', imageUrl: '', isCorrect: false });
@@ -127,21 +120,12 @@ const AddQuestions: React.FC = () => {
     const [realTopics,     setRealTopics]     = useState<any[]>([]);
     const [isSaving,       setIsSaving]       = useState(false);
     const [toast,          setToast]          = useState({ show: false, msg: '', type: 'success' });
-    const [importedIds,    setImportedIds]    = useState<Set<string>>(new Set());
 
     const fileRefsMap = useRef<Record<number, (HTMLInputElement | null)[]>>({});
     const getFileRefs = (qId: number) => {
         if (!fileRefsMap.current[qId]) fileRefsMap.current[qId] = [];
         return fileRefsMap.current[qId];
     };
-
-    // AI state (kept minimal — full generation moved to /ai-generator page)
-    const [aiTopic,      setAiTopic]      = useState('');
-    const [aiLevel,      setAiLevel]      = useState('');
-    const [aiType,       setAiType]       = useState('MCQ');
-    const [aiCount,      setAiCount]      = useState(3);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [aiResults,    setAiResults]    = useState<any[]>([]);
 
     useEffect(() => {
         topicsApi.getAll().then(res => {
@@ -318,76 +302,6 @@ const AddQuestions: React.FC = () => {
         );
     };
 
-    // ── AI Generation — calls real Gemini API ─────────────────────────────────
-    const runGenerate = async (
-        topic: string, level: string, count: number,
-        setResults: (r: any[]) => void,
-        setGenerating: (b: boolean) => void,
-        type: string = 'MCQ',
-    ) => {
-        if (!topic) { showToast('Please select a topic.', 'error'); return; }
-        
-        if (type === 'Image') {
-            showToast('AI generation for Image Select is not supported. Please use Single Select, Multi-Select, or Text.', 'error');
-            return;
-        }
-        
-        setGenerating(true);
-
-        const topicName = realTopics.find(t => (t.topicId ?? t.id) === topic)?.name ?? 'General';
-        const apiType   = TYPE_API_MAP[type] ?? 'SingleSelect';
-        const apiLevel  = level || 'Mixed';
-
-        try {
-            const res = await aiQuestionsApi.generate({
-                topic:         topicName,
-                level:         apiLevel,
-                questionType:  apiType,
-                questionCount: count,
-            });
-
-            const raw: any[] = Array.isArray(res.data) ? res.data : [];
-
-            const mapped = raw.map((q: any, i: number) => {
-                const opts: string[] = (q.options ?? []).map((o: any) => o.text ?? o.Text ?? '');
-                const correctIdx     = (q.options ?? []).findIndex((o: any) => o.isCorrect ?? o.IsCorrect ?? false);
-                return {
-                    id:           Date.now() + i,
-                    text:         q.questionText ?? q.QuestionText ?? '',
-                    type,
-                    level:        level || 'Easy',
-                    topic,
-                    status:       'Active',
-                    options:      opts,
-                    correct:      correctIdx >= 0 ? correctIdx : 0,
-                    textAnswer:   q.textAnswer ?? q.TextAnswer ?? '',
-                    imageOptions: [],
-                };
-            });
-
-            setResults(mapped);
-            if (mapped.length > 0) showToast(`${mapped.length} questions generated!`);
-            else showToast('AI returned no questions. Try again.', 'error');
-
-        } catch (err: any) {
-            const msg = err?.response?.data?.message ?? err?.message ?? 'AI generation failed';
-            showToast(msg.toLowerCase().includes('quota') ? 'AI quota exceeded — get a new API key' : 'AI generation failed', 'error');
-        } finally {
-            setGenerating(false);
-        }
-    };
-
-    const handleGenerateAI = () => runGenerate(aiTopic, aiLevel, aiCount, setAiResults, setIsGenerating, aiType || 'MCQ');
-
-    const importQuestion = (q: any, idx: number, key?: string) => {
-        const k = key || `${q.id}-${idx}`;
-        if (importedIds.has(k)) { showToast('Already added.', 'info'); return; }
-        setImportedIds(prev => new Set(prev).add(k));
-        handleAddQuestion({ ...q, imageOptions: q.imageOptions ?? [] });
-        setActiveTab('manual');
-        showToast('Question added to builder!');
-    };
-
     const saveAll = async (isDraft = false) => {
         for (const [idx, q] of questions.entries()) {
             if (!isDraft) {
@@ -456,35 +370,6 @@ const AddQuestions: React.FC = () => {
             }
         }
     };
-
-    const AiResultList = ({ results, generating, keyPrefix }: { results: any[], generating: boolean, keyPrefix: string }) => (
-        <>
-            {generating && (
-                <div className="ai-loading visible" style={{ marginTop: '14px' }}>
-                    <div className="ai-loading-bar"><div className="ai-loading-fill" /></div>
-                    <div className="ai-loading-text">Generating questions with AI…</div>
-                </div>
-            )}
-            {results.length > 0 && !generating && (
-                <div className="ai-results" style={{ marginTop: '12px' }}>
-                    {results.map((q, i) => {
-                        const key  = `${keyPrefix}-${q.id}-${i}`;
-                        const done = importedIds.has(key);
-                        return (
-                            <div key={i} className={`ai-result-card ${done ? 'imported' : ''}`} onClick={() => importQuestion(q, i, key)}>
-                                <div className="ai-result-q">{q.text}</div>
-                                <div className="ai-result-meta">
-                                    <span className="ai-result-badge" style={{ background: 'rgba(0,87,255,.25)',  color: '#93c5fd' }}>{q.type}</span>
-                                    <span className="ai-result-badge" style={{ background: 'rgba(0,194,113,.2)', color: '#6ee7b7' }}>{q.level}</span>
-                                    <span className="ai-result-import">{done ? '✓ Added' : '+ Add to Builder'}</span>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-        </>
-    );
 
     return (
         <div className="add-questions-container">

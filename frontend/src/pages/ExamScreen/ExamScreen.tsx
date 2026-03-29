@@ -51,8 +51,8 @@ const ExamScreen: React.FC = () => {
     const [savingId,      setSavingId]      = useState<string | null>(null);
     const [screenRecBanner,  setScreenRecBanner]  = useState(false);
     const [screenRecording,  setScreenRecording]  = useState(false);
-    const [isSubmitting,     setIsSubmitting]     = useState(false);
-    const [submitStep,       setSubmitStep]       = useState('');
+    const [isSubmitting]     = useState(false);
+    const [submitStep]       = useState('');
     const [toast, setToast] = useState({ show: false, msg: '', type: 'info' });
 
     const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {

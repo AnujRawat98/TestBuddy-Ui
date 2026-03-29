@@ -155,4 +155,20 @@ export const proctoringApi = {
 
 export const attemptsApi = assessmentsApi;
 
+// ─── INTERVIEWS ───────────────────────────────────────────────────────────────
+export const interviewsApi = {
+    getAll: () => api.get('/interviews'),
+    create: (data: any) => api.post('/interviews', data),
+    getById: (id: string) => api.get(`/interviews/${id}`),
+};
+
+export const interviewLinksApi = {
+    getByInterview: (interviewId: string) => api.get(`/interviews/${interviewId}/links`),
+    getById: (linkId: string) => api.get(`/interviews/links/${linkId}`),
+};
+
+export const interviewCandidatesApi = {
+    getByLink: (linkId: string) => api.get('/interviews/candidates', { params: { linkId } }),
+};
+
 export default api;

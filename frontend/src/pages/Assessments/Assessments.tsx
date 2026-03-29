@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { assessmentsApi, assessmentLinksApi } from '../../services/api';
 import './Assessments.css';
+
+function ModalPortal({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) {
+    return ReactDOM.createPortal(
+        <div className="modal-overlay open" onClick={onClose}>
+            <div onClick={e => e.stopPropagation()}>
+                {children}
+            </div>
+        </div>,
+        document.body
+    );
+}
 
 interface AssessmentLink {
     id:                string;
@@ -332,7 +344,7 @@ const Assessments: React.FC = () => {
 
             {/* ── View Links Modal ─────────────────────────────────────────────── */}
             {viewModal.open && (
-                <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setViewModal(p => ({ ...p, open: false })); }}>
+                <ModalPortal onClose={() => setViewModal(p => ({ ...p, open: false }))}>
                     <div className="modal" style={{ maxWidth: '820px', width: '96vw', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
                         <div className="modal-header">
                             <div>
@@ -419,12 +431,12 @@ const Assessments: React.FC = () => {
                             }}>🔗 Create New Link</button>
                         </div>
                     </div>
-                </div>
+                </ModalPortal>
             )}
 
             {/* ── QR Modal ─────────────────────────────────────────────────────── */}
             {qrModal.open && (
-                <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setQrModal(p => ({ ...p, open: false })); }}>
+                <ModalPortal onClose={() => setQrModal(p => ({ ...p, open: false }))}>
                     <div className="modal" style={{ maxWidth: '360px', width: '90vw' }}>
                         <div className="modal-header">
                             <div className="modal-title">QR Code</div>
@@ -443,7 +455,7 @@ const Assessments: React.FC = () => {
                             <button className="btn btn-primary btn-sm"   style={{ flex: 1, justifyContent: 'center' }} onClick={() => { navigator.clipboard.writeText(qrModal.url); showToast('Link copied!'); }}>📋 Copy</button>
                         </div>
                     </div>
-                </div>
+                </ModalPortal>
             )}
 
             {/* ── Toast ── */}

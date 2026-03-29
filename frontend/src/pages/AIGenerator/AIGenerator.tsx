@@ -45,7 +45,6 @@ const TYPE_DB: Record<string, string> = {
     'Single Select': 'Single Select',
     'Multi Select':  'Multi Select',
     'Open Text':     'Open Text',
-    'Image Select':  'Image Select',
 };
 
 // ── Seeded GUIDs from TestBuddyDbContext.OnModelCreating ─────────────────────
@@ -60,10 +59,9 @@ const TYPE_GUID_FALLBACK: Record<string, string> = {
     'Single Select': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     'Multi Select':  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     'Open Text':     'cccccccc-cccc-cccc-cccc-cccccccccccc',
-    'Image Select':  'dddddddd-dddd-dddd-dddd-dddddddddddd',
 };
 const LEVEL_COLORS  = ['#16a34a','#f59e0b','#ef4444'];
-const TYPE_COLORS   = ['#2563eb','#7c3aed','#0891b2','#d97706'];
+const TYPE_COLORS   = ['#2563eb','#7c3aed','#0891b2'];
 
 // ─── Distribute total count by percentages ────────────────────────────────────
 function distribute(total: number, slices: DistSlice[]): number[] {
@@ -128,7 +126,6 @@ const AIGenerator: React.FC = () => {
         { key: 'Single Select', apiKey: 'SingleSelect', pct: 60, color: TYPE_COLORS[0] },
         { key: 'Multi Select',  apiKey: 'MultiSelect',  pct: 20, color: TYPE_COLORS[1] },
         { key: 'Open Text',     apiKey: 'OpenText',     pct: 20, color: TYPE_COLORS[2] },
-        { key: 'Image Select',  apiKey: 'ImageSelect',  pct: 0,  color: TYPE_COLORS[3], disabled: true },
     ]);
 
     // ── Lookup data ───────────────────────────────────────────────────────────
@@ -314,17 +311,23 @@ const AIGenerator: React.FC = () => {
                         saved: false,
                     });
                 });
-            } catch {
+            } catch (err: any) {
+                const errorMsg = err?.response?.data?.message 
+                    || err?.response?.data?.inner
+                    || err?.response?.data?.detail
+                    || err?.message 
+                    || 'Unknown error';
+                
                 allQuestions.push({
                     id:        idCounter++,
-                    text:      `⚠ Failed to generate ${job.count} ${job.level} ${job.type} questions`,
+                    text:      `⚠ ${errorMsg}`,
                     type:      job.type,
                     level:     job.level,
                     topicName,
                     topicId:   finalTopicId,
                     options:   [],
                     saved:     false,
-                    error:     'generation_failed',
+                    error:     errorMsg,
                 });
             }
         }
@@ -333,9 +336,15 @@ const AIGenerator: React.FC = () => {
 
         setTimeout(() => {
             const validQs = allQuestions.filter(q => !q.error);
+            const failedQs = allQuestions.filter(q => q.error);
             setQuestions(allQuestions);
             setViewState('results');
-            showToast(`${validQs.length} questions generated successfully!`);
+            
+            if (failedQs.length > 0) {
+                showToast(`${validQs.length} questions generated. ${failedQs.length} failed. See error details.`, 'error');
+            } else {
+                showToast(`${validQs.length} questions generated successfully!`);
+            }
         }, 400);
     };
 
@@ -387,8 +396,7 @@ const AIGenerator: React.FC = () => {
         l === 'Easy' ? 'badge-easy' : l === 'Medium' ? 'badge-medium' : 'badge-hard';
     const typeBadge = (t: string) =>
         t.includes('Multi') ? 'badge-multi' :
-        t.includes('Text')  ? 'badge-text'  :
-        t.includes('Image') ? 'badge-dbms'  : 'badge-mcq';
+        t.includes('Text')  ? 'badge-text'  : 'badge-mcq';
     const isText = (t: string) => t === 'Open Text';
 
     return (
@@ -559,18 +567,15 @@ const AIGenerator: React.FC = () => {
                         <div className="dist-presets">
                             <span className="preset-label">Presets:</span>
                             {[
-                                { label: 'MCQ Only',    vals: [100,0,0,0] },
-                                { label: 'Mixed',       vals: [50,25,25,0] },
-                                { label: 'No OpenText', vals: [60,20,0,0] },
+                                { label: 'MCQ Only',    vals: [100,0,0] },
+                                { label: 'Mixed',       vals: [60,25,15] },
+                                { label: 'No OpenText', vals: [70,30,0] },
                             ].map(p => (
                                 <button key={p.label} className="preset-btn"
                                     onClick={() => setTypeDist(prev => prev.map((s, i) => ({ ...s, pct: p.vals[i] })))}>
                                     {p.label}
                                 </button>
                             ))}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#999', marginTop: '8px', padding: '8px', background: '#f5f5f5', borderRadius: '6px' }}>
-                            ⚠️ Image Select is disabled (requires vision-capable AI models)
                         </div>
                     </div>
                 </div>

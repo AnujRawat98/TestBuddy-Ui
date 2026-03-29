@@ -290,12 +290,6 @@ const CreateLink: React.FC = () => {
     const [compMsg,     setCompMsg]     = useState('Thank you for completing the assessment. Your responses have been recorded. Results will be reviewed and shared within 24 hours.');
     const [generatedLink, setGeneratedLink] = useState<string | null>(null);
 
-    const [sessionLinks, setSessionLinks] = useState<{
-        name: string; url: string; accessCode: string;
-        isCredential: boolean; candidateCount: number;
-        startDate: string; endDate: string;
-    }[]>([]);
-
     const [emailInput,    setEmailInput]    = useState('');
     const [pendingEmails, setPendingEmails] = useState<string[]>([]);
     const [addedEmails,   setAddedEmails]   = useState<string[]>([]);
@@ -408,11 +402,6 @@ const CreateLink: React.FC = () => {
             const fullUrl = `${window.location.origin}/exam-entry/${linkId}`;
             setGeneratedLink(fullUrl);
             setAddedEmails(opts.credAccess ? [...pendingEmails] : []);
-            setSessionLinks(prev => [{
-                name: linkName.trim(), url: fullUrl, accessCode: accessCode.trim(),
-                isCredential: opts.credAccess, candidateCount: opts.credAccess ? pendingEmails.length : 0,
-                startDate, endDate,
-            }, ...prev]);
             setPendingEmails([]);
             setEmailInput('');
             

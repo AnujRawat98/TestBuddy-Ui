@@ -92,6 +92,12 @@ const AdminLayout: React.FC = () => {
                     <span className="nav-label">Interviews</span>
                 </NavLink>
 
+                {/* ── Internal Job Postings ── */}
+                <NavLink to="/ijp" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                    <span className="nav-icon">💼</span>
+                    <span className="nav-label">Job Postings</span>
+                </NavLink>
+
                 <div className="sidebar-section">System</div>
 
                 <a className="nav-item" href="#">

@@ -4,17 +4,44 @@ import api from '../../services/api';
 import './Interviews.css';
 
 export default function InterviewCandidateLogin() {
-  const { linkId } = useParams<{ linkId: string }>();
+  const { linkId, token } = useParams<{ linkId: string; token: string }>();
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
   const [accessCode, setAccessCode] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [autoLoggingIn, setAutoLoggingIn] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    if (token) {
+      loginWithToken(token);
+    }
+  }, [token]);
+
+  const loginWithToken = async (candidateToken: string) => {
+    setError('');
+    setAutoLoggingIn(true);
+    setLoading(true);
+
+    try {
+      const res = await api.post('/interview-candidates/login-by-token', {
+        token: candidateToken,
+      });
+      
+      sessionStorage.setItem('interviewCandidate', JSON.stringify(res.data));
+      sessionStorage.setItem('interviewLinkId', res.data.linkId);
+      
+      navigate(`/interview-system-check/${res.data.candidateId}`);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid interview link');
+      setAutoLoggingIn(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!mounted) {
     return (
@@ -52,6 +79,42 @@ export default function InterviewCandidateLogin() {
       setLoading(false);
     }
   };
+
+  if (autoLoggingIn) {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <div className="login-header">
+            <div className="login-icon">🎙️</div>
+            <h1 className="login-title">AI Interview</h1>
+            <p className="login-subtitle">
+              {loading ? 'Verifying your link...' : error || 'Please wait...'}
+            </p>
+          </div>
+          
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <div style={{ 
+                width: '40px', 
+                height: '40px', 
+                margin: '0 auto', 
+                border: '3px solid #e0e0e0', 
+                borderTop: '3px solid var(--accent)', 
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+            </div>
+          )}
+          
+          {error && (
+            <div className="login-error" style={{ textAlign: 'center' }}>
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-page">

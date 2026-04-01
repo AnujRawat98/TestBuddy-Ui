@@ -18,6 +18,8 @@ import InterviewCandidateLogin from './pages/Interviews/InterviewCandidateLogin'
 import InterviewSystemCheck from './pages/Interviews/InterviewSystemCheck';
 import InterviewLive from './pages/Interviews/InterviewLive';
 import InterviewComplete from './pages/Interviews/InterviewComplete';
+import IJPList from './pages/IJP/IJPList';
+import IJPDetail from './pages/IJP/IJPDetail';
 
 function App() {
   return (
@@ -38,6 +40,8 @@ function App() {
           <Route path="/links/create"                       element={<CreateLink />} />
           <Route path="/interviews"                         element={<InterviewList />} />
           <Route path="/interviews/reports/:candidateId"    element={<InterviewReport />} />
+          <Route path="/ijp"                               element={<IJPList />} />
+          <Route path="/ijp/:id"                           element={<IJPDetail />} />
         </Route>
 
         {/* Student Routes */}
@@ -45,6 +49,7 @@ function App() {
         <Route path="/exam/:attemptId"      element={<ExamScreen />} />
 
         {/* Interview Candidate Routes */}
+        <Route path="/interview/c/:token"        element={<InterviewCandidateLogin />} />
         <Route path="/interview/:linkId"         element={<InterviewCandidateLogin />} />
         <Route path="/interview-system-check/:candidateId" element={<InterviewSystemCheck />} />
         <Route path="/interview-live/:candidateId"         element={<InterviewLive />} />

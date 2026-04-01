@@ -30,29 +30,11 @@ export default function InterviewLive() {
   const audioQueueRef = useRef<{ data: string; mimeType: string }[]>([]);
   const isPlayingRef = useRef(false);
   const currentGenerationRef = useRef(0);
+  const playNextAudioChunkRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    initInterview();
-    
-    return () => {
-      if (connection) {
-        connection.stop();
-      }
-      if (micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach(t => t.stop());
-      }
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setElapsedTime(t => t + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const addTranscript = (speaker: 'assistant' | 'candidate', text: string) => {
+    setTranscripts(prev => [...prev, { speaker, text, timestamp: new Date() }]);
+  };
 
   const playNextAudioChunk = useCallback(() => {
     if (audioQueueRef.current.length === 0 || isPlayingRef.current) {
@@ -75,10 +57,12 @@ export default function InterviewLive() {
     audio.onended = () => {
       URL.revokeObjectURL(url);
       isPlayingRef.current = false;
-      playNextAudioChunk();
+      playNextAudioChunkRef.current?.();
     };
     audio.play().catch(console.error);
   }, []);
+
+  playNextAudioChunkRef.current = playNextAudioChunk;
 
   const initInterview = async () => {
     try {
@@ -160,14 +144,6 @@ export default function InterviewLive() {
     } catch (err: any) {
       setError(err.message || 'Failed to initialize interview');
     }
-  };
-
-  const addTranscript = (speaker: 'assistant' | 'candidate', text: string) => {
-    setTranscripts(prev => [...prev, {
-      speaker,
-      text,
-      timestamp: new Date(),
-    }]);
   };
 
   const initMicrophone = async () => {
@@ -281,6 +257,29 @@ export default function InterviewLive() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  useEffect(() => {
+    initInterview();
+    
+    return () => {
+      if (connection) {
+        connection.stop();
+      }
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach(t => t.stop());
+      }
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedTime(t => t + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="live-interview-page">

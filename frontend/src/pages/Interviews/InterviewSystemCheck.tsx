@@ -16,45 +16,6 @@ export default function InterviewSystemCheck() {
   const animationRef = useRef<number | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
 
-  useEffect(() => {
-    const stored = sessionStorage.getItem('interviewCandidate');
-    if (stored) {
-      setCandidate(JSON.parse(stored));
-    }
-
-    checkMicrophone();
-    checkNetwork();
-
-    return () => {
-      if (micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach(t => t.stop());
-      }
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, []);
-
-  const checkMicrophone = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      micStreamRef.current = stream;
-      setMicPermission('granted');
-      
-      audioContextRef.current = new AudioContext();
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 256;
-      source.connect(analyserRef.current);
-
-      detectAudio();
-      setMicWorking(true);
-    } catch (err) {
-      setMicPermission('denied');
-      setMicWorking(false);
-    }
-  };
-
   const detectAudio = () => {
     if (!analyserRef.current) return;
 
@@ -72,6 +33,26 @@ export default function InterviewSystemCheck() {
     };
     
     check();
+  };
+
+  const checkMicrophone = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      setMicPermission('granted');
+      
+      audioContextRef.current = new AudioContext();
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      analyserRef.current.fftSize = 256;
+      source.connect(analyserRef.current);
+
+      detectAudio();
+      setMicWorking(true);
+    } catch {
+      setMicPermission('denied');
+      setMicWorking(false);
+    }
   };
 
   const checkNetwork = () => {
@@ -100,6 +81,25 @@ export default function InterviewSystemCheck() {
       setSpeakerWorking(true);
     }, 500);
   };
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('interviewCandidate');
+    if (stored) {
+      setCandidate(JSON.parse(stored));
+    }
+
+    checkMicrophone();
+    checkNetwork();
+
+    return () => {
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach(t => t.stop());
+      }
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
 
   const handleStartInterview = async () => {
     if (micStreamRef.current) {

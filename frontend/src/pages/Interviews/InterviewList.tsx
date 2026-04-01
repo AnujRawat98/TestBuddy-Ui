@@ -48,13 +48,29 @@ interface Interview {
   isActive: boolean;
   createdAt: string;
   topics: TopicInfo[];
+  ijpName?: string;
+  ijpConfigId?: string;
+  welcomeMessage?: string;
+  closingMessage?: string;
+  boundaries?: string;
+  companyPolicies?: string;
 }
 
 interface CandidateInfo {
   id?: string;
+  interviewLinkId?: string;
   email: string;
   candidateName: string;
+  phoneNumber?: string;
+  whatsAppNumber?: string;
   accessCode?: string;
+  interviewToken?: string;
+  resumePath?: string;
+  startTime: string;
+  endTime: string;
+  bufferStartMinutes?: number;
+  bufferEndMinutes?: number;
+  rescheduleCount?: number;
   status?: string;
   score?: number;
   completedAt?: string;
@@ -65,23 +81,46 @@ interface InterviewLink {
   interviewId: string;
   interviewName: string;
   name: string;
-  startTime: string;
-  endTime: string;
   instructions: string;
   isActive: boolean;
   totalCandidates: number;
   completedCandidates: number;
   createdAt: string;
+  welcomeMessage?: string;
+  closingMessage?: string;
   candidates?: CandidateInfo[];
 }
 
 const getLinkStatus = (link: InterviewLink) => {
   const now = new Date();
-  const start = new Date(link.startTime);
-  const end = new Date(link.endTime);
-  if (now < start) return 'scheduled';
-  if (now > end) return 'expired';
-  return 'active';
+  
+  if (!link.candidates || link.candidates.length === 0) {
+    return 'scheduled';
+  }
+  
+  const hasScheduled = link.candidates?.some(c => {
+    if (!c.startTime) return false;
+    const start = new Date(c.startTime + 'Z');
+    return start > now;
+  });
+  
+  const hasActive = link.candidates?.some(c => {
+    if (!c.startTime || !c.endTime) return false;
+    const start = new Date(c.startTime + 'Z');
+    const end = new Date(c.endTime + 'Z');
+    return now >= start && now <= end;
+  });
+  
+  const hasExpired = link.candidates?.every(c => {
+    if (!c.endTime) return false;
+    const end = new Date(c.endTime + 'Z');
+    return end < now;
+  });
+  
+  if (hasExpired && !hasActive && !hasScheduled) return 'expired';
+  if (hasScheduled && !hasActive) return 'scheduled';
+  if (hasActive) return 'active';
+  return 'scheduled';
 };
 
 const getCandidateStatusColor = (status: string) => {
@@ -93,23 +132,27 @@ const getCandidateStatusColor = (status: string) => {
   }
 };
 
-const getScoreColor = (score: number) => {
-  if (score >= 80) return 'var(--green)';
-  if (score >= 60) return 'var(--yellow)';
-  return 'var(--red)';
-};
-
-const fmtDT = (s: string) => !s ? '—' : new Date(s).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+const fmtDT = (s: string) => !s ? '—' : new Date(s + 'Z').toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 interface BulkUploadModalProps {
   onClose: () => void;
-  onUpload: (candidates: { email: string; candidateName: string }[]) => Promise<void>;
+  onUpload: (candidates: {
+    email: string;
+    candidateName: string;
+    phoneNumber: string;
+    whatsAppNumber: string;
+  }[]) => Promise<void>;
   linkName: string;
 }
 
 function InterviewBulkUploadModal({ onClose, onUpload, linkName }: BulkUploadModalProps) {
   const [step, setStep] = useState<'initial' | 'preview' | 'uploading' | 'success'>('initial');
-  const [candidates, setCandidates] = useState<{ email: string; candidateName: string }[]>([]);
+  const [candidates, setCandidates] = useState<{
+    email: string;
+    candidateName: string;
+    phoneNumber: string;
+    whatsAppNumber: string;
+  }[]>([]);
   const [errors, setErrors] = useState<{ row: number; email: string; name: string; error: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -144,7 +187,7 @@ function InterviewBulkUploadModal({ onClose, onUpload, linkName }: BulkUploadMod
             setLoading(false); return;
           }
 
-          const processedCandidates: { email: string; candidateName: string }[] = [];
+          const processedCandidates: { email: string; candidateName: string; phoneNumber: string; whatsAppNumber: string }[] = [];
           const validationErrors: { row: number; email: string; name: string; error: string }[] = [];
           const emailSet = new Set<string>();
 
@@ -152,6 +195,8 @@ function InterviewBulkUploadModal({ onClose, onUpload, linkName }: BulkUploadMod
             const rowNum = index + 2;
             const nameValue = row.Name || row.name || row.NAME || row['Candidate Name'] || row['Full Name'] || '';
             const emailValue = row.Email || row.email || row.EMAIL || row['Email Address'] || row['email address'] || '';
+            const phoneValue = row.Phone || row.phone || row.PHONE || row['Phone Number'] || row['PhoneNumber'] || row['phone number'] || '';
+            const whatsappValue = row.WhatsApp || row.whatsapp || row.WHATSAPP || row['WhatsApp Number'] || row['WhatsAppNumber'] || row['whatsapp number'] || '';
             
             if (!emailValue) {
               validationErrors.push({ row: rowNum, email: '', name: '', error: 'Email column not found' }); return;
@@ -165,7 +210,12 @@ function InterviewBulkUploadModal({ onClose, onUpload, linkName }: BulkUploadMod
               validationErrors.push({ row: rowNum, email, name: '', error: 'Duplicate email in file' }); return;
             }
             emailSet.add(email);
-            processedCandidates.push({ email, candidateName: String(nameValue).trim() });
+            processedCandidates.push({
+              email,
+              candidateName: String(nameValue).trim(),
+              phoneNumber: String(phoneValue).trim(),
+              whatsAppNumber: String(whatsappValue).trim()
+            });
           });
 
           setCandidates(processedCandidates);
@@ -199,7 +249,7 @@ function InterviewBulkUploadModal({ onClose, onUpload, linkName }: BulkUploadMod
   };
 
   const handleDownloadSample = () => {
-    const csv = 'Name,Email\nJohn Doe,john@example.com\nJane Smith,jane@example.com';
+    const csv = 'Name,Email,Phone,WhatsApp\nJohn Doe,john@example.com,1234567890,1234567890\nJane Smith,jane@example.com,0987654321,0987654321';
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -246,13 +296,13 @@ function InterviewBulkUploadModal({ onClose, onUpload, linkName }: BulkUploadMod
 
               <div style={{ marginTop: '24px', padding: '16px', background: 'var(--surface)', borderRadius: '10px', fontSize: '12px', color: 'var(--muted)', textAlign: 'left' }}>
                 <div style={{ marginBottom: '10px' }}>
-                  <strong>Format:</strong> Excel (.xlsx, .xls) or CSV with <code>Name</code> and <code>Email</code> columns
+                  <strong>Format:</strong> Excel (.xlsx, .xls) or CSV with <code>Name</code>, <code>Email</code>, <code>Phone</code>, <code>WhatsApp</code> columns
                 </div>
                 <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden', marginBottom: '12px', fontFamily: 'monospace' }}>
                   <div style={{ padding: '6px 12px', background: 'rgba(255,92,0,.05)', borderBottom: '1px solid var(--border)', fontSize: '11px', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.5px' }}>
-                    Name,Email
+                    Name,Email,Phone,WhatsApp
                   </div>
-                  {['John Doe,john@example.com', 'Jane Smith,jane@example.com'].map((e, i) => (
+                  {['John Doe,john@example.com,1234567890,1234567890', 'Jane Smith,jane@example.com,0987654321,0987654321'].map((e, i) => (
                     <div key={i} style={{ padding: '5px 12px', borderBottom: i < 1 ? '1px solid var(--border)' : 'none', fontSize: '11px', color: 'var(--ink)' }}>{e}</div>
                   ))}
                 </div>
@@ -293,6 +343,8 @@ function InterviewBulkUploadModal({ onClose, onUpload, linkName }: BulkUploadMod
                       <tr style={{ background: 'var(--surface)' }}>
                         <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>Name</th>
                         <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>Email</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>Phone</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>WhatsApp</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -300,6 +352,8 @@ function InterviewBulkUploadModal({ onClose, onUpload, linkName }: BulkUploadMod
                         <tr key={idx}>
                           <td style={{ padding: '8px 12px', borderBottom: idx < Math.min(5, candidates.length) - 1 ? '1px solid var(--border)' : 'none' }}>{c.candidateName || '—'}</td>
                           <td style={{ padding: '8px 12px', borderBottom: idx < Math.min(5, candidates.length) - 1 ? '1px solid var(--border)' : 'none', fontFamily: 'monospace', fontSize: '11px' }}>{c.email}</td>
+                          <td style={{ padding: '8px 12px', borderBottom: idx < Math.min(5, candidates.length) - 1 ? '1px solid var(--border)' : 'none' }}>{c.phoneNumber || '—'}</td>
+                          <td style={{ padding: '8px 12px', borderBottom: idx < Math.min(5, candidates.length) - 1 ? '1px solid var(--border)' : 'none' }}>{c.whatsAppNumber || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -368,12 +422,45 @@ export default function InterviewList() {
       console.log('Fetching interviews from /interviews');
       const res = await api.get('/interviews');
       console.log('Interviews response:', res.data);
-      setInterviews(res.data);
+      
+      const transformedData = res.data.map((item: any) => ({
+        ...item,
+        topics: item.Topics || []
+      }));
+      setInterviews(transformedData);
       
       const linksMap = new Map<string, InterviewLink[]>();
       for (const interview of res.data) {
         const linksRes = await api.get(`/interviews/${interview.id}/links`);
-        linksMap.set(interview.id, linksRes.data);
+        console.log(`Links for interview ${interview.id}:`, linksRes.data);
+        
+        const transformedLinks = (linksRes.data || []).map((link: any) => {
+          const candidatesArray = link.Candidates || link.candidates || [];
+          return {
+            ...link,
+            candidates: candidatesArray.map((c: any) => ({
+            id: c.id || c.Id,
+            interviewLinkId: c.interviewLinkId || c.InterviewLinkId,
+            email: c.email || c.Email,
+            candidateName: c.candidateName || c.CandidateName,
+            phoneNumber: c.phoneNumber || c.PhoneNumber,
+            whatsAppNumber: c.whatsAppNumber || c.WhatsAppNumber,
+            accessCode: c.accessCode || c.AccessCode,
+            interviewToken: c.interviewToken || c.InterviewToken,
+            resumePath: c.resumePath || c.ResumePath,
+            startTime: c.startTime || c.StartTime,
+            endTime: c.endTime || c.EndTime,
+            bufferStartMinutes: c.bufferStartMinutes ?? c.BufferStartMinutes,
+            bufferEndMinutes: c.bufferEndMinutes ?? c.BufferEndMinutes,
+            rescheduleCount: c.rescheduleCount ?? c.RescheduleCount,
+            status: c.status || c.Status,
+            score: c.score || c.Score,
+            createdAt: c.createdAt || c.CreatedAt
+          }))
+          };
+        });
+        console.log(`Transformed links for ${interview.id}:`, transformedLinks);
+        linksMap.set(interview.id, transformedLinks);
       }
       setLinks(linksMap);
     } catch (err: any) {
@@ -438,7 +525,32 @@ export default function InterviewList() {
     setViewLinksModal({ open: true, interviewId: interview.id, interviewName: interview.name, links: [], loading: true });
     try {
       const res = await api.get(`/interviews/${interview.id}/links`);
-      setViewLinksModal(prev => ({ ...prev, links: res.data, loading: false }));
+      const transformedLinks = (res.data || []).map((link: any) => {
+        const candidatesArray = link.Candidates || link.candidates || [];
+        return {
+          ...link,
+          candidates: candidatesArray.map((c: any) => ({
+            id: c.id || c.Id,
+            interviewLinkId: c.interviewLinkId || c.InterviewLinkId,
+            email: c.email || c.Email,
+            candidateName: c.candidateName || c.CandidateName,
+            phoneNumber: c.phoneNumber || c.PhoneNumber,
+            whatsAppNumber: c.whatsAppNumber || c.WhatsAppNumber,
+            accessCode: c.accessCode || c.AccessCode,
+            interviewToken: c.interviewToken || c.InterviewToken,
+            resumePath: c.resumePath || c.ResumePath,
+            startTime: c.startTime || c.StartTime,
+            endTime: c.endTime || c.EndTime,
+            bufferStartMinutes: c.bufferStartMinutes ?? c.BufferStartMinutes,
+          bufferEndMinutes: c.bufferEndMinutes ?? c.BufferEndMinutes,
+          rescheduleCount: c.rescheduleCount ?? c.RescheduleCount,
+          status: c.status || c.Status,
+          score: c.score || c.Score,
+          createdAt: c.createdAt || c.CreatedAt
+          }))
+        };
+      });
+      setViewLinksModal(prev => ({ ...prev, links: transformedLinks, loading: false }));
     } catch (err) {
       console.error('Failed to fetch links', err);
       setViewLinksModal(prev => ({ ...prev, loading: false }));
@@ -447,14 +559,39 @@ export default function InterviewList() {
 
   const [bulkUploadModal, setBulkUploadModal] = useState<{ open: boolean; linkId: string; linkName: string }>({ open: false, linkId: '', linkName: '' });
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
+  const [rescheduleModal, setRescheduleModal] = useState<{ open: boolean; candidate: CandidateInfo | null }>({ open: false, candidate: null });
 
-  const handleAddCandidates = async (candidates: { email: string; candidateName: string }[]) => {
+  const handleAddCandidates = async (candidates: {
+    email: string;
+    candidateName: string;
+    phoneNumber: string;
+    whatsAppNumber: string;
+  }[]) => {
     try {
+      const now = new Date();
+      const defaultEnd = new Date(now);
+      defaultEnd.setMinutes(defaultEnd.getMinutes() + 60);
+      
+      const formatDateLocal = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
+      
       await api.post('/interviews/links/candidates', {
         linkId: bulkUploadModal.linkId,
         candidates: candidates.map(c => ({
           email: c.email,
           candidateName: c.candidateName || null,
+          phoneNumber: c.phoneNumber || null,
+          whatsAppNumber: c.whatsAppNumber || null,
+          startTime: new Date(formatDateLocal(now)).toISOString(),
+          endTime: new Date(formatDateLocal(defaultEnd)).toISOString(),
+          bufferStartMinutes: 0,
+          bufferEndMinutes: 0,
         })),
       });
       setBulkUploadModal({ open: false, linkId: '', linkName: '' });
@@ -481,51 +618,88 @@ export default function InterviewList() {
     setToast('Link copied!');
     setTimeout(() => setToast(null), 2000);
   };
-  const shareWA = (link: InterviewLink) => {
-    const text = encodeURIComponent(`🎙️ Interview: ${viewLinksModal.interviewName}\n🔗 ${interviewUrl(link.id)}\n🔑 Code: ${link.candidates?.[0]?.accessCode || 'Check email'}\n⏰ ${fmtDT(link.startTime)} → ${fmtDT(link.endTime)}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
-  const shareEmail = (link: InterviewLink) => {
-    const subject = encodeURIComponent(`Interview Invitation: ${viewLinksModal.interviewName}`);
-    const body = encodeURIComponent(`You are invited to an interview.\n\nInterview: ${viewLinksModal.interviewName}\nLink: ${interviewUrl(link.id)}\n\nStart: ${fmtDT(link.startTime)}\nEnd: ${fmtDT(link.endTime)}\n\nPlease use your access code to begin.`);
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
-  };
 
-  const shareWALink = (link: InterviewLink) => {
-    const interview = interviews.find(i => i.id === link.interviewId);
-    const interviewName = interview?.name || 'Interview';
-    const text = encodeURIComponent(`🎙️ Interview: ${interviewName}\n🔗 ${interviewUrl(link.id)}\n🔑 Code: ${link.candidates?.[0]?.accessCode || 'Check email'}\n⏰ ${fmtDT(link.startTime)} → ${fmtDT(link.endTime)}`);
+  const shareWALink = (candidate: CandidateInfo) => {
+    const candidateUrl = `${window.location.origin}/interview/c/${candidate.interviewToken}`;
+    const text = encodeURIComponent(`🎙️ Interview: ${viewLinksModal.interviewName}\n🔗 ${candidateUrl}\n🔑 Access Code: ${candidate.accessCode || 'Check email'}\n⏰ ${fmtDT(candidate.startTime)} → ${fmtDT(candidate.endTime)}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
-  const shareEmailLink = (link: InterviewLink) => {
-    const interview = interviews.find(i => i.id === link.interviewId);
-    const interviewName = interview?.name || 'Interview';
-    const subject = encodeURIComponent(`Interview Invitation: ${interviewName}`);
-    const body = encodeURIComponent(`You are invited to an interview.\n\nInterview: ${interviewName}\nLink: ${interviewUrl(link.id)}\n\nStart: ${fmtDT(link.startTime)}\nEnd: ${fmtDT(link.endTime)}\n\nPlease use your access code to begin.`);
+  const shareEmailLink = (candidate: CandidateInfo) => {
+    const candidateUrl = `${window.location.origin}/interview/c/${candidate.interviewToken}`;
+    const subject = encodeURIComponent(`Interview Invitation: ${viewLinksModal.interviewName}`);
+    const body = encodeURIComponent(`You are invited to an interview.\n\nInterview: ${viewLinksModal.interviewName}\nYour Link: ${candidateUrl}\nAccess Code: ${candidate.accessCode || 'Check email'}\n\nScheduled: ${fmtDT(candidate.startTime)} → ${fmtDT(candidate.endTime)}\n\nPlease use your access code to begin.`);
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   };
 
   const handleCreateLink = async (data: {
     name: string;
-    startTime: string;
-    endTime: string;
     instructions: string;
-    candidates: { email: string; candidateName: string }[];
+    welcomeMessage: string;
+    closingMessage: string;
+    candidates: {
+      email: string;
+      candidateName: string;
+      phoneNumber: string;
+      whatsAppNumber: string;
+      startTime: string;
+      endTime: string;
+      bufferStartMinutes: number;
+      bufferEndMinutes: number;
+      resumeBase64?: string;
+      fileName?: string;
+    }[];
   }) => {
     try {
       await api.post('/interviews/links', {
         interviewId: showLinkModal,
         name: data.name,
-        startTime: new Date(data.startTime).toISOString(),
-        endTime: new Date(data.endTime).toISOString(),
         instructions: data.instructions,
+        welcomeMessage: data.welcomeMessage || undefined,
+        closingMessage: data.closingMessage || undefined,
         candidates: data.candidates.map(c => ({
           email: c.email,
           candidateName: c.candidateName || null,
+          phoneNumber: c.phoneNumber || null,
+          whatsAppNumber: c.whatsAppNumber || null,
+          startTime: new Date(c.startTime).toISOString(),
+          endTime: new Date(c.endTime).toISOString(),
+          bufferStartMinutes: c.bufferStartMinutes || 0,
+          bufferEndMinutes: c.bufferEndMinutes || 0,
+          resumeBase64: c.resumeBase64 || null,
+          fileName: c.fileName || null,
         })),
       });
       setShowLinkModal(null);
       fetchInterviews();
+      if (viewLinksModal.open && viewLinksModal.interviewId === showLinkModal) {
+        const res = await api.get(`/interviews/${showLinkModal}/links`);
+        const transformedLinks = (res.data || []).map((link: any) => {
+          const candidatesArray = link.Candidates || link.candidates || [];
+          return {
+            ...link,
+            candidates: candidatesArray.map((c: any) => ({
+              id: c.id || c.Id,
+              interviewLinkId: c.interviewLinkId || c.InterviewLinkId,
+              email: c.email || c.Email,
+              candidateName: c.candidateName || c.CandidateName,
+              phoneNumber: c.phoneNumber || c.PhoneNumber,
+              whatsAppNumber: c.whatsAppNumber || c.WhatsAppNumber,
+              accessCode: c.accessCode || c.AccessCode,
+              interviewToken: c.interviewToken || c.InterviewToken,
+              resumePath: c.resumePath || c.ResumePath,
+              startTime: c.startTime || c.StartTime,
+              endTime: c.endTime || c.EndTime,
+              bufferStartMinutes: c.bufferStartMinutes ?? c.BufferStartMinutes,
+              bufferEndMinutes: c.bufferEndMinutes ?? c.BufferEndMinutes,
+              rescheduleCount: c.rescheduleCount ?? c.RescheduleCount,
+              status: c.status || c.Status,
+              score: c.score || c.Score,
+              createdAt: c.createdAt || c.CreatedAt
+            }))
+          };
+        });
+        setViewLinksModal(prev => ({ ...prev, links: transformedLinks }));
+      }
     } catch (err: any) {
       console.error('Failed to create link', err);
       alert(err.response?.data?.message || err.response?.data?.inner || 'Failed to create link');
@@ -620,7 +794,7 @@ export default function InterviewList() {
                     <span className="interview-badge interview-badge-difficulty">{interview.difficulty}</span>
                     <span className="interview-badge interview-badge-questions">{interview.totalQuestions} questions</span>
                     <span className="interview-badge interview-badge-duration">{interview.durationMinutes} min</span>
-                    {interview.topics.map((t) => (
+                    {interview.topics?.map((t) => (
                       <span key={t.id} className="interview-badge interview-badge-topic">{t.name}</span>
                     ))}
                   </div>
@@ -671,19 +845,11 @@ export default function InterviewList() {
                                 </span>
                               </div>
                               <div className="interview-link-meta">
-                                📅 {new Date(link.startTime).toLocaleDateString()} - {new Date(link.endTime).toLocaleDateString()}
-                                <span style={{ marginLeft: '12px' }}>👥 {link.completedCandidates}/{link.totalCandidates} completed</span>
+                                👥 {link.completedCandidates}/{link.totalCandidates} completed
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <button className="share-btn" title="Copy link" onClick={() => copyLink(link.id)}>📋</button>
-                              <button className="share-btn share-wa" title="WhatsApp" onClick={() => shareWALink(link)}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.528 5.855L0 24l6.326-1.508C8.02 23.459 9.972 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.907 0-3.682-.527-5.192-1.438l-.37-.22-3.753.894.939-3.652-.243-.385C2.618 15.452 2.182 13.77 2.182 12 2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
-                                </svg>
-                              </button>
-                              <button className="share-btn share-email" title="Email" onClick={() => shareEmailLink(link)}>✉️</button>
                               <button 
                                 className="share-btn" 
                                 title={isExpanded ? "Hide candidates" : "View candidates"}
@@ -720,9 +886,10 @@ export default function InterviewList() {
                                     <tr style={{ background: 'var(--surface)' }}>
                                       <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Name</th>
                                       <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Email</th>
+                                      <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Time Slot</th>
                                       <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Code</th>
                                       <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Status</th>
-                                      <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Score</th>
+                                      <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Actions</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -731,15 +898,37 @@ export default function InterviewList() {
                                       return (
                                         <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
                                           <td style={{ padding: '8px 12px', color: 'var(--ink)' }}>{candidate.candidateName || '—'}</td>
-                                          <td style={{ padding: '8px 12px', color: 'var(--muted)' }}>{candidate.email}</td>
+                                          <td style={{ padding: '8px 12px', color: 'var(--muted)', fontSize: '11px' }}>{candidate.email}</td>
+                                          <td style={{ padding: '8px 12px', color: 'var(--muted)', fontSize: '11px' }}>
+                                            <div>{fmtDT(candidate.startTime)}</div>
+                                            <div style={{ fontSize: '10px', color: 'var(--muted)' }}>→ {fmtDT(candidate.endTime)}</div>
+                                          </td>
                                           <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: '11px', color: 'var(--accent2)' }}>{candidate.accessCode || '—'}</td>
                                           <td style={{ padding: '8px 12px' }}>
                                             <span style={{ fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '100px', background: statusStyle.bg, color: statusStyle.color }}>
                                               {candidate.status || 'Pending'}
                                             </span>
                                           </td>
-                                          <td style={{ padding: '8px 12px', fontWeight: candidate.score ? 600 : 400, color: candidate.score ? getScoreColor(candidate.score) : 'var(--muted)' }}>
-                                            {candidate.score ? `${candidate.score}%` : '—'}
+                                          <td style={{ padding: '8px 12px' }}>
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                              <button 
+                                                className="share-btn" 
+                                                title="Copy link"
+                                                onClick={() => {
+                                                  const url = `${window.location.origin}/interview/c/${candidate.interviewToken}`;
+                                                  navigator.clipboard.writeText(url);
+                                                  setToast('Link copied!');
+                                                  setTimeout(() => setToast(null), 2000);
+                                                }}
+                                                style={{ fontSize: '11px' }}
+                                              >📋</button>
+                                              <button 
+                                                className="share-btn" 
+                                                title="Reschedule"
+                                                onClick={() => setRescheduleModal({ open: true, candidate })}
+                                                style={{ fontSize: '11px' }}
+                                              >📅</button>
+                                            </div>
                                           </td>
                                         </tr>
                                       );
@@ -834,19 +1023,11 @@ export default function InterviewList() {
                                 </span>
                               </div>
                               <div style={{ display: 'flex', gap: '20px', fontSize: '13px', color: 'var(--muted)', fontFamily: "'DM Sans', sans-serif" }}>
-                                <span>📅 {fmtDT(link.startTime)} — {fmtDT(link.endTime)}</span>
                                 <span>👥 {completedCount}/{link.totalCandidates || 0} completed</span>
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <button className="share-btn" title="Copy link" onClick={() => copyLink(link.id)}>📋</button>
-                              <button className="share-btn share-wa" title="WhatsApp" onClick={() => shareWA(link)}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.528 5.855L0 24l6.326-1.508C8.02 23.459 9.972 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.907 0-3.682-.527-5.192-1.438l-.37-.22-3.753.894.939-3.652-.243-.385C2.618 15.452 2.182 13.77 2.182 12 2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
-                                </svg>
-                              </button>
-                              <button className="share-btn share-email" title="Email" onClick={() => shareEmail(link)}>✉️</button>
                               <button 
                                 className="share-btn" 
                                 title={isExpanded ? "Hide candidates" : "View candidates"}
@@ -868,32 +1049,77 @@ export default function InterviewList() {
                                 </button>
                               </div>
                               {link.candidates && link.candidates.length > 0 ? (
-                                <div style={{ maxHeight: '280px', overflowY: 'auto', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                <div style={{ maxHeight: '320px', overflowY: 'auto', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                                     <thead>
                                       <tr style={{ background: 'var(--surface)', position: 'sticky', top: 0 }}>
-                                        <th style={{ padding: '10px 14px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Name</th>
-                                        <th style={{ padding: '10px 14px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Email</th>
-                                        <th style={{ padding: '10px 14px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Access Code</th>
-                                        <th style={{ padding: '10px 14px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Status</th>
-                                        <th style={{ padding: '10px 14px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Score</th>
+                                        <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Name</th>
+                                        <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Email</th>
+                                        <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Time Slot</th>
+                                        <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Code</th>
+                                        <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Status</th>
+                                        <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Share</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {link.candidates.map((candidate, idx) => {
                                         const statusStyle = getCandidateStatusColor(candidate.status || 'Pending');
+                                        const candidateUrl = candidate.interviewToken ? `${window.location.origin}/interview/c/${candidate.interviewToken}` : '';
+                                        const copyCandidateLink = () => {
+                                          if (candidateUrl) {
+                                            navigator.clipboard.writeText(candidateUrl);
+                                            setToast('Link copied!');
+                                            setTimeout(() => setToast(null), 2000);
+                                          }
+                                        };
                                         return (
                                           <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                                            <td style={{ padding: '8px 10px', color: 'var(--ink)' }}>{candidate.candidateName || '—'}</td>
-                                            <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>{candidate.email}</td>
-                                            <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: '11px', color: 'var(--accent2)' }}>{candidate.accessCode || '—'}</td>
-                                            <td style={{ padding: '8px 10px' }}>
-                                              <span style={{ fontSize: '11px', fontWeight: 500, padding: '2px 8px', borderRadius: '100px', background: statusStyle.bg, color: statusStyle.color }}>
+                                            <td style={{ padding: '8px 12px', color: 'var(--ink)' }}>{candidate.candidateName || '—'}</td>
+                                            <td style={{ padding: '8px 12px', color: 'var(--muted)', fontFamily: 'monospace', fontSize: '11px' }}>{candidate.email}</td>
+                                            <td style={{ padding: '8px 12px', color: 'var(--muted)', fontSize: '11px' }}>
+                                              <div>{fmtDT(candidate.startTime)}</div>
+                                              <div style={{ color: 'var(--muted)', fontSize: '10px' }}>→ {fmtDT(candidate.endTime)}</div>
+                                            </td>
+                                            <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: '11px', color: 'var(--accent2)' }}>{candidate.accessCode || '—'}</td>
+                                            <td style={{ padding: '8px 12px' }}>
+                                              <span style={{ fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '100px', background: statusStyle.bg, color: statusStyle.color }}>
                                                 {candidate.status || 'Pending'}
                                               </span>
                                             </td>
-                                            <td style={{ padding: '8px 10px', fontWeight: candidate.score ? 600 : 400, color: candidate.score ? getScoreColor(candidate.score) : 'var(--muted)' }}>
-                                              {candidate.score ? `${candidate.score}%` : '—'}
+                                            <td style={{ padding: '8px 12px' }}>
+                                              <div style={{ display: 'flex', gap: '6px' }}>
+                                                <button 
+                                                  className="share-btn" 
+                                                  title="Copy unique link"
+                                                  onClick={copyCandidateLink}
+                                                  style={{ fontSize: '12px' }}
+                                                >📋</button>
+                                                {candidate.whatsAppNumber && (
+                                                  <button 
+                                                    className="share-btn share-wa" 
+                                                    title="WhatsApp"
+                                                    onClick={() => shareWALink(candidate)}
+                                                    style={{ fontSize: '12px' }}
+                                                  >
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                                                      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.528 5.855L0 24l6.326-1.508C8.02 23.459 9.972 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.907 0-3.682-.527-5.192-1.438l-.37-.22-3.753.894.939-3.652-.243-.385C2.618 15.452 2.182 13.77 2.182 12 2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+                                                    </svg>
+                                                  </button>
+                                                )}
+                                                <button 
+                                                  className="share-btn share-email" 
+                                                  title="Email"
+                                                  onClick={() => shareEmailLink(candidate)}
+                                                  style={{ fontSize: '12px' }}
+                                                >✉️</button>
+                                                <button 
+                                                  className="share-btn" 
+                                                  title="Reschedule"
+                                                  onClick={() => setRescheduleModal({ open: true, candidate })}
+                                                  style={{ fontSize: '12px' }}
+                                                >📅</button>
+                                              </div>
                                             </td>
                                           </tr>
                                         );
@@ -932,6 +1158,33 @@ export default function InterviewList() {
           onClose={() => setBulkUploadModal({ open: false, linkId: '', linkName: '' })}
           onUpload={handleAddCandidates}
           linkName={bulkUploadModal.linkName}
+        />
+      )}
+
+      {rescheduleModal.open && rescheduleModal.candidate && (
+        <RescheduleCandidateModal
+          candidate={rescheduleModal.candidate}
+          onClose={() => setRescheduleModal({ open: false, candidate: null })}
+          onReschedule={async (data) => {
+            try {
+              await api.put(`/interviews/candidates/${rescheduleModal.candidate?.id}/reschedule`, {
+                startTime: new Date(data.startTime).toISOString(),
+                endTime: new Date(data.endTime).toISOString(),
+                bufferStartMinutes: data.bufferStartMinutes,
+                bufferEndMinutes: data.bufferEndMinutes,
+              });
+              setRescheduleModal({ open: false, candidate: null });
+              fetchInterviews();
+              if (viewLinksModal.open) {
+                handleViewLinks({ id: viewLinksModal.interviewId, name: viewLinksModal.interviewName } as Interview);
+              }
+              setToast('Candidate rescheduled successfully!');
+              setTimeout(() => setToast(null), 2000);
+            } catch (err: any) {
+              console.error('Failed to reschedule', err);
+              alert(err.response?.data?.message || 'Failed to reschedule candidate');
+            }
+          }}
         />
       )}
 
@@ -1148,15 +1401,26 @@ function CreateLinkModal({
   onClose: () => void;
   onSubmit: (data: {
     name: string;
-    startTime: string;
-    endTime: string;
     instructions: string;
-    candidates: { email: string; candidateName: string }[];
+    welcomeMessage: string;
+    closingMessage: string;
+    candidates: {
+      email: string;
+      candidateName: string;
+      phoneNumber: string;
+      whatsAppNumber: string;
+      startTime: string;
+      endTime: string;
+      bufferStartMinutes: number;
+      bufferEndMinutes: number;
+      resumeBase64?: string;
+      fileName?: string;
+    }[];
   }) => void;
 }) {
   const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const defaultSlot = new Date(now);
+  defaultSlot.setMinutes(defaultSlot.getMinutes() + 30);
   
   const formatDateLocal = (date: Date) => {
     const year = date.getFullYear();
@@ -1169,30 +1433,65 @@ function CreateLinkModal({
 
   const [formData, setFormData] = useState({
     name: '',
-    startTime: formatDateLocal(now),
-    endTime: formatDateLocal(tomorrow),
     instructions: '',
-    candidates: [] as { email: string; candidateName: string }[],
+    welcomeMessage: '',
+    closingMessage: '',
+    candidates: [] as {
+      email: string;
+      candidateName: string;
+      phoneNumber: string;
+      whatsAppNumber: string;
+      startTime: string;
+      endTime: string;
+      bufferStartMinutes: number;
+      bufferEndMinutes: number;
+      resumeBase64?: string;
+      fileName?: string;
+    }[],
   });
   const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   const addCandidate = () => {
+    const newCandidate = {
+      email: '',
+      candidateName: '',
+      phoneNumber: '',
+      whatsAppNumber: '',
+      startTime: formatDateLocal(now),
+      endTime: formatDateLocal(defaultSlot),
+      bufferStartMinutes: 0,
+      bufferEndMinutes: 0,
+      resumeBase64: undefined,
+      fileName: undefined,
+    };
     setFormData({
       ...formData,
-      candidates: [...formData.candidates, { email: '', candidateName: '' }],
+      candidates: [...formData.candidates, newCandidate],
     });
   };
 
-  const updateCandidate = (index: number, field: 'email' | 'candidateName', value: string) => {
+  const updateCandidate = (index: number, field: string, value: string | number) => {
     const updated = [...formData.candidates];
     updated[index] = { ...updated[index], [field]: value };
     setFormData({ ...formData, candidates: updated });
   };
 
-  const handleBulkUploadComplete = (uploadedCandidates: { email: string; candidateName: string }[]) => {
+  const handleBulkUploadComplete = (uploadedCandidates: {
+    email: string;
+    candidateName: string;
+    phoneNumber: string;
+    whatsAppNumber: string;
+  }[]) => {
+    const candidatesWithTime = uploadedCandidates.map(c => ({
+      ...c,
+      startTime: formatDateLocal(now),
+      endTime: formatDateLocal(defaultSlot),
+      bufferStartMinutes: 0,
+      bufferEndMinutes: 0,
+    }));
     setFormData({
       ...formData,
-      candidates: [...formData.candidates, ...uploadedCandidates],
+      candidates: [...formData.candidates, ...candidatesWithTime],
     });
     setShowBulkUpload(false);
   };
@@ -1204,104 +1503,178 @@ function CreateLinkModal({
 
   return (
     <ModalPortal onClose={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '85vh', overflowY: 'auto' }}>
-        <h2 className="modal-title">Create Interview Link</h2>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '95vw', maxHeight: '95vh', width: '1200px', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 className="modal-title" style={{ margin: 0 }}>Create Interview Link</h2>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Link Name</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="form-input"
-              placeholder="e.g., Q1 2026 Batch"
-            />
-          </div>
-
-          <div className="form-grid">
+          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
             <div className="form-group">
-              <label className="form-label">Start Time</label>
+              <label className="form-label">Link Name *</label>
               <input
-                type="datetime-local"
+                type="text"
                 required
-                value={formData.startTime}
-                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="form-input"
+                placeholder="e.g., Q1 2026 Batch"
               />
             </div>
             <div className="form-group">
-              <label className="form-label">End Time</label>
-              <input
-                type="datetime-local"
-                required
-                value={formData.endTime}
-                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                className="form-input"
+              <label className="form-label">Instructions</label>
+              <textarea
+                value={formData.instructions}
+                onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
+                className="form-textarea"
+                placeholder="Any specific instructions..."
+                style={{ minHeight: '60px' }}
               />
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Instructions for Candidates</label>
-            <textarea
-              value={formData.instructions}
-              onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
-              className="form-textarea"
-              placeholder="Any specific instructions for candidates..."
-            />
+          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+            <div className="form-group">
+              <label className="form-label">Welcome Message</label>
+              <textarea
+                value={formData.welcomeMessage}
+                onChange={(e) => setFormData({ ...formData, welcomeMessage: e.target.value })}
+                className="form-textarea"
+                placeholder="Welcome message shown to candidates..."
+                style={{ minHeight: '60px' }}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Closing Message</label>
+              <textarea
+                value={formData.closingMessage}
+                onChange={(e) => setFormData({ ...formData, closingMessage: e.target.value })}
+                className="form-textarea"
+                placeholder="Closing message shown after interview..."
+                style={{ minHeight: '60px' }}
+              />
+            </div>
           </div>
 
           <div className="form-group">
             <div className="flex justify-between items-center mb-2">
-              <label className="form-label" style={{ marginBottom: 0 }}>Candidates ({formData.candidates.length})</label>
+              <label className="form-label" style={{ marginBottom: 0, fontSize: '16px', fontWeight: 600 }}>
+                👥 Candidates ({formData.candidates.length})
+              </label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button type="button" onClick={() => setShowBulkUpload(true)} className="btn btn-outline btn-sm">
                   📊 Bulk Upload
                 </button>
-                <button type="button" onClick={addCandidate} className="btn btn-outline btn-sm">
-                  + Add
+                <button type="button" onClick={addCandidate} className="btn btn-primary btn-sm">
+                  + Add Candidate
                 </button>
               </div>
             </div>
             {formData.candidates.length > 0 ? (
-              <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <div style={{ maxHeight: '350px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
                   <thead>
-                    <tr style={{ background: 'var(--surface)', position: 'sticky', top: 0 }}>
-                      <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Name</th>
-                      <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Email</th>
-                      <th style={{ padding: '8px 10px', width: '40px' }}></th>
+                    <tr style={{ background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 1 }}>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', fontSize: '10px', width: '130px' }}>Name</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', fontSize: '10px', width: '180px' }}>Email</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', fontSize: '10px', width: '150px' }}>Start Time</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', fontSize: '10px', width: '150px' }}>End Time</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)', fontSize: '10px', width: '80px' }}>Buffer</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)', fontSize: '10px', width: '70px' }}>Resume</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)', fontSize: '10px', width: '50px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {formData.candidates.map((c, i) => (
                       <tr key={i} style={{ borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
-                        <td style={{ padding: '6px 10px' }}>
+                        <td style={{ padding: '8px' }}>
                           <input
                             type="text"
                             placeholder="Name"
                             value={c.candidateName}
                             onChange={(e) => updateCandidate(i, 'candidateName', e.target.value)}
                             className="form-input"
-                            style={{ padding: '6px 8px', fontSize: '12px' }}
+                            style={{ padding: '8px', fontSize: '12px', width: '100%', boxSizing: 'border-box' }}
                           />
                         </td>
-                        <td style={{ padding: '6px 10px' }}>
+                        <td style={{ padding: '8px' }}>
                           <input
                             type="email"
                             placeholder="Email"
                             value={c.email}
                             onChange={(e) => updateCandidate(i, 'email', e.target.value)}
                             className="form-input"
-                            style={{ padding: '6px 8px', fontSize: '12px' }}
+                            style={{ padding: '8px', fontSize: '12px', width: '100%', boxSizing: 'border-box' }}
                           />
                         </td>
-                        <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                        <td style={{ padding: '8px' }}>
+                          <input
+                            type="datetime-local"
+                            value={c.startTime}
+                            onChange={(e) => updateCandidate(i, 'startTime', e.target.value)}
+                            className="form-input"
+                            style={{ padding: '8px', fontSize: '11px', width: '100%', boxSizing: 'border-box' }}
+                          />
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          <input
+                            type="datetime-local"
+                            value={c.endTime}
+                            onChange={(e) => updateCandidate(i, 'endTime', e.target.value)}
+                            className="form-input"
+                            style={{ padding: '8px', fontSize: '11px', width: '100%', boxSizing: 'border-box' }}
+                          />
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
+                            <input
+                              type="number"
+                              min="0"
+                              value={c.bufferStartMinutes}
+                              onChange={(e) => updateCandidate(i, 'bufferStartMinutes', parseInt(e.target.value) || 0)}
+                              className="form-input"
+                              style={{ padding: '6px 2px', fontSize: '10px', width: '32px', textAlign: 'center' }}
+                              title="Buffer before"
+                            />
+                            <span style={{ color: 'var(--muted)', fontSize: '9px' }}>→</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={c.bufferEndMinutes}
+                              onChange={(e) => updateCandidate(i, 'bufferEndMinutes', parseInt(e.target.value) || 0)}
+                              className="form-input"
+                              style={{ padding: '6px 2px', fontSize: '10px', width: '32px', textAlign: 'center' }}
+                              title="Buffer after"
+                            />
+                          </div>
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '9px', color: 'var(--muted)' }}>
+                            <input
+                              type="file"
+                              accept=".pdf,.doc,.docx"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const base64 = reader.result as string;
+                                  updateCandidate(i, 'resumeBase64', base64.split(',')[1]);
+                                  updateCandidate(i, 'fileName', file.name);
+                                };
+                                reader.readAsDataURL(file);
+                              }}
+                              style={{ fontSize: '9px' }}
+                            />
+                            {c.fileName && <span style={{ color: 'var(--green)', fontSize: '10px' }} title={c.fileName}>✓</span>}
+                          </label>
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center' }}>
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, candidates: formData.candidates.filter((_, idx) => idx !== i) })}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: '14px' }}
+                            style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: '12px', padding: '4px 8px', borderRadius: '4px' }}
+                            title="Remove candidate"
                           >
                             ✕
                           </button>
@@ -1312,18 +1685,20 @@ function CreateLinkModal({
                 </table>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--muted)', fontSize: '13px', border: '1px dashed var(--border)', borderRadius: '8px' }}>
-                No candidates added. Click "Bulk Upload" or "Add" to add candidates.
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)', fontSize: '13px', border: '1px dashed var(--border)', borderRadius: '8px', background: 'var(--surface)' }}>
+                <div style={{ fontSize: '24px', marginBottom: '8px' }}>👥</div>
+                No candidates added yet.<br />
+                Click "+ Add Candidate" or "Bulk Upload" to add candidates.
               </div>
             )}
           </div>
 
-          <div className="form-actions">
+          <div className="form-actions" style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border)' }}>
             <button type="button" onClick={onClose} className="btn btn-outline">
               Cancel
             </button>
-            <button type="submit" className="btn btn-secondary" disabled={formData.candidates.length === 0}>
-              Create Link ({formData.candidates.length} candidates)
+            <button type="submit" className="btn btn-primary" disabled={formData.candidates.length === 0} style={{ padding: '12px 24px', fontSize: '14px' }}>
+              🎙️ Create Link with {formData.candidates.length} Candidate{formData.candidates.length !== 1 ? 's' : ''}
             </button>
           </div>
         </form>
@@ -1335,6 +1710,121 @@ function CreateLinkModal({
             linkName=""
           />
         )}
+      </div>
+    </ModalPortal>
+  );
+}
+
+function RescheduleCandidateModal({
+  candidate,
+  onClose,
+  onReschedule,
+}: {
+  candidate: CandidateInfo;
+  onClose: () => void;
+  onReschedule: (data: {
+    startTime: string;
+    endTime: string;
+    bufferStartMinutes: number;
+    bufferEndMinutes: number;
+  }) => void;
+}) {
+  const formatDateLocal = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const [formData, setFormData] = useState({
+    startTime: candidate.startTime ? formatDateLocal(new Date(candidate.startTime)) : formatDateLocal(new Date()),
+    endTime: candidate.endTime ? formatDateLocal(new Date(candidate.endTime)) : formatDateLocal(new Date(Date.now() + 60 * 60 * 1000)),
+    bufferStartMinutes: candidate.bufferStartMinutes ?? 0,
+    bufferEndMinutes: candidate.bufferEndMinutes ?? 0,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onReschedule(formData);
+  };
+
+  return (
+    <ModalPortal onClose={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <h2 className="modal-title" style={{ margin: 0 }}>Reschedule Interview</h2>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        
+        <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--surface)', borderRadius: '8px', fontSize: '13px' }}>
+          <div style={{ fontWeight: 600, marginBottom: '4px' }}>{candidate.candidateName || 'Unknown'}</div>
+          <div style={{ color: 'var(--muted)', fontFamily: 'monospace', fontSize: '12px' }}>{candidate.email}</div>
+          {candidate.rescheduleCount !== undefined && candidate.rescheduleCount > 0 && (
+            <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--yellow)' }}>
+              Previous reschedules: {candidate.rescheduleCount}
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">New Start Time</label>
+            <input
+              type="datetime-local"
+              required
+              value={formData.startTime}
+              onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">New End Time</label>
+            <input
+              type="datetime-local"
+              required
+              value={formData.endTime}
+              onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-grid">
+            <div className="form-group">
+              <label className="form-label">Buffer Before (min)</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.bufferStartMinutes}
+                onChange={(e) => setFormData({ ...formData, bufferStartMinutes: parseInt(e.target.value) || 0 })}
+                className="form-input"
+                placeholder="0"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Buffer After (min)</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.bufferEndMinutes}
+                onChange={(e) => setFormData({ ...formData, bufferEndMinutes: parseInt(e.target.value) || 0 })}
+                className="form-input"
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+            <button type="button" onClick={onClose} className="btn btn-outline" style={{ flex: 1 }}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+              Reschedule
+            </button>
+          </div>
+        </form>
       </div>
     </ModalPortal>
   );

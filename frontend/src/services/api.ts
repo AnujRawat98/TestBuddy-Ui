@@ -171,4 +171,101 @@ export const interviewCandidatesApi = {
     getByLink: (linkId: string) => api.get('/interviews/candidates', { params: { linkId } }),
 };
 
+// ─── INTERNAL JOB POSTING (IJP) ─────────────────────────────────────────────────
+export const ijpApi = {
+    getAll: () => api.get('/ijp'),
+    getById: (id: string) => api.get(`/ijp/${id}`),
+    create: (data: {
+        positionName: string;
+        experienceRequired: string;
+        jobDescription?: string;
+        closingDate: string;
+        totalPositions: number;
+        jobDescriptionFileName?: string;
+        jobDescriptionBase64?: string;
+        companyPoliciesFileName?: string;
+        companyPoliciesBase64?: string;
+    }) => api.post('/ijp', data),
+    update: (id: string, data: {
+        positionName?: string;
+        experienceRequired?: string;
+        jobDescription?: string;
+        closingDate?: string;
+        totalPositions?: number;
+        status?: number;
+    }) => api.put(`/ijp/${id}`, data),
+    close: (id: string) => api.post(`/ijp/${id}/close`),
+    delete: (id: string) => api.delete(`/ijp/${id}`),
+
+    // Interview Config
+    getInterviewConfig: (id: string) => api.get(`/ijp/${id}/interview-config`),
+    saveInterviewConfig: (id: string, data: {
+        totalQuestions: number;
+        easyPercentage: number;
+        mediumPercentage: number;
+        hardPercentage: number;
+        goDeeper: boolean;
+        durationMinutes: number;
+        welcomeMessage?: string;
+        closingMessage?: string;
+        boundaries?: string;
+        companyPolicies?: string;
+    }) => api.post(`/ijp/${id}/interview-config`, data),
+    generateQuestions: (id: string, data: {
+        totalQuestions: number;
+        easyPercentage: number;
+        mediumPercentage: number;
+        hardPercentage: number;
+        goDeeper: boolean;
+    }) => api.post(`/ijp/${id}/generate-questions`, data),
+
+    // Documents
+    getDocuments: (id: string) => api.get(`/ijp/${id}/documents`),
+    uploadDocument: (id: string, data: {
+        documentType: number;
+        fileName: string;
+        fileBase64: string;
+    }) => api.post(`/ijp/${id}/documents`, data),
+    deleteDocument: (ijpId: string, docId: string) => api.delete(`/ijp/${ijpId}/documents/${docId}`),
+
+    // Interviews
+    getInterviews: (id: string) => api.get(`/ijp/${id}/interviews`),
+    createInterview: (data: {
+        ijpId: string;
+        ijpConfigId?: string;
+        name?: string;
+        difficulty?: string;
+        totalQuestions?: number;
+        durationMinutes?: number;
+        welcomeMessage?: string;
+        closingMessage?: string;
+        boundaries?: string;
+        companyPolicies?: string;
+    }) => api.post('/interviews', data),
+
+    // Links
+    createLink: (data: {
+        interviewId: string;
+        name: string;
+        startTime: string;
+        endTime: string;
+        bufferStartMinutes?: number;
+        bufferEndMinutes?: number;
+        welcomeMessage?: string;
+        closingMessage?: string;
+        candidates?: {
+            email: string;
+            candidateName?: string;
+            phoneNumber?: string;
+            whatsAppNumber?: string;
+        }[];
+    }) => api.post('/interviews/links', data),
+    addCandidates: (linkId: string, candidates: {
+        email: string;
+        candidateName?: string;
+        phoneNumber?: string;
+        whatsAppNumber?: string;
+    }[]) => api.post(`/interviews/links/${linkId}/candidates`, candidates),
+};
+
 export default api;

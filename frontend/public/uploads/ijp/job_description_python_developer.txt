@@ -1,0 +1,51 @@
+========================================
+JOB DESCRIPTION - Python Developer
+========================================
+
+Position Title: Python Developer
+Location: Hyderabad (Hybrid)
+Experience: 3-6 years
+Salary: Best in Industry
+
+ABOUT THE COMPANY:
+We are a product-based fintech company building next-generation 
+financial technology solutions for global markets.
+
+ROLE OVERVIEW:
+We need an experienced Python Developer to join our core engineering team. 
+You will be responsible for building and maintaining backend services, 
+APIs, and data processing pipelines.
+
+RESPONSIBILITIES:
+- Design and implement RESTful APIs using Python frameworks
+- Build and maintain data processing pipelines
+- Write clean, efficient, and well-documented code
+- Database design and optimization
+- Collaborate with frontend developers for API integration
+- Implement security best practices
+- Performance tuning and optimization
+- Write unit and integration tests
+
+REQUIREMENTS:
+- 3-6 years of experience in Python development
+- Strong knowledge of Django or FastAPI
+- Experience with PostgreSQL and Redis
+- Understanding of Docker and containerization
+- Familiarity with cloud services (AWS/GCP)
+- Knowledge of microservices architecture
+- Experience with message queues (RabbitMQ/Kafka)
+
+BONUS POINTS:
+- Experience with machine learning
+- Knowledge of blockchain technology
+- Contributions to open source
+
+WHAT WE OFFER:
+- Competitive CTC
+- ESOPs
+- Health insurance
+- Learning & development budget
+- Flexible work culture
+- Regular team events
+
+========================================

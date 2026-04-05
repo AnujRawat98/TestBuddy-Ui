@@ -1,0 +1,95 @@
+========================================
+RESUME - John Smith
+========================================
+
+CONTACT INFORMATION:
+Name: John Smith
+Email: john.smith@email.com
+Phone: +91 98765 43210
+LinkedIn: linkedin.com/in/johnsmith
+Location: Bangalore, India
+
+SUMMARY:
+Passionate Frontend Developer with 6 years of experience in building 
+responsive web applications. Strong expertise in React, TypeScript, and 
+modern JavaScript. Proven track record of delivering high-quality code 
+and mentoring junior developers.
+
+EXPERIENCE:
+
+Senior React Developer
+TechCorp India Pvt. Ltd.
+Jan 2022 - Present
+
+- Led development of enterprise dashboard serving 50,000+ daily users
+- Implemented micro-frontend architecture using React and Webpack Module Federation
+- Reduced application load time by 40% through code splitting and lazy loading
+- Mentored team of 4 junior developers
+- Conducted code reviews and established coding standards
+- Built reusable component library used across 10+ projects
+
+Frontend Developer
+StartupXYZ
+Jun 2019 - Dec 2021
+
+- Developed React applications from scratch for e-commerce clients
+- Implemented Redux for state management in large-scale applications
+- Created responsive UI components using Styled Components
+- Integrated RESTful APIs and GraphQL
+- Collaborated with UX team to implement pixel-perfect designs
+- Wrote comprehensive unit tests using Jest and React Testing Library
+
+Junior Web Developer
+WebSolutions Inc.
+Aug 2018 - May 2019
+
+- Built landing pages and marketing websites
+- Worked with vanilla JavaScript, HTML, and CSS
+- Learned React and contributed to internal projects
+- Participated in agile ceremonies
+
+SKILLS:
+- Frontend: React, TypeScript, JavaScript, HTML5, CSS3
+- State Management: Redux, MobX, Context API
+- Styling: Tailwind CSS, Styled Components, SASS
+- Testing: Jest, React Testing Library, Cypress
+- Build Tools: Webpack, Vite, Babel
+- APIs: REST, GraphQL
+- Version Control: Git, GitHub, GitLab
+- CI/CD: GitHub Actions, Jenkins
+
+EDUCATION:
+Bachelor of Technology in Computer Science
+Indian Institute of Technology (IIT)
+Passed: 2018 | CGPA: 8.5/10
+
+CERTIFICATIONS:
+- AWS Certified Developer Associate (2023)
+- Meta Frontend Developer Professional Certificate (2022)
+- React Nanodegree (Udacity, 2021)
+
+PROJECTS:
+1. E-commerce Platform
+   - Built complete shopping experience with React and Node.js
+   - Implemented payment gateway integration
+   - Tech: React, Redux, Node.js, MongoDB
+
+2. Task Management App
+   - Real-time collaboration features
+   - Drag and drop kanban board
+   - Tech: React, Socket.io, PostgreSQL
+
+PERSONAL SKILLS:
+- Strong communication and presentation skills
+- Problem-solving mindset
+- Team player
+- Time management
+- Adaptable to new technologies
+
+INTERESTS:
+- Open source contributions
+- Tech blogging
+- Mobile photography
+- Chess
+
+========================================

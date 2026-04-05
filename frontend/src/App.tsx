@@ -18,6 +18,7 @@ import InterviewCandidateLogin from './pages/Interviews/InterviewCandidateLogin'
 import InterviewSystemCheck from './pages/Interviews/InterviewSystemCheck';
 import InterviewLive from './pages/Interviews/InterviewLive';
 import InterviewComplete from './pages/Interviews/InterviewComplete';
+import AIInterviewPage from './pages/Interviews/AIInterviewPage';
 import IJPList from './pages/IJP/IJPList';
 import IJPDetail from './pages/IJP/IJPDetail';
 
@@ -49,6 +50,7 @@ function App() {
         <Route path="/exam/:attemptId"      element={<ExamScreen />} />
 
         {/* Interview Candidate Routes */}
+        <Route path="/ai-interview/c/:token"     element={<AIInterviewPage />} />
         <Route path="/interview/c/:token"        element={<InterviewCandidateLogin />} />
         <Route path="/interview/:linkId"         element={<InterviewCandidateLogin />} />
         <Route path="/interview-system-check/:candidateId" element={<InterviewSystemCheck />} />

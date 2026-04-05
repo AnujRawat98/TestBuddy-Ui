@@ -276,42 +276,9 @@ function CreateIJPModal({ onClose, onSubmit }: CreateModalProps) {
             />
           </div>
           
-          <div className="form-group">
-            <label className="form-label">Job Description - Upload File (PDF/DOCX/TXT)</label>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
-                📎 Upload JD File
-                <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={(e) => handleFileUpload(e, 'jd')} style={{ display: 'none' }} />
-              </label>
-              {form.jobDescriptionFileName && (
-                <span style={{ fontSize: '13px', color: 'var(--green)' }}>✅ {form.jobDescriptionFileName}</span>
-              )}
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Or Enter Job Description Manually</label>
-            <textarea
-              className="form-textarea"
-              value={form.jobDescription}
-              onChange={(e) => setForm({ ...form, jobDescription: e.target.value })}
-              placeholder="Enter job description, requirements, responsibilities..."
-              rows={4}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Company Policies - Upload File (PDF/DOCX)</label>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
-                📋 Upload Policies
-                <input type="file" accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, 'policy')} style={{ display: 'none' }} />
-              </label>
-              {form.companyPoliciesFileName && (
-                <span style={{ fontSize: '13px', color: 'var(--green)' }}>✅ {form.companyPoliciesFileName}</span>
-              )}
-            </div>
-          </div>
+          <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>
+            💡 Tip: Upload Job Description, Company Policy, and Resumes from the Documents tab after creating the posting.
+          </p>
 
           <div className="form-row">
             <div className="form-group">

@@ -48,6 +48,7 @@ interface Interview {
   isActive: boolean;
   createdAt: string;
   topics: TopicInfo[];
+  ijpId?: string;
   ijpName?: string;
   ijpConfigId?: string;
   welcomeMessage?: string;
@@ -89,6 +90,19 @@ interface InterviewLink {
   welcomeMessage?: string;
   closingMessage?: string;
   candidates?: CandidateInfo[];
+}
+
+interface InlineCandidateDraft {
+  email: string;
+  candidateName: string;
+  phoneNumber: string;
+  whatsAppNumber: string;
+  startTime: string;
+  endTime: string;
+  bufferStartMinutes: number;
+  bufferEndMinutes: number;
+  resumeBase64?: string;
+  fileName?: string;
 }
 
 const getLinkStatus = (link: InterviewLink) => {
@@ -401,12 +415,13 @@ export default function InterviewList() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState<string | null>(null);
-  const [viewLinksModal, setViewLinksModal] = useState<{ open: boolean; interviewId: string; interviewName: string; links: InterviewLink[]; loading: boolean }>({
+  const [viewLinksModal, setViewLinksModal] = useState<{ open: boolean; interviewId: string; interviewName: string; links: InterviewLink[]; loading: boolean; isAIInterview: boolean; createdAt?: string }>({
     open: false,
     interviewId: '',
     interviewName: '',
     links: [],
-    loading: false
+    loading: false,
+    isAIInterview: false
   });
   const [topics, setTopics] = useState<TopicInfo[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -422,54 +437,110 @@ export default function InterviewList() {
       console.log('Fetching interviews from /interviews');
       const res = await api.get('/interviews');
       console.log('Interviews response:', res.data);
+      console.log('Response type:', typeof res.data);
+      console.log('Is array:', Array.isArray(res.data));
       
-      const transformedData = res.data.map((item: any) => ({
-        ...item,
-        topics: item.Topics || []
+      // Handle both array and object responses
+      let interviewsArray = [];
+      if (Array.isArray(res.data)) {
+        interviewsArray = res.data;
+      } else if (res.data && typeof res.data === 'object') {
+        // Check for various possible response structures
+        interviewsArray = res.data.items || res.data.data || res.data.Interviews || [];
+      }
+      
+      console.log('Parsed interviews array:', interviewsArray);
+      console.log('Array length:', interviewsArray.length);
+      
+      const transformedData = interviewsArray.map((item: any) => ({
+        id: item.id || item.Id,
+        name: item.name || item.Name,
+        ijpId: item.ijpId || item.IJPId,
+        ijpName: item.ijpName || item.IJPName,
+        difficulty: item.difficulty || item.Difficulty,
+        totalQuestions: item.totalQuestions ?? item.TotalQuestions ?? 10,
+        durationMinutes: item.durationMinutes ?? item.DurationMinutes ?? 30,
+        topics: item.topics || item.Topics || [],
+        isActive: item.isActive ?? item.IsActive ?? true,
+        totalLinks: item.totalLinks ?? item.TotalLinks ?? 0,
+        totalCandidates: item.totalCandidates ?? item.TotalCandidates ?? 0,
+        completedCandidates: item.completedCandidates ?? item.CompletedCandidates ?? 0,
+        createdAt: item.createdAt || item.CreatedAt
       }));
+      
+      console.log('Transformed data:', transformedData);
       setInterviews(transformedData);
       
       const linksMap = new Map<string, InterviewLink[]>();
-      for (const interview of res.data) {
-        const linksRes = await api.get(`/interviews/${interview.id}/links`);
-        console.log(`Links for interview ${interview.id}:`, linksRes.data);
-        
-        const transformedLinks = (linksRes.data || []).map((link: any) => {
-          const candidatesArray = link.Candidates || link.candidates || [];
-          return {
-            ...link,
-            candidates: candidatesArray.map((c: any) => ({
-            id: c.id || c.Id,
-            interviewLinkId: c.interviewLinkId || c.InterviewLinkId,
-            email: c.email || c.Email,
-            candidateName: c.candidateName || c.CandidateName,
-            phoneNumber: c.phoneNumber || c.PhoneNumber,
-            whatsAppNumber: c.whatsAppNumber || c.WhatsAppNumber,
-            accessCode: c.accessCode || c.AccessCode,
-            interviewToken: c.interviewToken || c.InterviewToken,
-            resumePath: c.resumePath || c.ResumePath,
-            startTime: c.startTime || c.StartTime,
-            endTime: c.endTime || c.EndTime,
-            bufferStartMinutes: c.bufferStartMinutes ?? c.BufferStartMinutes,
-            bufferEndMinutes: c.bufferEndMinutes ?? c.BufferEndMinutes,
-            rescheduleCount: c.rescheduleCount ?? c.RescheduleCount,
-            status: c.status || c.Status,
-            score: c.score || c.Score,
-            createdAt: c.createdAt || c.CreatedAt
-          }))
-          };
-        });
-        console.log(`Transformed links for ${interview.id}:`, transformedLinks);
-        linksMap.set(interview.id, transformedLinks);
+      for (const interview of transformedData) {
+        try {
+          const linksRes = await api.get(`/interviews/${interview.id}/links`);
+          console.log(`Links for interview ${interview.id}:`, linksRes.data);
+          
+          const linksArray = Array.isArray(linksRes.data) ? linksRes.data : [];
+          console.log(`Links array for ${interview.id}:`, linksArray, 'length:', linksArray.length);
+          
+          const transformedLinks = linksArray.map((link: any) => {
+            const candidatesArray = link.Candidates || link.candidates || [];
+            return {
+              id: link.Id || link.id || '',
+              interviewId: link.InterviewId || link.interviewId || interview.id,
+              interviewName: link.InterviewName || link.interviewName || interview.name,
+              name: link.Name || link.name || '',
+              instructions: link.Instructions || link.instructions || '',
+              isActive: link.IsActive ?? link.isActive ?? true,
+              totalCandidates: link.TotalCandidates ?? link.totalCandidates ?? candidatesArray.length,
+              completedCandidates: link.CompletedCandidates ?? link.completedCandidates ?? 
+                candidatesArray.filter((c: any) => 
+                  c.Status === 'Completed' || c.status === 'Completed'
+                ).length,
+              createdAt: link.CreatedAt || link.createdAt || new Date().toISOString(),
+              welcomeMessage: link.WelcomeMessage || link.welcomeMessage,
+              closingMessage: link.ClosingMessage || link.closingMessage,
+              candidates: candidatesArray.map((c: any) => ({
+                id: c.Id || c.id,
+                interviewLinkId: c.InterviewLinkId || c.interviewLinkId,
+                email: c.Email || c.email || '',
+                candidateName: c.CandidateName || c.candidateName || '',
+                phoneNumber: c.PhoneNumber || c.phoneNumber,
+                whatsAppNumber: c.WhatsAppNumber || c.whatsAppNumber,
+                accessCode: c.AccessCode || c.accessCode,
+                interviewToken: c.InterviewToken || c.interviewToken,
+                resumePath: c.ResumePath || c.resumePath,
+                startTime: c.StartTime || c.startTime,
+                endTime: c.EndTime || c.endTime,
+                bufferStartMinutes: c.BufferStartMinutes ?? c.bufferStartMinutes ?? 0,
+                bufferEndMinutes: c.BufferEndMinutes ?? c.bufferEndMinutes ?? 0,
+                rescheduleCount: c.RescheduleCount ?? c.rescheduleCount ?? 0,
+                status: (c.Status || c.status || 'Pending').toString(),
+                score: c.Score ?? c.score,
+                createdAt: c.CreatedAt || c.createdAt
+              }))
+            };
+          });
+          console.log(`Transformed links for ${interview.id}:`, transformedLinks);
+          linksMap.set(interview.id, transformedLinks);
+        } catch (linkErr: any) {
+          console.error(`Failed to fetch links for interview ${interview.id}:`, linkErr);
+          console.error('Link error status:', linkErr.response?.status);
+          console.error('Link error data:', linkErr.response?.data);
+          linksMap.set(interview.id, []);
+        }
       }
+      console.log('Final linksMap:', linksMap);
       setLinks(linksMap);
     } catch (err: any) {
       console.error('Failed to fetch interviews', err);
       console.log('Error status:', err.response?.status);
       console.log('Error data:', err.response?.data);
+      console.log('Error message:', err.message);
+      console.log('Error config:', err.config?.url);
+      setInterviews([]);
       if (err.response?.status === 401) {
         alert('Please login as admin first!');
         window.location.href = '/login';
+      } else {
+        alert('Failed to get interviews: ' + (err.response?.data?.message || err.message));
       }
     } finally {
       setLoading(false);
@@ -522,37 +593,64 @@ export default function InterviewList() {
   };
 
   const handleViewLinks = async (interview: Interview) => {
-    setViewLinksModal({ open: true, interviewId: interview.id, interviewName: interview.name, links: [], loading: true });
+    setViewLinksModal({ open: true, interviewId: interview.id, interviewName: interview.name, links: [], loading: true, isAIInterview: !!interview.ijpId });
     try {
+      console.log('handleViewLinks: fetching links for', interview.id);
       const res = await api.get(`/interviews/${interview.id}/links`);
-      const transformedLinks = (res.data || []).map((link: any) => {
+      console.log('handleViewLinks: response data:', res.data);
+      const linksArray = Array.isArray(res.data) ? res.data : [];
+      console.log('handleViewLinks: linksArray:', linksArray, 'length:', linksArray.length);
+      
+      const transformedLinks: InterviewLink[] = linksArray.map((link: any) => {
         const candidatesArray = link.Candidates || link.candidates || [];
         return {
-          ...link,
+          id: link.Id || link.id || '',
+          interviewId: link.InterviewId || link.interviewId || interview.id,
+          interviewName: link.InterviewName || link.interviewName || interview.name,
+          name: link.Name || link.name || '',
+          instructions: link.Instructions || link.instructions || '',
+          isActive: link.IsActive ?? link.isActive ?? true,
+          totalCandidates: link.TotalCandidates ?? link.totalCandidates ?? candidatesArray.length,
+          completedCandidates: link.CompletedCandidates ?? link.completedCandidates ?? 
+            candidatesArray.filter((c: any) => 
+              c.Status === 'Completed' || c.status === 'Completed'
+            ).length,
+          createdAt: link.CreatedAt || link.createdAt || new Date().toISOString(),
+          welcomeMessage: link.WelcomeMessage || link.welcomeMessage,
+          closingMessage: link.ClosingMessage || link.closingMessage,
           candidates: candidatesArray.map((c: any) => ({
-            id: c.id || c.Id,
-            interviewLinkId: c.interviewLinkId || c.InterviewLinkId,
-            email: c.email || c.Email,
-            candidateName: c.candidateName || c.CandidateName,
-            phoneNumber: c.phoneNumber || c.PhoneNumber,
-            whatsAppNumber: c.whatsAppNumber || c.WhatsAppNumber,
-            accessCode: c.accessCode || c.AccessCode,
-            interviewToken: c.interviewToken || c.InterviewToken,
-            resumePath: c.resumePath || c.ResumePath,
-            startTime: c.startTime || c.StartTime,
-            endTime: c.endTime || c.EndTime,
-            bufferStartMinutes: c.bufferStartMinutes ?? c.BufferStartMinutes,
-          bufferEndMinutes: c.bufferEndMinutes ?? c.BufferEndMinutes,
-          rescheduleCount: c.rescheduleCount ?? c.RescheduleCount,
-          status: c.status || c.Status,
-          score: c.score || c.Score,
-          createdAt: c.createdAt || c.CreatedAt
+            id: c.Id || c.id,
+            interviewLinkId: c.InterviewLinkId || c.interviewLinkId,
+            email: c.Email || c.email || '',
+            candidateName: c.CandidateName || c.candidateName || '',
+            phoneNumber: c.PhoneNumber || c.phoneNumber,
+            whatsAppNumber: c.WhatsAppNumber || c.whatsAppNumber,
+            accessCode: c.AccessCode || c.accessCode,
+            interviewToken: c.InterviewToken || c.interviewToken,
+            resumePath: c.ResumePath || c.resumePath,
+            startTime: c.StartTime || c.startTime,
+            endTime: c.EndTime || c.endTime,
+            bufferStartMinutes: c.BufferStartMinutes ?? c.bufferStartMinutes ?? 0,
+            bufferEndMinutes: c.BufferEndMinutes ?? c.bufferEndMinutes ?? 0,
+            rescheduleCount: c.RescheduleCount ?? c.rescheduleCount ?? 0,
+            status: (c.Status || c.status || 'Pending').toString(),
+            score: c.Score ?? c.score,
+            createdAt: c.CreatedAt || c.createdAt,
+            instructions: c.Instructions || c.instructions || '',
           }))
         };
       });
-      setViewLinksModal(prev => ({ ...prev, links: transformedLinks, loading: false }));
-    } catch (err) {
-      console.error('Failed to fetch links', err);
+      console.log('handleViewLinks: transformedLinks:', transformedLinks);
+      setViewLinksModal(prev => ({ 
+        ...prev, 
+        links: transformedLinks, 
+        loading: false,
+        createdAt: prev.createdAt || new Date().toISOString()
+      }));
+    } catch (err: any) {
+      console.error('handleViewLinks: Failed to fetch links', err);
+      console.error('Error status:', err.response?.status);
+      console.error('Error data:', err.response?.data);
       setViewLinksModal(prev => ({ ...prev, loading: false }));
     }
   };
@@ -560,6 +658,60 @@ export default function InterviewList() {
   const [bulkUploadModal, setBulkUploadModal] = useState<{ open: boolean; linkId: string; linkName: string }>({ open: false, linkId: '', linkName: '' });
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
   const [rescheduleModal, setRescheduleModal] = useState<{ open: boolean; candidate: CandidateInfo | null }>({ open: false, candidate: null });
+  const [inlineCandidateDrafts, setInlineCandidateDrafts] = useState<Record<string, InlineCandidateDraft | undefined>>({});
+  const [uploadingResumeCandidateId, setUploadingResumeCandidateId] = useState<string | null>(null);
+
+  const createDefaultCandidateDraft = (): InlineCandidateDraft => {
+    const now = new Date();
+    const defaultEnd = new Date(now);
+    defaultEnd.setMinutes(defaultEnd.getMinutes() + 60);
+
+    const formatDateLocal = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
+    return {
+      email: '',
+      candidateName: '',
+      phoneNumber: '',
+      whatsAppNumber: '',
+      startTime: formatDateLocal(now),
+      endTime: formatDateLocal(defaultEnd),
+      bufferStartMinutes: 0,
+      bufferEndMinutes: 0,
+      resumeBase64: undefined,
+      fileName: undefined,
+    };
+  };
+
+  const openInlineCandidateRow = (linkId: string) => {
+    setInlineCandidateDrafts(prev => ({
+      ...prev,
+      [linkId]: prev[linkId] ?? createDefaultCandidateDraft(),
+    }));
+  };
+
+  const closeInlineCandidateRow = (linkId: string) => {
+    setInlineCandidateDrafts(prev => ({
+      ...prev,
+      [linkId]: undefined,
+    }));
+  };
+
+  const updateInlineCandidateDraft = (linkId: string, field: keyof InlineCandidateDraft, value: string | number | undefined) => {
+    setInlineCandidateDrafts(prev => ({
+      ...prev,
+      [linkId]: {
+        ...(prev[linkId] ?? createDefaultCandidateDraft()),
+        [field]: value,
+      },
+    }));
+  };
 
   const handleAddCandidates = async (candidates: {
     email: string;
@@ -604,6 +756,76 @@ export default function InterviewList() {
     }
   };
 
+  const handleAddSingleCandidate = async (linkId: string) => {
+    const draft = inlineCandidateDrafts[linkId];
+    if (!draft || !draft.email.trim()) {
+      alert('Candidate email is required');
+      return;
+    }
+
+    try {
+      await api.post(`/interviews/links/${linkId}/candidates`, [{
+        linkId,
+        email: draft.email.trim(),
+        candidateName: draft.candidateName.trim() || null,
+        phoneNumber: draft.phoneNumber.trim() || null,
+        whatsAppNumber: draft.whatsAppNumber.trim() || null,
+        startTime: draft.startTime,
+        endTime: draft.endTime,
+        bufferStartMinutes: draft.bufferStartMinutes || 0,
+        bufferEndMinutes: draft.bufferEndMinutes || 0,
+        resumeBase64: draft.resumeBase64 || null,
+        fileName: draft.fileName || null,
+      }]);
+
+      closeInlineCandidateRow(linkId);
+      await handleViewLinks({ id: viewLinksModal.interviewId, name: viewLinksModal.interviewName } as Interview);
+      fetchInterviews();
+      setToast('Candidate added successfully!');
+      setTimeout(() => setToast(null), 2000);
+    } catch (err: any) {
+      console.error('Failed to add candidate', err);
+      alert(err.response?.data?.message || 'Failed to add candidate');
+    }
+  };
+
+  const candidateHasResume = (candidate: CandidateInfo) => Boolean(candidate.resumePath && candidate.resumePath.trim());
+
+  const handleUploadCandidateResume = async (candidate: CandidateInfo, file?: File | null) => {
+    if (!candidate.id || !file) {
+      return;
+    }
+
+    try {
+      setUploadingResumeCandidateId(candidate.id);
+
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1] || '');
+        };
+        reader.onerror = () => reject(new Error('Failed to read resume file'));
+        reader.readAsDataURL(file);
+      });
+
+      await api.post(`/interviews/candidates/${candidate.id}/resume`, {
+        resumeBase64: base64,
+        fileName: file.name,
+      });
+
+      await handleViewLinks({ id: viewLinksModal.interviewId, name: viewLinksModal.interviewName } as Interview);
+      fetchInterviews();
+      setToast('Resume uploaded successfully!');
+      setTimeout(() => setToast(null), 2000);
+    } catch (err: any) {
+      console.error('Failed to upload candidate resume', err);
+      alert(err.response?.data?.message || 'Failed to upload candidate resume');
+    } finally {
+      setUploadingResumeCandidateId(null);
+    }
+  };
+
   const toggleExpandLink = (link: InterviewLink) => {
     if (expandedLinkId === link.id) {
       setExpandedLinkId(null);
@@ -619,14 +841,21 @@ export default function InterviewList() {
     setTimeout(() => setToast(null), 2000);
   };
 
-  const shareWALink = (candidate: CandidateInfo) => {
-    const candidateUrl = `${window.location.origin}/interview/c/${candidate.interviewToken}`;
-    const text = encodeURIComponent(`🎙️ Interview: ${viewLinksModal.interviewName}\n🔗 ${candidateUrl}\n🔑 Access Code: ${candidate.accessCode || 'Check email'}\n⏰ ${fmtDT(candidate.startTime)} → ${fmtDT(candidate.endTime)}`);
+  const getCandidateUrl = (candidate: CandidateInfo, isAIInterview: boolean = false) => {
+    const basePath = isAIInterview ? '/ai-interview/c' : '/interview/c';
+    return `${window.location.origin}${basePath}/${candidate.interviewToken}`;
+  };
+
+  const shareWALink = (candidate: CandidateInfo, isAIInterview: boolean = false) => {
+    const candidateUrl = getCandidateUrl(candidate, isAIInterview);
+    const interviewType = isAIInterview ? 'AI ' : '';
+    const text = encodeURIComponent(`🎙️ ${interviewType}Interview: ${viewLinksModal.interviewName}\n🔗 ${candidateUrl}\n🔑 Access Code: ${candidate.accessCode || 'Check email'}\n⏰ ${fmtDT(candidate.startTime)} → ${fmtDT(candidate.endTime)}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
-  const shareEmailLink = (candidate: CandidateInfo) => {
-    const candidateUrl = `${window.location.origin}/interview/c/${candidate.interviewToken}`;
-    const subject = encodeURIComponent(`Interview Invitation: ${viewLinksModal.interviewName}`);
+  const shareEmailLink = (candidate: CandidateInfo, isAIInterview: boolean = false) => {
+    const candidateUrl = getCandidateUrl(candidate, isAIInterview);
+    const interviewType = isAIInterview ? 'AI ' : '';
+    const subject = encodeURIComponent(`${interviewType}Interview Invitation: ${viewLinksModal.interviewName}`);
     const body = encodeURIComponent(`You are invited to an interview.\n\nInterview: ${viewLinksModal.interviewName}\nYour Link: ${candidateUrl}\nAccess Code: ${candidate.accessCode || 'Check email'}\n\nScheduled: ${fmtDT(candidate.startTime)} → ${fmtDT(candidate.endTime)}\n\nPlease use your access code to begin.`);
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   };
@@ -661,8 +890,8 @@ export default function InterviewList() {
           candidateName: c.candidateName || null,
           phoneNumber: c.phoneNumber || null,
           whatsAppNumber: c.whatsAppNumber || null,
-          startTime: new Date(c.startTime).toISOString(),
-          endTime: new Date(c.endTime).toISOString(),
+          startTime: c.startTime, // Send as local string (YYYY-MM-DDTHH:mm)
+          endTime: c.endTime,     // Send as local string (YYYY-MM-DDTHH:mm)
           bufferStartMinutes: c.bufferStartMinutes || 0,
           bufferEndMinutes: c.bufferEndMinutes || 0,
           resumeBase64: c.resumeBase64 || null,
@@ -741,12 +970,21 @@ export default function InterviewList() {
     <div className="interview-page">
       <div className="page-header">
         <h1 className="page-title">Interviews</h1>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="btn btn-primary"
-        >
-          + Create Interview
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => fetchInterviews()}
+            className="btn btn-outline"
+            style={{ padding: '8px 16px' }}
+          >
+            🔄 Refresh
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn btn-primary"
+          >
+            + Create Interview
+          </button>
+        </div>
       </div>
 
       <div className="interview-stats">
@@ -871,15 +1109,23 @@ export default function InterviewList() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
                               <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--ink)' }}>Candidates ({link.candidates?.length || 0})</span>
                               {st === 'scheduled' && (
-                                <button 
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => setBulkUploadModal({ open: true, linkId: link.id, linkName: link.name })}
-                                >
-                                  + Add
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button 
+                                    className="btn btn-outline btn-sm"
+                                    onClick={() => setBulkUploadModal({ open: true, linkId: link.id, linkName: link.name })}
+                                  >
+                                    Bulk Candidates
+                                  </button>
+                                  <button 
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => openInlineCandidateRow(link.id)}
+                                  >
+                                    + Add
+                                  </button>
+                                </div>
                               )}
                             </div>
-                            {link.candidates && link.candidates.length > 0 ? (
+                            {(link.candidates && link.candidates.length > 0) || inlineCandidateDrafts[link.id] ? (
                               <div style={{ borderRadius: '8px', border: '1px solid var(--border)', overflow: 'hidden' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                                   <thead>
@@ -890,10 +1136,55 @@ export default function InterviewList() {
                                       <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Code</th>
                                       <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Status</th>
                                       <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Actions</th>
+                                      <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>Resume</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {link.candidates.map((candidate, idx) => {
+                                    {inlineCandidateDrafts[link.id] && (
+                                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255, 92, 0, 0.04)' }}>
+                                        <td style={{ padding: '8px' }}>
+                                          <input value={inlineCandidateDrafts[link.id]?.candidateName || ''} onChange={(e) => updateInlineCandidateDraft(link.id, 'candidateName', e.target.value)} className="form-input" placeholder="Candidate name" style={{ padding: '8px', fontSize: '12px' }} />
+                                        </td>
+                                        <td style={{ padding: '8px' }}>
+                                          <input value={inlineCandidateDrafts[link.id]?.email || ''} onChange={(e) => updateInlineCandidateDraft(link.id, 'email', e.target.value)} className="form-input" placeholder="Email" style={{ padding: '8px', fontSize: '12px' }} />
+                                        </td>
+                                        <td style={{ padding: '8px' }}>
+                                          <div style={{ display: 'grid', gap: '6px' }}>
+                                            <input type="datetime-local" value={inlineCandidateDrafts[link.id]?.startTime || ''} onChange={(e) => updateInlineCandidateDraft(link.id, 'startTime', e.target.value)} className="form-input" style={{ padding: '8px', fontSize: '11px' }} />
+                                            <input type="datetime-local" value={inlineCandidateDrafts[link.id]?.endTime || ''} onChange={(e) => updateInlineCandidateDraft(link.id, 'endTime', e.target.value)} className="form-input" style={{ padding: '8px', fontSize: '11px' }} />
+                                          </div>
+                                        </td>
+                                        <td style={{ padding: '8px', verticalAlign: 'top' }}>
+                                          <input value="" readOnly className="form-input" placeholder="Auto-generated" style={{ padding: '8px', fontSize: '11px', opacity: 0.7 }} />
+                                        </td>
+                                        <td style={{ padding: '8px', verticalAlign: 'top' }}>
+                                          <span style={{ fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '100px', background: 'rgba(138,138,138,.1)', color: 'var(--muted)' }}>New</span>
+                                        </td>
+                                        <td style={{ padding: '8px', verticalAlign: 'top' }}>
+                                          <div style={{ display: 'flex', gap: '6px' }}>
+                                            <button type="button" className="btn btn-primary btn-sm" onClick={() => handleAddSingleCandidate(link.id)}>Save</button>
+                                            <button type="button" className="btn btn-outline btn-sm" onClick={() => closeInlineCandidateRow(link.id)}>Cancel</button>
+                                          </div>
+                                        </td>
+                                        <td style={{ padding: '8px', verticalAlign: 'top' }}>
+                                          <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontSize: '10px', color: 'var(--primary)', fontWeight: 500, padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--primary)', background: 'rgba(99, 102, 241, 0.05)' }}>
+                                            <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (!file) return;
+                                              const reader = new FileReader();
+                                              reader.onload = () => {
+                                                const base64 = reader.result as string;
+                                                updateInlineCandidateDraft(link.id, 'resumeBase64', base64.split(',')[1]);
+                                                updateInlineCandidateDraft(link.id, 'fileName', file.name);
+                                              };
+                                              reader.readAsDataURL(file);
+                                            }} />
+                                            {inlineCandidateDrafts[link.id]?.fileName ? 'Resume Added' : 'Upload Resume'}
+                                          </label>
+                                        </td>
+                                      </tr>
+                                    )}
+                                    {(link.candidates || []).map((candidate, idx) => {
                                       const statusStyle = getCandidateStatusColor(candidate.status || 'Pending');
                                       return (
                                         <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -915,7 +1206,7 @@ export default function InterviewList() {
                                                 className="share-btn" 
                                                 title="Copy link"
                                                 onClick={() => {
-                                                  const url = `${window.location.origin}/interview/c/${candidate.interviewToken}`;
+                                                  const url = getCandidateUrl(candidate);
                                                   navigator.clipboard.writeText(url);
                                                   setToast('Link copied!');
                                                   setTimeout(() => setToast(null), 2000);
@@ -929,6 +1220,24 @@ export default function InterviewList() {
                                                 style={{ fontSize: '11px' }}
                                               >📅</button>
                                             </div>
+                                          </td>
+                                          <td style={{ padding: '8px 12px' }}>
+                                            {candidateHasResume(candidate) ? (
+                                              <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--green)' }}>Uploaded</span>
+                                            ) : (
+                                              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '10px', color: 'var(--accent)', fontWeight: 600 }}>
+                                                <input
+                                                  type="file"
+                                                  accept=".pdf,.doc,.docx,.txt"
+                                                  style={{ display: 'none' }}
+                                                  onChange={(e) => {
+                                                    void handleUploadCandidateResume(candidate, e.target.files?.[0]);
+                                                    e.currentTarget.value = '';
+                                                  }}
+                                                />
+                                                {uploadingResumeCandidateId === candidate.id ? 'Uploading...' : 'Upload Resume'}
+                                              </label>
+                                            )}
                                           </td>
                                         </tr>
                                       );
@@ -1041,14 +1350,22 @@ export default function InterviewList() {
                             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                                 <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>Candidates ({link.candidates?.length || 0})</span>
-                                <button 
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => setBulkUploadModal({ open: true, linkId: link.id, linkName: link.name })}
-                                >
-                                  + Add Candidates
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button 
+                                    className="btn btn-outline btn-sm"
+                                    onClick={() => setBulkUploadModal({ open: true, linkId: link.id, linkName: link.name })}
+                                  >
+                                    Bulk Candidates
+                                  </button>
+                                  <button 
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => openInlineCandidateRow(link.id)}
+                                  >
+                                    + Add Candidate
+                                  </button>
+                                </div>
                               </div>
-                              {link.candidates && link.candidates.length > 0 ? (
+                              {(link.candidates && link.candidates.length > 0) || inlineCandidateDrafts[link.id] ? (
                                 <div style={{ maxHeight: '320px', overflowY: 'auto', borderRadius: '10px', border: '1px solid var(--border)' }}>
                                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                                     <thead>
@@ -1059,12 +1376,57 @@ export default function InterviewList() {
                                         <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Code</th>
                                         <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Status</th>
                                         <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Share</th>
+                                        <th style={{ padding: '10px 12px', textAlign: 'left', color: 'var(--muted)', fontWeight: 600, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>Resume</th>
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {link.candidates.map((candidate, idx) => {
+                                      {inlineCandidateDrafts[link.id] && (
+                                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255, 92, 0, 0.04)' }}>
+                                          <td style={{ padding: '8px' }}>
+                                            <input value={inlineCandidateDrafts[link.id]?.candidateName || ''} onChange={(e) => updateInlineCandidateDraft(link.id, 'candidateName', e.target.value)} className="form-input" placeholder="Candidate name" style={{ padding: '8px', fontSize: '12px' }} />
+                                          </td>
+                                          <td style={{ padding: '8px' }}>
+                                            <input value={inlineCandidateDrafts[link.id]?.email || ''} onChange={(e) => updateInlineCandidateDraft(link.id, 'email', e.target.value)} className="form-input" placeholder="Email" style={{ padding: '8px', fontSize: '12px' }} />
+                                          </td>
+                                          <td style={{ padding: '8px' }}>
+                                            <div style={{ display: 'grid', gap: '6px' }}>
+                                              <input type="datetime-local" value={inlineCandidateDrafts[link.id]?.startTime || ''} onChange={(e) => updateInlineCandidateDraft(link.id, 'startTime', e.target.value)} className="form-input" style={{ padding: '8px', fontSize: '11px' }} />
+                                              <input type="datetime-local" value={inlineCandidateDrafts[link.id]?.endTime || ''} onChange={(e) => updateInlineCandidateDraft(link.id, 'endTime', e.target.value)} className="form-input" style={{ padding: '8px', fontSize: '11px' }} />
+                                            </div>
+                                          </td>
+                                          <td style={{ padding: '8px', verticalAlign: 'top' }}>
+                                            <input value="" readOnly className="form-input" placeholder="Auto-generated" style={{ padding: '8px', fontSize: '11px', opacity: 0.7 }} />
+                                          </td>
+                                          <td style={{ padding: '8px' }}>
+                                            <span style={{ fontSize: '10px', fontWeight: 500, padding: '2px 6px', borderRadius: '100px', background: 'rgba(138,138,138,.1)', color: 'var(--muted)' }}>New</span>
+                                          </td>
+                                          <td style={{ padding: '8px' }}>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                              <button type="button" className="btn btn-primary btn-sm" onClick={() => handleAddSingleCandidate(link.id)}>Save</button>
+                                              <button type="button" className="btn btn-outline btn-sm" onClick={() => closeInlineCandidateRow(link.id)}>Cancel</button>
+                                            </div>
+                                          </td>
+                                          <td style={{ padding: '8px' }}>
+                                            <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', fontSize: '10px', color: 'var(--primary)', fontWeight: 500, padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--primary)', background: 'rgba(99, 102, 241, 0.05)' }}>
+                                              <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+                                                const reader = new FileReader();
+                                                reader.onload = () => {
+                                                  const base64 = reader.result as string;
+                                                  updateInlineCandidateDraft(link.id, 'resumeBase64', base64.split(',')[1]);
+                                                  updateInlineCandidateDraft(link.id, 'fileName', file.name);
+                                                };
+                                                reader.readAsDataURL(file);
+                                              }} />
+                                              {inlineCandidateDrafts[link.id]?.fileName ? 'Resume Added' : 'Upload Resume'}
+                                            </label>
+                                          </td>
+                                        </tr>
+                                      )}
+                                      {(link.candidates || []).map((candidate, idx) => {
                                         const statusStyle = getCandidateStatusColor(candidate.status || 'Pending');
-                                        const candidateUrl = candidate.interviewToken ? `${window.location.origin}/interview/c/${candidate.interviewToken}` : '';
+                                        const candidateUrl = candidate.interviewToken ? getCandidateUrl(candidate, viewLinksModal.isAIInterview) : '';
                                         const copyCandidateLink = () => {
                                           if (candidateUrl) {
                                             navigator.clipboard.writeText(candidateUrl);
@@ -1098,7 +1460,7 @@ export default function InterviewList() {
                                                   <button 
                                                     className="share-btn share-wa" 
                                                     title="WhatsApp"
-                                                    onClick={() => shareWALink(candidate)}
+                                                    onClick={() => shareWALink(candidate, viewLinksModal.isAIInterview)}
                                                     style={{ fontSize: '12px' }}
                                                   >
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -1110,7 +1472,7 @@ export default function InterviewList() {
                                                 <button 
                                                   className="share-btn share-email" 
                                                   title="Email"
-                                                  onClick={() => shareEmailLink(candidate)}
+                                                  onClick={() => shareEmailLink(candidate, viewLinksModal.isAIInterview)}
                                                   style={{ fontSize: '12px' }}
                                                 >✉️</button>
                                                 <button 
@@ -1120,6 +1482,24 @@ export default function InterviewList() {
                                                   style={{ fontSize: '12px' }}
                                                 >📅</button>
                                               </div>
+                                            </td>
+                                            <td style={{ padding: '8px 12px' }}>
+                                              {candidateHasResume(candidate) ? (
+                                                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--green)' }}>Uploaded</span>
+                                              ) : (
+                                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '10px', color: 'var(--accent)', fontWeight: 600 }}>
+                                                  <input
+                                                    type="file"
+                                                    accept=".pdf,.doc,.docx,.txt"
+                                                    style={{ display: 'none' }}
+                                                    onChange={(e) => {
+                                                      void handleUploadCandidateResume(candidate, e.target.files?.[0]);
+                                                      e.currentTarget.value = '';
+                                                    }}
+                                                  />
+                                                  {uploadingResumeCandidateId === candidate.id ? 'Uploading...' : 'Upload Resume'}
+                                                </label>
+                                              )}
                                             </td>
                                           </tr>
                                         );
@@ -1648,11 +2028,23 @@ function CreateLinkModal({
                             />
                           </div>
                         </td>
-                        <td style={{ padding: '8px', textAlign: 'center' }}>
-                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '9px', color: 'var(--muted)' }}>
+                          <td style={{ padding: '8px', textAlign: 'center' }}>
+                          <label style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '4px', 
+                            cursor: 'pointer', 
+                            fontSize: '10px', 
+                            color: 'var(--primary)',
+                            fontWeight: 500,
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--primary)',
+                            background: 'rgba(99, 102, 241, 0.05)'
+                          }}>
                             <input
                               type="file"
-                              accept=".pdf,.doc,.docx"
+                              accept=".pdf,.doc,.docx,.txt"
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (!file) return;
@@ -1664,9 +2056,13 @@ function CreateLinkModal({
                                 };
                                 reader.readAsDataURL(file);
                               }}
-                              style={{ fontSize: '9px' }}
+                              style={{ display: 'none' }}
                             />
-                            {c.fileName && <span style={{ color: 'var(--green)', fontSize: '10px' }} title={c.fileName}>✓</span>}
+                            {c.fileName ? (
+                              <span style={{ color: 'var(--green)' }} title={c.fileName}>✓ Uploaded</span>
+                            ) : (
+                              '📄 Upload'
+                            )}
                           </label>
                         </td>
                         <td style={{ padding: '8px', textAlign: 'center' }}>

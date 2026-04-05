@@ -1,0 +1,87 @@
+========================================
+RESUME - Rajesh Kumar
+========================================
+
+CONTACT:
+Name: Rajesh Kumar
+Email: rajesh.kumar@email.com
+Phone: +91 99887 76655
+Location: Chennai, India
+
+CAREER OBJECTIVE:
+Seeking a challenging role as a Python Developer where I can utilize 
+my skills in backend development and contribute to innovative projects.
+
+SUMMARY:
+Python Developer with 4 years of experience specializing in Django 
+web development and REST API creation. Passionate about clean code 
+architecture and automation.
+
+WORK EXPERIENCE:
+
+Python Developer
+FinServe Technologies
+Jul 2020 - Present
+
+- Developed financial reporting application serving 1000+ users
+- Built REST APIs for mobile banking application
+- Implemented data validation and security features
+- Created automated testing suite with 90% code coverage
+- Optimized database queries resulting in 50% performance improvement
+- Worked with AWS services for deployment
+- Collaborated in agile team of 8 developers
+
+Junior Python Developer
+WebCraft Solutions
+Mar 2019 - Jun 2020
+
+- Developed web applications using Django
+- Created REST APIs for e-commerce platform
+- Worked with PostgreSQL database management
+- Implemented caching using Redis
+- Participated in code reviews and sprint meetings
+- Fixed bugs and resolved production issues
+
+TECHNICAL SKILLS:
+Languages: Python, JavaScript, SQL
+Frameworks: Django, Flask, FastAPI
+Databases: PostgreSQL, MySQL, MongoDB
+Tools: Git, Docker, Jenkins, AWS
+Testing: pytest, unittest, Selenium
+Other: Linux, REST APIs, Celery
+
+EDUCATION:
+B.Tech in Information Technology
+Anna University, Chennai
+Year: 2018 | Percentage: 75%
+
+CERTIFICATIONS:
+- Django for Beginners (Udemy, 2022)
+- AWS Cloud Practitioner (2021)
+- Python for Data Science (Coursera, 2020)
+
+PROJECTS:
+1. Expense Tracker API
+   - RESTful API for personal finance management
+   - Categories, budgets, and reports
+   - Tech: Django REST Framework, PostgreSQL
+
+2. Chat Application
+   - Real-time messaging with WebSocket
+   - User authentication and online status
+   - Tech: Django Channels, Redis, PostgreSQL
+
+STRENGTHS:
+- Quick learner
+- Strong problem-solving skills
+- Good teamwork abilities
+- Attention to detail
+- Passionate about coding
+
+HOBBIES:
+- Open source contribution
+- Reading tech blogs
+- Cricket
+- Photography
+
+========================================

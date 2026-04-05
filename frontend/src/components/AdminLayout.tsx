@@ -6,6 +6,7 @@ const AdminLayout: React.FC = () => {
     const [currentDate, setCurrentDate] = useState('');
     const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
     const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
+    const [isInterviewOpen, setIsInterviewOpen] = useState(false);
     const location = useLocation();
 
     useEffect(() => {
@@ -26,6 +27,10 @@ const AdminLayout: React.FC = () => {
         if (location.pathname.includes('/assessments') ||
             location.pathname.includes('/links')) {
             setIsAssessmentOpen(true);
+        }
+        if (location.pathname.includes('/interviews') ||
+            location.pathname.includes('/ijp')) {
+            setIsInterviewOpen(true);
         }
     }, [location.pathname]);
 
@@ -86,17 +91,21 @@ const AdminLayout: React.FC = () => {
                     <span className="nav-label">Attempts</span>
                 </a> */}
 
-                {/* ── AI Interview submenu ── */}
-                <NavLink to="/interviews" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                {/* ── Interviews submenu ── */}
+                <a className={`nav-item ${isInterviewOpen ? 'active' : ''}`} href="#"
+                    onClick={e => { e.preventDefault(); setIsInterviewOpen(o => !o); }}>
                     <span className="nav-icon">🎙️</span>
                     <span className="nav-label">Interviews</span>
-                </NavLink>
-
-                {/* ── Internal Job Postings ── */}
-                <NavLink to="/ijp" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <span className="nav-icon">💼</span>
-                    <span className="nav-label">Job Postings</span>
-                </NavLink>
+                    <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isInterviewOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>▼</span>
+                </a>
+                <div className={`nav-sub ${isInterviewOpen ? 'open' : ''}`}>
+                    <NavLink to="/ijp" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
+                        <div className="nav-sub-dot"></div>Job Posting
+                    </NavLink>
+                    <NavLink to="/interviews" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
+                        <div className="nav-sub-dot"></div>Create Interview
+                    </NavLink>
+                </div>
 
                 <div className="sidebar-section">System</div>
 

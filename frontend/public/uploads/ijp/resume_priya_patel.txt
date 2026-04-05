@@ -1,0 +1,111 @@
+========================================
+RESUME - Priya Patel
+========================================
+
+CONTACT INFORMATION:
+Name: Priya Patel
+Email: priya.patel@email.com
+Phone: +91 87654 32109
+LinkedIn: linkedin.com/in/priyapatel
+Location: Pune, India
+
+SUMMARY:
+Experienced Full Stack Developer with 7 years of expertise in building 
+scalable web applications. Strong background in React, Angular, and Node.js. 
+Passionate about clean code, user experience, and mentoring teams.
+
+EXPERIENCE:
+
+Lead Frontend Engineer
+InnovateTech Solutions
+Mar 2021 - Present
+
+- Leading a team of 6 frontend developers
+- Architected enterprise-scale React application for healthcare domain
+- Implemented design system with 50+ reusable components
+- Improved Core Web Vitals scores by 60%
+- Established front-end testing strategy achieving 85% coverage
+- Conducted technical interviews and onboarding training
+- Implemented feature flags for gradual rollouts
+
+Senior Software Engineer
+DataFlow Systems
+Sep 2018 - Feb 2021
+
+- Developed real-time data visualization dashboards
+- Built React components for complex charting libraries (D3.js, Chart.js)
+- Implemented authentication and authorization using OAuth 2.0
+- Created internal tooling to improve developer productivity
+- Worked on performance optimization achieving 2x speed improvement
+- Collaborated with cross-functional teams including QA, DevOps, and PM
+
+Software Engineer
+CloudNine Technologies
+Jul 2016 - Aug 2018
+
+- Developed customer-facing web applications using React
+- Built RESTful microservices using Node.js
+- Implemented CI/CD pipelines using Jenkins
+- Participated in sprint planning and retrospectives
+- Resolved production issues and bugs
+
+SKILLS:
+- Frontend: React, Angular, Vue.js, TypeScript, JavaScript
+- Backend: Node.js, Express, Python, Django
+- Database: PostgreSQL, MongoDB, Redis
+- Cloud: AWS (EC2, S3, Lambda, CloudFront)
+- Testing: Jest, Cypress, Selenium
+- Tools: Docker, Kubernetes, Webpack, Vite
+- Design: Figma, Adobe XD
+- Agile: Jira, Confluence, GitHub Projects
+
+EDUCATION:
+Master of Computer Applications (MCA)
+University of Pune
+Passed: 2016 | Percentage: 78%
+
+Bachelor of Computer Science (BCS)
+Mumbai University
+Passed: 2014 | CGPA: 8.0/10
+
+CERTIFICATIONS:
+- Google Cloud Professional Frontend Developer (2023)
+- Certified Kubernetes Application Developer (CKAD) (2022)
+- MongoDB Certified Developer (2021)
+
+PROJECTS:
+1. Healthcare Dashboard
+   - Real-time patient monitoring system
+   - HIPAA compliant data handling
+   - Tech: React, TypeScript, WebSocket, PostgreSQL
+
+2. E-learning Platform
+   - Video streaming with adaptive quality
+   - Interactive quizzes and assessments
+   - Tech: React, Node.js, MongoDB, AWS S3
+
+3. Inventory Management System
+   - Multi-tenant SaaS application
+   - Barcode scanning integration
+   - Tech: React, Python Django, PostgreSQL
+
+ACHIEVEMENTS:
+- Employee of the Quarter (Q2 2022)
+- Successfully delivered 15+ projects on time
+- Reduced bug count by 70% through improved testing
+- Trained 20+ fresh graduates in React
+
+PERSONAL SKILLS:
+- Excellent leadership and mentoring abilities
+- Strong analytical thinking
+- Effective communicator
+- Detail-oriented
+- Ability to handle multiple priorities
+
+INTERESTS:
+- Teaching coding at local community center
+- Reading technology blogs
+- Yoga and meditation
+- Traveling
+
+========================================

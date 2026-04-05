@@ -1,0 +1,54 @@
+========================================
+JOB DESCRIPTION - Senior React Developer
+========================================
+
+Position: Senior React Developer
+Department: Engineering
+Location: Remote (India)
+Experience Required: 5+ years
+
+ABOUT THE ROLE:
+We are looking for a Senior React Developer to join our dynamic engineering team. 
+You will be responsible for building and maintaining web applications using React, 
+TypeScript, and modern frontend technologies.
+
+KEY RESPONSIBILITIES:
+- Design and implement new features using React and TypeScript
+- Collaborate with UI/UX designers to create responsive, user-friendly interfaces
+- Write clean, maintainable, and well-tested code
+- Mentor junior developers and conduct code reviews
+- Optimize application performance and user experience
+- Participate in architectural decisions and technical planning
+- Work closely with product managers to understand requirements
+
+TECHNICAL REQUIREMENTS:
+- 5+ years of experience with React.js
+- Strong proficiency in TypeScript
+- Experience with state management (Redux, MobX, or Context API)
+- Knowledge of RESTful APIs and GraphQL
+- Familiarity with CSS-in-JS, Styled Components, or Tailwind CSS
+- Understanding of CI/CD pipelines and Git workflows
+- Experience with testing frameworks (Jest, React Testing Library)
+
+NICE TO HAVE:
+- Experience with Next.js or Remix
+- Knowledge of server-side rendering (SSR)
+- Familiarity with Docker and Kubernetes
+- Experience with cloud platforms (AWS, GCP, Azure)
+- Open source contributions
+
+SOFT SKILLS:
+- Excellent communication skills
+- Strong problem-solving abilities
+- Ability to work in a fast-paced environment
+- Team player with collaborative mindset
+
+BENEFITS:
+- Competitive salary package
+- Flexible work hours
+- Health insurance coverage
+- Annual learning budget for courses and certifications
+- Work from home allowance
+- Team building activities and outings
+
+========================================

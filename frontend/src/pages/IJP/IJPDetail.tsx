@@ -365,42 +365,63 @@ export default function IJPDetail() {
 
       {activeTab === 'documents' && (
         <div className="ijp-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 className="ijp-section-title" style={{ margin: 0 }}>Documents</h3>
-            <UploadDocumentBtn ijpId={id!} onUpload={() => fetchData()} />
+          <h3 className="ijp-section-title" style={{ marginBottom: '20px' }}>Documents</h3>
+          
+          {/* Job Description Section */}
+          <div style={{ 
+            border: '1px solid var(--border)', 
+            borderRadius: '12px', 
+            padding: '20px', 
+            marginBottom: '16px',
+            background: 'var(--card)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '16px' }}>📄 Job Description</h4>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
+                  Required for AI interviews to understand role requirements
+                </p>
+              </div>
+            </div>
+            {ijp?.jobDescriptionFileName ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '14px' }}>{ijp.jobDescriptionFileName}</span>
+                <span style={{ fontSize: '12px', color: 'var(--green)' }}>✅ Uploaded</span>
+              </div>
+            ) : (
+              <UploadDocumentBtn ijpId={id!} onUpload={() => fetchData()} docType={1} label="Upload Job Description" />
+            )}
           </div>
-          {documents.length > 0 ? (
-            <div className="doc-list">
-              {documents.map(doc => (
-                <div key={doc.id} className="doc-item">
-                  <div className="doc-item-info">
-                    <span style={{ fontSize: '24px' }}>
-                      {doc.documentType === 'JobDescription' ? '📄' : 
-                       doc.documentType === 'Resume' ? '📝' : 
-                       doc.documentType === 'CompanyPolicies' ? '📋' : '📎'}
-                    </span>
-                    <div>
-                      <div className="doc-item-name">{doc.fileName}</div>
-                      <div className="doc-item-type">{doc.documentType} • {fmtDate(doc.uploadedAt)}</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {doc.isIndexed && <span style={{ fontSize: '11px', color: 'var(--green)' }}>✅ Indexed</span>}
-                    <button onClick={async () => {
-                      await ijpApi.deleteDocument(id!, doc.id);
-                      fetchData();
-                    }} className="btn btn-danger btn-sm">Delete</button>
-                  </div>
-                </div>
-              ))}
+
+          {/* Company Policy Section */}
+          <div style={{ 
+            border: '1px solid var(--border)', 
+            borderRadius: '12px', 
+            padding: '20px', 
+            marginBottom: '16px',
+            background: 'var(--card)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '16px' }}>📋 Company Policy</h4>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
+                  Required for AI interviews to understand company culture & policies
+                </p>
+              </div>
             </div>
-          ) : (
-            <div className="empty-state" style={{ padding: '40px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📎</div>
-              <p className="empty-state-text">No documents uploaded yet.</p>
-              <UploadDocumentBtn ijpId={id!} onUpload={() => fetchData()} />
-            </div>
-          )}
+            {ijp?.companyPoliciesFileName ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '14px' }}>{ijp.companyPoliciesFileName}</span>
+                <span style={{ fontSize: '12px', color: 'var(--green)' }}>✅ Uploaded</span>
+              </div>
+            ) : (
+              <UploadDocumentBtn ijpId={id!} onUpload={() => fetchData()} docType={2} label="Upload Company Policy" />
+            )}
+          </div>
+
+          <p style={{ fontSize: '12px', color: 'var(--muted)' }}>
+            💡 Note: Candidate resumes should be uploaded when adding candidates from the Links section.
+          </p>
         </div>
       )}
 
@@ -659,9 +680,11 @@ function ConfigModal({ config, onClose, onSubmit }: ConfigModalProps) {
 interface UploadBtnProps {
   ijpId: string;
   onUpload: () => void;
+  docType?: number;
+  label?: string;
 }
 
-function UploadDocumentBtn({ ijpId, onUpload }: UploadBtnProps) {
+function UploadDocumentBtn({ ijpId, onUpload, docType, label }: UploadBtnProps) {
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -672,11 +695,23 @@ function UploadDocumentBtn({ ijpId, onUpload }: UploadBtnProps) {
       const reader = new FileReader();
       reader.onload = async () => {
         const base64 = (reader.result as string).split(',')[1];
-        const docType = file.name.toLowerCase().includes('resume') ? 1 :
-                        file.name.toLowerCase().includes('policy') ? 2 :
-                        file.name.toLowerCase().includes('question') ? 3 : 4;
+        // Use provided docType or detect automatically
+        let type = docType;
+        if (!type) {
+          const lowerName = file.name.toLowerCase();
+          if (lowerName.includes('job') || lowerName.includes('jd') || lowerName.includes('description')) {
+            type = 1;
+          } else if (lowerName.includes('policy') || lowerName.includes('guideline')) {
+            type = 2;
+          } else if (lowerName.includes('resume') || lowerName.includes('cv')) {
+            type = 3;
+          } else {
+            type = 4;
+          }
+        }
+        console.log("Uploading document:", file.name, "Type:", type);
         await ijpApi.uploadDocument(ijpId, {
-          documentType: docType,
+          documentType: type,
           fileName: file.name,
           fileBase64: base64
         });
@@ -691,9 +726,20 @@ function UploadDocumentBtn({ ijpId, onUpload }: UploadBtnProps) {
   };
 
   return (
-    <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
-      {uploading ? 'Uploading...' : '+ Upload Document'}
-      <input type="file" accept=".pdf,.doc,.docx,.txt" onChange={handleUpload} style={{ display: 'none' }} />
+    <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontSize: '13px' }}>
+      {uploading ? (
+        <>⏳ Uploading...</>
+      ) : (
+        <>
+          {label || '📎 Upload Document'}
+        </>
+      )}
+      <input 
+        type="file" 
+        accept=".pdf,.doc,.docx,.txt,.md" 
+        onChange={handleUpload} 
+        style={{ display: 'none' }} 
+      />
     </label>
   );
 }

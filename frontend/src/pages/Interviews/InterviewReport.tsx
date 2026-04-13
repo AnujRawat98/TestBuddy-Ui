@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import './Interviews.css';
 
@@ -49,6 +49,7 @@ interface Report {
 
 export default function InterviewReport() {
   const { candidateId } = useParams<{ candidateId: string }>();
+  const navigate = useNavigate();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +63,39 @@ export default function InterviewReport() {
     
     try {
       const res = await api.get(`/interviews/reports/${candidateId}`);
-      setReport(res.data);
+      const data = res.data;
+      
+      const reportData: Report = {
+        candidateId: data.candidateId || data.CandidateId,
+        candidateName: data.candidateName || data.CandidateName || 'Unknown',
+        email: data.email || data.Email || '',
+        interviewName: data.interviewName || data.InterviewName || '',
+        difficulty: data.difficulty || data.Difficulty || 'Medium',
+        session: data.session || data.Session ? {
+          sessionId: data.session?.sessionId || data.Session?.SessionId || '',
+          startTime: data.session?.startTime || data.Session?.StartTime || '',
+          endTime: data.session?.endTime || data.Session?.EndTime || '',
+          duration: data.session?.duration || data.Session?.Duration || 'N/A',
+          interruptCount: data.session?.interruptCount || data.Session?.InterruptCount || 0,
+          averageLatencyMs: data.session?.averageLatencyMs || data.Session?.AverageLatencyMs || 0,
+          speechConfidence: data.session?.speechConfidence || data.Session?.SpeechConfidence || 0,
+          transcript: (data.session?.transcript || data.Session?.Transcript || []).map((t: any) => ({
+            speaker: t.speaker || t.Speaker || 'assistant',
+            text: t.text || t.Text || '',
+            timestamp: t.timestamp || t.Timestamp || ''
+          }))
+        } : null as any,
+        feedback: data.feedback || data.Feedback ? {
+          feedbackId: data.feedback?.feedbackId || data.Feedback?.FeedbackId || '',
+          overallScore: data.feedback?.overallScore || data.Feedback?.OverallScore || data.feedback?.marksObtained || 0,
+          topicScores: data.feedback?.topicScores || data.Feedback?.TopicScores || [],
+          aIComments: data.feedback?.aIComments || data.Feedback?.AIComments || data.feedback?.remarks || '',
+          recommendation: data.feedback?.recommendation || data.Feedback?.Recommendation || data.feedback?.finalAIResult || 'Pending',
+          generatedAt: data.feedback?.generatedAt || data.Feedback?.GeneratedAt || data.feedback?.createdAt || new Date().toISOString()
+        } : null as any
+      };
+      
+      setReport(reportData);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load report');
     } finally {
@@ -71,21 +104,33 @@ export default function InterviewReport() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'var(--green)';
-    if (score >= 60) return 'var(--yellow)';
+    if (score >= 75) return 'var(--green)';
+    if (score >= 50) return 'var(--yellow)';
     return 'var(--red)';
   };
 
   const getRecommendationColor = (rec: string) => {
-    if (rec.includes('StrongHire') || rec === 'Hire') return 'var(--green)';
-    if (rec === 'NoHire') return 'var(--yellow)';
-    return 'var(--red)';
+    const r = rec?.toLowerCase() || '';
+    if (r.includes('strong')) return 'var(--green)';
+    if (r.includes('average') || r.includes('hire')) return 'var(--yellow)';
+    if (r.includes('below') || r.includes('no hire')) return 'var(--red)';
+    return 'var(--muted)';
+  };
+
+  const formatScore = (score: number, total: number) => {
+    if (total > 0) {
+      return `${Math.round((score / total) * 100)}% (${score}/${total})`;
+    }
+    return score;
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
+      <div className="interview-page">
+        <div className="empty-state">
+          <div className="empty-icon">⏳</div>
+          <div className="empty-title">Loading report...</div>
+        </div>
       </div>
     );
   }
@@ -96,6 +141,9 @@ export default function InterviewReport() {
         <div className="empty-state">
           <div className="empty-state-icon">⚠️</div>
           <p className="empty-state-text">{error || 'Report not found'}</p>
+          <button className="btn btn-outline" onClick={() => navigate('/interviews')}>
+            ← Back to Interviews
+          </button>
         </div>
       </div>
     );
@@ -104,7 +152,15 @@ export default function InterviewReport() {
   return (
     <div className="interview-page">
       <div className="page-header">
-        <h1 className="page-title">Interview Report</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button 
+            onClick={() => navigate('/interviews')} 
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', padding: '8px', display: 'flex', alignItems: 'center' }}
+          >
+            ←
+          </button>
+          <h1 className="page-title">Interview Report</h1>
+        </div>
       </div>
 
       {/* Candidate Info Card */}
@@ -123,17 +179,17 @@ export default function InterviewReport() {
         </p>
       </div>
 
-      {/* Overall Score Card */}
+      {/* AI Feedback Card */}
       {report.feedback && (
         <div className="interview-card">
-          <h3 className="interview-card-title" style={{ marginBottom: '16px' }}>Overall Performance</h3>
+          <h3 className="interview-card-title" style={{ marginBottom: '16px' }}>AI Feedback</h3>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '20px' }}>
             <div style={{
               width: '100px',
               height: '100px',
               borderRadius: '50%',
-              background: `conic-gradient(${getScoreColor(report.feedback.overallScore)} ${report.feedback.overallScore}%, var(--border) 0%)`,
+              background: `conic-gradient(${getScoreColor(report.feedback.overallScore)} ${Math.min(report.feedback.overallScore, 100)}%, var(--border) 0%)`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -165,7 +221,7 @@ export default function InterviewReport() {
                 fontSize: '14px',
                 fontFamily: 'DM Sans, sans-serif'
               }}>
-                {report.feedback.recommendation.replace(/([A-Z])/g, ' $1').trim()}
+                {report.feedback.recommendation}
               </div>
               <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>
                 Generated: {new Date(report.feedback.generatedAt).toLocaleString()}
@@ -174,13 +230,13 @@ export default function InterviewReport() {
           </div>
 
           <div style={{ marginBottom: '16px' }}>
-            <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>AI Comments</h4>
-            <p style={{ fontSize: '14px', color: 'var(--ink)', fontFamily: 'DM Sans, sans-serif', lineHeight: '1.6' }}>
-              {report.feedback.aIComments}
+            <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>AI Assessment</h4>
+            <p style={{ fontSize: '14px', color: 'var(--ink)', fontFamily: 'DM Sans, sans-serif', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+              {report.feedback.aIComments || 'No assessment comments available.'}
             </p>
           </div>
 
-          {report.feedback.topicScores?.length > 0 && (
+          {report.feedback.topicScores && report.feedback.topicScores.length > 0 && (
             <div>
               <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', fontFamily: 'DM Sans, sans-serif' }}>Topic-wise Scores</h4>
               <div style={{ display: 'grid', gap: '12px' }}>
@@ -202,12 +258,16 @@ export default function InterviewReport() {
                         borderRadius: '100px'
                       }} />
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>
-                      <strong>Strengths:</strong> {topic.strengths}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif', marginTop: '4px' }}>
-                      <strong>Areas for Improvement:</strong> {topic.areasForImprovement}
-                    </div>
+                    {topic.strengths && (
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>
+                        <strong>Strengths:</strong> {topic.strengths}
+                      </div>
+                    )}
+                    {topic.areasForImprovement && (
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif', marginTop: '4px' }}>
+                        <strong>Improvements:</strong> {topic.areasForImprovement}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -216,15 +276,32 @@ export default function InterviewReport() {
         </div>
       )}
 
+      {/* No Feedback Message */}
+      {!report.feedback && (
+        <div className="interview-card">
+          <div style={{ textAlign: 'center', padding: '32px' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>Feedback Pending</h3>
+            <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
+              AI feedback will be generated after the interview is completed.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Session Metrics */}
       {report.session && (
         <div className="interview-card">
-          <h3 className="interview-card-title" style={{ marginBottom: '16px' }}>Session Metrics</h3>
+          <h3 className="interview-card-title" style={{ marginBottom: '16px' }}>Session Details</h3>
           
           <div className="interview-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             <div className="interview-stat-card stat-1">
               <div className="interview-stat-icon">⏱️</div>
-              <div className="interview-stat-num">{report.session.duration || 'N/A'}</div>
+              <div className="interview-stat-num">
+                {report.session.duration && report.session.duration !== '00:00:00' 
+                  ? report.session.duration 
+                  : 'N/A'}
+              </div>
               <div className="interview-stat-label">Duration</div>
             </div>
             <div className="interview-stat-card stat-2">
@@ -242,7 +319,7 @@ export default function InterviewReport() {
       )}
 
       {/* Transcript */}
-      {report.session?.transcript?.length > 0 && (
+      {report.session?.transcript && report.session.transcript.length > 0 && (
         <div className="interview-card">
           <h3 className="interview-card-title" style={{ marginBottom: '16px' }}>Conversation Transcript</h3>
           
@@ -252,7 +329,7 @@ export default function InterviewReport() {
                 key={i}
                 style={{
                   display: 'flex',
-                  justifyContent: entry.speaker === 'assistant' ? 'flex-start' : 'flex-end',
+                  justifyContent: entry.speaker === 'assistant' || entry.speaker === 'interviewer' ? 'flex-start' : 'flex-end',
                   marginBottom: '12px'
                 }}
               >
@@ -260,13 +337,13 @@ export default function InterviewReport() {
                   maxWidth: '70%',
                   padding: '10px 14px',
                   borderRadius: '12px',
-                  background: entry.speaker === 'assistant' ? 'var(--accent2)' : 'var(--accent)',
+                  background: entry.speaker === 'assistant' || entry.speaker === 'interviewer' ? 'var(--accent2)' : 'var(--accent)',
                   color: 'white',
                   fontSize: '14px',
                   fontFamily: 'DM Sans, sans-serif'
                 }}>
                   <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>
-                    {entry.speaker === 'assistant' ? 'AI Interviewer' : 'Candidate'}
+                    {entry.speaker === 'assistant' || entry.speaker === 'interviewer' ? 'AI Interviewer' : 'Candidate'}
                   </div>
                   {entry.text}
                 </div>

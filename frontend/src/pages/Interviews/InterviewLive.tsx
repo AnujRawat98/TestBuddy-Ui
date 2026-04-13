@@ -23,6 +23,9 @@ export default function InterviewLive() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const muteGainRef = useRef<GainNode | null>(null);
+  const highPassFilterRef = useRef<BiquadFilterNode | null>(null);
+  const lowPassFilterRef = useRef<BiquadFilterNode | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playbackContextRef = useRef<AudioContext | null>(null);
@@ -44,6 +47,11 @@ export default function InterviewLive() {
   const initAbortRef = useRef<AbortController | null>(null);
   const outgoingAudioChunkCountRef = useRef(0);
   const incomingAudioChunkCountRef = useRef(0);
+  const hasAssistantRespondedRef = useRef(false);
+  const closingMessageRef = useRef<string>('');
+  const pendingAutoEndRef = useRef(false);
+  const isEndingInterviewRef = useRef(false);
+  const preSpeechAudioBufferRef = useRef<string[]>([]);
 
   const debugLog = useCallback((message: string, data?: unknown) => {
     if (data === undefined) {
@@ -80,6 +88,12 @@ export default function InterviewLive() {
 
     processorRef.current?.disconnect();
     processorRef.current = null;
+    compressorRef.current?.disconnect();
+    compressorRef.current = null;
+    lowPassFilterRef.current?.disconnect();
+    lowPassFilterRef.current = null;
+    highPassFilterRef.current?.disconnect();
+    highPassFilterRef.current = null;
     analyserRef.current?.disconnect();
     analyserRef.current = null;
     sourceNodeRef.current?.disconnect();
@@ -96,6 +110,7 @@ export default function InterviewLive() {
     candidateTurnActiveRef.current = false;
     speechActivationStartedAtRef.current = 0;
     trailingSilenceUntilRef.current = 0;
+    preSpeechAudioBufferRef.current = [];
     setIsSpeaking(false);
   };
 
@@ -261,6 +276,9 @@ export default function InterviewLive() {
     if (!isConnected) return 'Connecting to interview';
     if (error) return 'Connection issue detected';
     if (isMuted) return 'Microphone muted';
+    if (!hasAssistantRespondedRef.current && (interviewState === 'ready' || interviewState === 'thinking')) {
+      return 'Waiting for AI interviewer';
+    }
     if (interviewState === 'speaking') return 'AI is speaking';
     if (isSpeaking) return 'Listening to you';
     if (interviewState === 'thinking') return 'AI is thinking';
@@ -269,6 +287,7 @@ export default function InterviewLive() {
 
   const formatStateLabel = () => {
     if (!isConnected) return 'Offline';
+    if (!hasAssistantRespondedRef.current && (interviewState === 'ready' || interviewState === 'thinking')) return 'Starting';
     if (interviewState === 'speaking') return 'AI Speaking';
     if (isSpeaking || interviewState === 'listening') return 'Listening';
     if (interviewState === 'thinking') return 'Thinking';
@@ -277,10 +296,32 @@ export default function InterviewLive() {
 
   const formatStateHint = () => {
     if (!isConnected) return 'Reconnecting to the live session';
+    if (!hasAssistantRespondedRef.current && (interviewState === 'ready' || interviewState === 'thinking')) {
+      return 'Preparing the greeting and first question';
+    }
     if (interviewState === 'speaking') return 'Please wait for the question to finish';
     if (isSpeaking || interviewState === 'listening') return 'Your microphone is active';
     if (interviewState === 'thinking') return 'Preparing the next response';
     return 'Natural voice interview in progress';
+  };
+
+  const normalizeTranscriptText = (value?: string | null) =>
+    (value ?? '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const isClosingTurn = (text?: string | null) => {
+    const normalizedText = normalizeTranscriptText(text);
+    if (!normalizedText) return false;
+
+    const configuredClosing = normalizeTranscriptText(closingMessageRef.current);
+    if (configuredClosing && (normalizedText.includes(configuredClosing) || configuredClosing.includes(normalizedText))) {
+      return true;
+    }
+
+    return /thank you for your time|that concludes our interview|this concludes our interview|interview is complete|we have reached the end of the interview|you may now leave|have a great day/.test(normalizedText);
   };
   
 
@@ -320,6 +361,7 @@ export default function InterviewLive() {
       }
 
       const { sessionId: newSessionId } = startRes.data;
+      closingMessageRef.current = startRes.data?.closingMessage || '';
       debugLog('Interview start API response received', startRes.data);
       setSessionId(newSessionId);
       sessionIdRef.current = newSessionId;
@@ -381,6 +423,7 @@ export default function InterviewLive() {
       conn.on('assistant_audio_start', (data: any) => {
         incomingAudioChunkCountRef.current = 0;
         debugLog('assistant_audio_start received', data);
+        hasAssistantRespondedRef.current = true;
         currentGenerationRef.current = data.generation;
         candidateTurnActiveRef.current = false;
         isSpeakingRef.current = false;
@@ -414,6 +457,10 @@ export default function InterviewLive() {
           generation: currentGenerationRef.current,
           totalChunks: incomingAudioChunkCountRef.current,
         });
+        if (pendingAutoEndRef.current && !isEndingInterviewRef.current) {
+          void endInterview(true);
+          return;
+        }
         resumeListeningAfterPlayback();
       });
 
@@ -425,6 +472,16 @@ export default function InterviewLive() {
         stopPlayback();
         interviewStateRef.current = 'listening';
         setInterviewState('listening');
+      });
+
+      conn.on('transcript', (data: any) => {
+        debugLog('transcript received', data);
+        if (data?.speaker === 'assistant') {
+          hasAssistantRespondedRef.current = true;
+          if (data?.isFinal && isClosingTurn(data?.text)) {
+            pendingAutoEndRef.current = true;
+          }
+        }
       });
 
       if (signal.aborted) {
@@ -491,11 +548,18 @@ export default function InterviewLive() {
 
   const initMicrophone = async (conn: signalR.HubConnection, activeSessionId: string) => {
     try {
+      const supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          channelCount: 1,
+          ...(supportedConstraints.sampleRate ? { sampleRate: 16000 } : {}),
+          ...(supportedConstraints.sampleSize ? { sampleSize: 16 } : {}),
+          ...((supportedConstraints as MediaTrackSupportedConstraints & { voiceIsolation?: boolean }).voiceIsolation
+            ? ({ voiceIsolation: true } as MediaTrackConstraints)
+            : {}),
         },
       });
       debugLog('Microphone access granted', {
@@ -513,8 +577,27 @@ export default function InterviewLive() {
       const source = audioContext.createMediaStreamSource(stream);
       sourceNodeRef.current = source;
 
+      const highPassFilter = audioContext.createBiquadFilter();
+      highPassFilter.type = 'highpass';
+      highPassFilter.frequency.value = 85;
+      highPassFilterRef.current = highPassFilter;
+
+      const lowPassFilter = audioContext.createBiquadFilter();
+      lowPassFilter.type = 'lowpass';
+      lowPassFilter.frequency.value = 3400;
+      lowPassFilterRef.current = lowPassFilter;
+
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -24;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 12;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+      compressorRef.current = compressor;
+
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.72;
       analyserRef.current = analyser;
 
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
@@ -524,18 +607,40 @@ export default function InterviewLive() {
       muteGain.gain.value = 0;
       muteGainRef.current = muteGain;
 
-      source.connect(analyser);
-      source.connect(processor);
+      source.connect(highPassFilter);
+      highPassFilter.connect(lowPassFilter);
+      lowPassFilter.connect(compressor);
+      compressor.connect(analyser);
+      compressor.connect(processor);
       processor.connect(muteGain);
       muteGain.connect(audioContext.destination);
 
       const targetSampleRate = 16000;
-      const baseSpeechStartThreshold = 0.028;
-      const baseSpeechContinueThreshold = 0.016;
-      const silenceDurationMs = 2200;
-      const minSpeechActivationMs = 180;
-      const rearmCooldownMs = 900;
-      const trailingSilenceMs = 0;
+      const baseSpeechStartThreshold = 0.014;
+      const baseSpeechContinueThreshold = 0.008;
+      const silenceDurationMs = 3200;
+      const minSpeechActivationMs = 90;
+      const rearmCooldownMs = 450;
+      const trailingSilenceMs = 450;
+      const maxBufferedPreSpeechChunks = 6;
+
+      const sendAudioChunk = (base64Audio: string, trailingSilence = false) => {
+        outgoingAudioChunkCountRef.current += 1;
+        if (outgoingAudioChunkCountRef.current <= 3 || outgoingAudioChunkCountRef.current % 20 === 0) {
+          debugLog('Sending PCM audio chunk', {
+            count: outgoingAudioChunkCountRef.current,
+            sampleRate: targetSampleRate,
+            inputSampleRate: audioContext.sampleRate,
+            pcmBytes: Math.floor((base64Audio.length * 3) / 4),
+            trailingSilence,
+          });
+        }
+
+        conn.invoke('SendAudioChunk', activeSessionId, {
+          base64Audio,
+          mimeType: `audio/pcm;rate=${targetSampleRate}`,
+        }).catch(console.error);
+      };
 
       processor.onaudioprocess = (event) => {
         if (
@@ -621,31 +726,26 @@ export default function InterviewLive() {
         }
 
         const shouldSendTrailingSilence = !candidateTurnActiveRef.current && now < trailingSilenceUntilRef.current;
+        const downsampled = downsampleBuffer(inputData, audioContext.sampleRate, targetSampleRate);
+        const pcmBase64 = shouldSendTrailingSilence
+          ? arrayBufferToBase64(new ArrayBuffer(downsampled.length * 2))
+          : arrayBufferToBase64(floatTo16BitPCM(downsampled));
+
         if (!candidateTurnActiveRef.current && !shouldSendTrailingSilence) {
+          preSpeechAudioBufferRef.current.push(pcmBase64);
+          if (preSpeechAudioBufferRef.current.length > maxBufferedPreSpeechChunks) {
+            preSpeechAudioBufferRef.current.shift();
+          }
           return;
         }
 
-        const downsampled = downsampleBuffer(inputData, audioContext.sampleRate, targetSampleRate);
-        const pcmBuffer = shouldSendTrailingSilence
-          ? new ArrayBuffer(downsampled.length * 2)
-          : floatTo16BitPCM(downsampled);
-        const base64Audio = arrayBufferToBase64(pcmBuffer);
-        outgoingAudioChunkCountRef.current += 1;
-        if (outgoingAudioChunkCountRef.current <= 3 || outgoingAudioChunkCountRef.current % 20 === 0) {
-          debugLog('Sending PCM audio chunk', {
-            count: outgoingAudioChunkCountRef.current,
-            sampleRate: targetSampleRate,
-            inputSampleRate: audioContext.sampleRate,
-            pcmBytes: pcmBuffer.byteLength,
-            rms: Number(rms.toFixed(4)),
-            trailingSilence: shouldSendTrailingSilence,
-          });
+        if (candidateTurnActiveRef.current && preSpeechAudioBufferRef.current.length > 0) {
+          const bufferedChunks = preSpeechAudioBufferRef.current;
+          preSpeechAudioBufferRef.current = [];
+          bufferedChunks.forEach(chunk => sendAudioChunk(chunk));
         }
 
-        conn.invoke('SendAudioChunk', activeSessionId, {
-          base64Audio,
-          mimeType: `audio/pcm;rate=${targetSampleRate}`,
-        }).catch(console.error);
+        sendAudioChunk(pcmBase64, shouldSendTrailingSilence);
       };
 
     } catch (err) {
@@ -665,21 +765,34 @@ export default function InterviewLive() {
     }
   };
 
-  const handleEndInterview = async () => {
+  const endInterview = async (autoTriggered = false) => {
+    if (isEndingInterviewRef.current) {
+      return;
+    }
+
     if (connection && sessionId) {
+      isEndingInterviewRef.current = true;
       try {
-        debugLog('Ending interview', { sessionId, candidateId });
+        debugLog('Ending interview', { sessionId, candidateId, autoTriggered });
+        stopMicrophone();
+        stopPlayback();
         await connection.invoke('EndSession', sessionId);
         await api.post(`/interview-candidates/${candidateId}/end`, {}, {
           params: { sessionId },
         });
       } catch (err) {
         console.error('Error ending interview', err);
+      } finally {
+        pendingAutoEndRef.current = false;
       }
       
       await connection.stop();
       navigate('/interview-complete');
     }
+  };
+
+  const handleEndInterview = () => {
+    void endInterview(false);
   };
 
   const formatTime = (seconds: number) => {
@@ -722,6 +835,10 @@ export default function InterviewLive() {
         playbackFinishTimeoutRef.current = null;
       }
       isSpeakingRef.current = false;
+      pendingAutoEndRef.current = false;
+      isEndingInterviewRef.current = false;
+      hasAssistantRespondedRef.current = false;
+      closingMessageRef.current = '';
       sessionIdRef.current = null;
     };
   }, [candidateId, navigate, isAssistantPlaybackActive, resumeListeningAfterPlayback]);

@@ -258,6 +258,8 @@ export const ijpApi = {
             candidateName?: string;
             phoneNumber?: string;
             whatsAppNumber?: string;
+            resumeBase64?: string;
+            fileName?: string;
         }[];
     }) => api.post('/interviews/links', data),
     addCandidates: (linkId: string, candidates: {
@@ -265,6 +267,8 @@ export const ijpApi = {
         candidateName?: string;
         phoneNumber?: string;
         whatsAppNumber?: string;
+        resumeBase64?: string;
+        fileName?: string;
     }[]) => api.post(`/interviews/links/${linkId}/candidates`, candidates),
 };
 

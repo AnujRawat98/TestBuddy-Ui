@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import AdminLayout from './components/AdminLayout';
+import LandingPage from './pages/LandingPage/LandingPage';
 import AdminLogin from './pages/AdminLogin/AdminLogin';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Topics from './pages/Topics/Topics';
@@ -26,7 +27,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<AdminLogin />} />
 
         {/* Protected Admin Routes (Wrapped in Layout) */}

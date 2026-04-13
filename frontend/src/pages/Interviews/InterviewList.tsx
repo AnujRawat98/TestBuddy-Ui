@@ -105,6 +105,13 @@ interface InlineCandidateDraft {
   fileName?: string;
 }
 
+const parseInterviewDateTime = (value?: string) => {
+  if (!value) return null;
+  const normalized = value.replace(' ', 'T');
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const getLinkStatus = (link: InterviewLink) => {
   const now = new Date();
   
@@ -114,20 +121,23 @@ const getLinkStatus = (link: InterviewLink) => {
   
   const hasScheduled = link.candidates?.some(c => {
     if (!c.startTime) return false;
-    const start = new Date(c.startTime + 'Z');
+    const start = parseInterviewDateTime(c.startTime);
+    if (!start) return false;
     return start > now;
   });
   
   const hasActive = link.candidates?.some(c => {
     if (!c.startTime || !c.endTime) return false;
-    const start = new Date(c.startTime + 'Z');
-    const end = new Date(c.endTime + 'Z');
+    const start = parseInterviewDateTime(c.startTime);
+    const end = parseInterviewDateTime(c.endTime);
+    if (!start || !end) return false;
     return now >= start && now <= end;
   });
   
   const hasExpired = link.candidates?.every(c => {
     if (!c.endTime) return false;
-    const end = new Date(c.endTime + 'Z');
+    const end = parseInterviewDateTime(c.endTime);
+    if (!end) return false;
     return end < now;
   });
   
@@ -146,7 +156,12 @@ const getCandidateStatusColor = (status: string) => {
   }
 };
 
-const fmtDT = (s: string) => !s ? '—' : new Date(s + 'Z').toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+const fmtDT = (s: string) => {
+  const parsed = parseInterviewDateTime(s);
+  return parsed
+    ? parsed.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : '—';
+};
 
 interface BulkUploadModalProps {
   onClose: () => void;
@@ -740,8 +755,8 @@ export default function InterviewList() {
           candidateName: c.candidateName || null,
           phoneNumber: c.phoneNumber || null,
           whatsAppNumber: c.whatsAppNumber || null,
-          startTime: new Date(formatDateLocal(now)).toISOString(),
-          endTime: new Date(formatDateLocal(defaultEnd)).toISOString(),
+          startTime: formatDateLocal(now),
+          endTime: formatDateLocal(defaultEnd),
           bufferStartMinutes: 0,
           bufferEndMinutes: 0,
         })),
@@ -1219,6 +1234,12 @@ export default function InterviewList() {
                                                 onClick={() => setRescheduleModal({ open: true, candidate })}
                                                 style={{ fontSize: '11px' }}
                                               >📅</button>
+                                              <button 
+                                                className="share-btn" 
+                                                title="View Report"
+                                                onClick={() => navigate(`/interviews/reports/${candidate.id}`)}
+                                                style={{ fontSize: '11px', color: 'var(--green)' }}
+                                              >📊</button>
                                             </div>
                                           </td>
                                           <td style={{ padding: '8px 12px' }}>

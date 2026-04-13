@@ -671,6 +671,7 @@ export default function InterviewList() {
   };
 
   const [bulkUploadModal, setBulkUploadModal] = useState<{ open: boolean; linkId: string; linkName: string }>({ open: false, linkId: '', linkName: '' });
+  const [expandedInterviewId, setExpandedInterviewId] = useState<string | null>(null);
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
   const [rescheduleModal, setRescheduleModal] = useState<{ open: boolean; candidate: CandidateInfo | null }>({ open: false, candidate: null });
   const [inlineCandidateDrafts, setInlineCandidateDrafts] = useState<Record<string, InlineCandidateDraft | undefined>>({});
@@ -847,6 +848,14 @@ export default function InterviewList() {
     } else {
       setExpandedLinkId(link.id);
     }
+  };
+
+  const toggleExpandInterview = (interviewId: string) => {
+    setExpandedInterviewId((current) => {
+      const nextInterviewId = current === interviewId ? null : interviewId;
+      setExpandedLinkId(null);
+      return nextInterviewId;
+    });
   };
 
   const interviewUrl = (linkId: string) => `${window.location.origin}/interview/${linkId}`;
@@ -1038,9 +1047,23 @@ export default function InterviewList() {
         </div>
       ) : (
         <div>
-          {interviews.map((interview, index) => (
-            <div key={interview.id} className="interview-card" style={{ animationDelay: `${0.1 + index * 0.05}s` }}>
-              <div className="interview-card-header">
+          {interviews.map((interview, index) => {
+            const isInterviewExpanded = expandedInterviewId === interview.id;
+
+            return (
+            <div key={interview.id} className={`interview-card interview-accordion-card ${isInterviewExpanded ? 'expanded' : ''}`} style={{ animationDelay: `${0.1 + index * 0.05}s` }}>
+              <div
+                className="interview-card-header interview-card-header-toggle"
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleExpandInterview(interview.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleExpandInterview(interview.id);
+                  }
+                }}
+              >
                 <div>
                   <h2 className="interview-card-title">{interview.name}</h2>
                   <div className="interview-card-meta">
@@ -1054,20 +1077,25 @@ export default function InterviewList() {
                 </div>
                 <div className="interview-card-actions">
                   <button
-                    onClick={() => setShowLinkModal(interview.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowLinkModal(interview.id);
+                    }}
                     className="btn btn-secondary btn-sm"
                   >
                     Create Link
                   </button>
+                  <span className={`interview-chevron ${isInterviewExpanded ? 'open' : ''}`}>›</span>
                 </div>
               </div>
 
-              {interview.instructions && (
+              {isInterviewExpanded && interview.instructions && (
                 <p className="text-sm" style={{ color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif', marginBottom: '12px', fontSize: '13px' }}>
                   {interview.instructions}
                 </p>
               )}
 
+              {isInterviewExpanded && (
               <div className="interview-links-section">
                 <h3 className="interview-links-title">Interview Links</h3>
                 {links.get(interview.id)?.length ? (
@@ -1112,7 +1140,7 @@ export default function InterviewList() {
                               <button 
                                 className="share-btn" 
                                 title="View report"
-                                onClick={() => navigate(`/interviews/reports/${link.id}`)}
+                                onClick={() => navigate(`/interviews/reports/link/${link.id}`)}
                                 style={{ color: 'var(--green)' }}
                               >📊</button>
                             </div>
@@ -1237,7 +1265,7 @@ export default function InterviewList() {
                                               <button 
                                                 className="share-btn" 
                                                 title="View Report"
-                                                onClick={() => navigate(`/interviews/reports/${candidate.id}`)}
+                                                onClick={() => navigate(`/interviews/reports/link/${candidate.interviewLinkId}?candidateId=${candidate.id}`)}
                                                 style={{ fontSize: '11px', color: 'var(--green)' }}
                                               >📊</button>
                                             </div>
@@ -1280,8 +1308,9 @@ export default function InterviewList() {
                   <p className="no-links">No links created yet. Create a link to invite candidates.</p>
                 )}
               </div>
+              )}
             </div>
-          ))}
+          )})}
         </div>
       )}
 

@@ -41,6 +41,7 @@ function App() {
           <Route path="/assessments/:assessmentId/report"   element={<AssessmentReport />} />
           <Route path="/links/create"                       element={<CreateLink />} />
           <Route path="/interviews"                         element={<InterviewList />} />
+          <Route path="/interviews/reports/link/:linkId"    element={<InterviewReport />} />
           <Route path="/interviews/reports/:candidateId"    element={<InterviewReport />} />
           <Route path="/ijp"                               element={<IJPList />} />
           <Route path="/ijp/:id"                           element={<IJPDetail />} />

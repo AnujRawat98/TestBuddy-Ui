@@ -168,7 +168,7 @@ export const interviewLinksApi = {
 };
 
 export const interviewCandidatesApi = {
-    getByLink: (linkId: string) => api.get('/interviews/candidates', { params: { linkId } }),
+    getByLink: (linkId: string) => api.get(`/interviews/links/${linkId}/candidates`),
 };
 
 // ─── INTERNAL JOB POSTING (IJP) ─────────────────────────────────────────────────

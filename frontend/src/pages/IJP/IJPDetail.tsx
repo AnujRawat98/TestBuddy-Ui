@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ijpApi } from '../../services/api';
+import documentService from '../../services/documentService';
 import './IJP.css';
 
 interface IJPDetail {
@@ -8,6 +9,10 @@ interface IJPDetail {
   positionName: string;
   experienceRequired: string;
   jobDescription: string;
+  jobDescriptionFilePath?: string;
+  jobDescriptionFileName?: string;
+  companyPoliciesFilePath?: string;
+  companyPoliciesFileName?: string;
   closingDate: string;
   totalPositions: number;
   status: string;
@@ -73,6 +78,8 @@ export default function IJPDetail() {
   const [showQuestionsModal, setShowQuestionsModal] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [jobDescriptionPreview, setJobDescriptionPreview] = useState('');
+  const [companyPolicyPreview, setCompanyPolicyPreview] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -84,11 +91,14 @@ export default function IJPDetail() {
     if (!id) return;
     try {
       const ijpRes = await ijpApi.getById(id);
-      setIjp(ijpRes.data);
+      const ijpData = ijpRes.data;
+      setIjp(ijpData);
       
       try {
         const configRes = await ijpApi.getInterviewConfig(id);
-        setConfig(configRes.data || null);
+        const configData = configRes.data && !configRes.data.message ? configRes.data : null;
+        setConfig(configData);
+        setGeneratedQuestions(configData?.generatedQuestions || []);
       } catch { /* config not found */ }
       
       try {
@@ -100,6 +110,14 @@ export default function IJPDetail() {
         const interviewsRes = await ijpApi.getInterviews(id);
         setInterviews(interviewsRes.data || []);
       } catch { /* interviews not found */ }
+
+      setJobDescriptionPreview(ijpData.jobDescription || '');
+      if (ijpData.companyPoliciesFilePath) {
+        const policyContent = await documentService.getDocumentContent(ijpData.companyPoliciesFilePath);
+        setCompanyPolicyPreview(policyContent || '');
+      } else {
+        setCompanyPolicyPreview('');
+      }
     } catch (err) {
       console.error('Failed to fetch IJP data', err);
     } finally {
@@ -249,7 +267,13 @@ export default function IJPDetail() {
           {ijp.jobDescription && (
             <div style={{ marginTop: '20px' }}>
               <h4 className="config-item-label">Job Description</h4>
-              <p className="ijp-description">{ijp.jobDescription}</p>
+              <p className="ijp-description">{jobDescriptionPreview || ijp.jobDescription}</p>
+            </div>
+          )}
+          {companyPolicyPreview && (
+            <div style={{ marginTop: '20px' }}>
+              <h4 className="config-item-label">Company Policy</h4>
+              <p className="ijp-description">{companyPolicyPreview}</p>
             </div>
           )}
         </div>
@@ -272,12 +296,13 @@ export default function IJPDetail() {
                         hardPercentage: config.hardPercentage,
                         goDeeper: config.goDeeper
                       });
-                      setConfig({ ...config, questionsGenerated: true });
+                      setConfig({ ...config, questionsGenerated: true, generatedQuestions: res.data.questions });
                       setGeneratedQuestions(res.data.questions);
                       setShowQuestionsModal(true);
-                      setGenerating(false);
+                      await fetchData();
                     } catch (err) {
                       alert('Failed to generate questions');
+                    } finally {
                       setGenerating(false);
                     }
                   }} 
@@ -333,18 +358,21 @@ export default function IJPDetail() {
               <div style={{ marginTop: '16px', padding: '12px', background: 'var(--surface)', borderRadius: '8px', fontSize: '13px', color: 'var(--muted)' }}>
                 Questions {config.questionsGenerated ? '✅ Generated' : '❌ Not yet generated'}
               </div>
-              {generatedQuestions.length > 0 && (
+              {(config.generatedQuestions?.length || generatedQuestions.length) > 0 && (
                 <div style={{ marginTop: '16px' }}>
-                  <h4 className="config-item-label">Generated Questions ({generatedQuestions.length})</h4>
+                  <h4 className="config-item-label">Generated Questions ({config.generatedQuestions?.length || generatedQuestions.length})</h4>
                   <div style={{ marginTop: '8px' }}>
-                    {generatedQuestions.slice(0, 3).map((q, i) => (
+                    {(config.generatedQuestions || generatedQuestions).slice(0, 3).map((q, i) => (
                       <div key={i} style={{ padding: '8px 12px', background: 'var(--surface)', borderRadius: '6px', marginBottom: '6px', fontSize: '13px' }}>
                         <strong>Q{i + 1}:</strong> {q.question}
                       </div>
                     ))}
-                    {generatedQuestions.length > 3 && (
-                      <button onClick={() => setShowQuestionsModal(true)} className="btn btn-secondary btn-sm" style={{ marginTop: '8px' }}>
-                        View All {generatedQuestions.length} Questions
+                    {(config.generatedQuestions?.length || generatedQuestions.length) > 3 && (
+                      <button onClick={() => {
+                        setGeneratedQuestions(config.generatedQuestions || generatedQuestions);
+                        setShowQuestionsModal(true);
+                      }} className="btn btn-secondary btn-sm" style={{ marginTop: '8px' }}>
+                        View All {config.generatedQuestions?.length || generatedQuestions.length} Questions
                       </button>
                     )}
                   </div>

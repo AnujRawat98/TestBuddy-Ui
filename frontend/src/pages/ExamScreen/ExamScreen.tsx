@@ -530,12 +530,12 @@ const ExamScreen: React.FC = () => {
 
     if (loading && questions.length === 0) return (
         <div className="exam-screen-wrap" style={{ alignItems: 'center', justifyContent: 'center', display: 'flex' }}>
-            <div style={{ textAlign: 'center', color: 'var(--muted)' }}><div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div><div style={{ fontFamily: "'Syne',sans-serif", fontSize: '16px', fontWeight: 600 }}>Loading Exam…</div></div>
+            <div style={{ textAlign: 'center', color: 'var(--muted)' }}><div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div><div style={{ fontFamily: "var(--font-display)", fontSize: '16px', fontWeight: 600 }}>Loading Exam…</div></div>
         </div>
     );
     if (loadError) return (
         <div className="exam-screen-wrap" style={{ alignItems: 'center', justifyContent: 'center', display: 'flex' }}>
-            <div style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: 400 }}><div style={{ fontSize: '40px', marginBottom: '12px' }}>⚠️</div><div style={{ fontFamily: "'Syne',sans-serif", fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: 'var(--ink)' }}>Failed to Load Exam</div><div style={{ fontSize: '14px' }}>{loadError}</div></div>
+            <div style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: 400 }}><div style={{ fontSize: '40px', marginBottom: '12px' }}>⚠️</div><div style={{ fontFamily: "var(--font-display)", fontSize: '16px', fontWeight: 700, marginBottom: '8px', color: 'var(--ink)' }}>Failed to Load Exam</div><div style={{ fontSize: '14px' }}>{loadError}</div></div>
         </div>
     );
 

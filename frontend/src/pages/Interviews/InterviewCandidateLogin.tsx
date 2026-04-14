@@ -51,7 +51,7 @@ export default function InterviewCandidateLogin() {
         alignItems: 'center',
         justifyContent: 'center',
         background: '#f5f4f0',
-        fontFamily: 'DM Sans, sans-serif'
+        fontFamily: 'var(--font-body)'
       }}>
         <div style={{ color: '#8a8a8a', fontSize: '14px' }}>Loading...</div>
       </div>
@@ -172,3 +172,4 @@ export default function InterviewCandidateLogin() {
     </div>
   );
 }
+

@@ -1,6 +1,4 @@
 /* ─── FONT IMPORT ─────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
-
 /* ─── PAGE HEADER ───────────────────────────────────────────────────────── */
 .interview-page, .assessments-container {
     animation: fadeUp .4s ease both;
@@ -15,7 +13,7 @@
 }
 
 .page-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 24px;
     font-weight: 700;
     color: var(--ink);
@@ -52,7 +50,7 @@
 }
 
 .assessments-container .stat-val {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 32px;
     font-weight: 800;
     line-height: 1;
@@ -253,7 +251,7 @@
 .stat-4 .interview-stat-icon { background: rgba(245, 166, 35, .1); }
 
 .interview-stat-num {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 28px;
     font-weight: 800;
     letter-spacing: -1px;
@@ -263,7 +261,7 @@
 
 .interview-stat-label {
     font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
 }
 
@@ -290,7 +288,7 @@
 }
 
 .interview-card-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 18px;
     font-weight: 600;
     color: var(--ink);
@@ -302,7 +300,7 @@
     flex-wrap: wrap;
     gap: 8px;
     font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
 }
 
 .interview-badge {
@@ -312,7 +310,7 @@
     border-radius: 100px;
     font-size: 12px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
 }
 
 .interview-badge-difficulty {
@@ -350,7 +348,7 @@
     border-radius: 8px;
     font-size: 13px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     cursor: pointer;
     transition: all .15s;
     border: none;
@@ -409,7 +407,7 @@
 .interview-links-title {
     font-size: 14px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
     margin-bottom: 12px;
 }
@@ -436,13 +434,13 @@
 .interview-link-name {
     font-size: 14px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     margin-bottom: 4px;
 }
 
 .interview-link-meta {
     font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
 }
 
@@ -472,7 +470,7 @@
     padding: 20px;
     color: var(--muted);
     font-size: 13px;
-    font-family: 'DM Sans, sans-serif';
+    font-family: 'var(--font-body)';
 }
 
 /* ─── SHARE BUTTONS ─────────────────────────────────────────────────────── */
@@ -555,9 +553,151 @@
 
 .empty-state-text {
     font-size: 15px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
     margin-bottom: 16px;
+}
+
+.interview-report-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.interview-report-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.interview-report-modal-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0;
+}
+
+.interview-report-modal-subtitle {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.interview-report-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.interview-report-summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.interview-report-summary-value {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.interview-report-summary-label {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.interview-report-table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: auto;
+    max-height: 58vh;
+}
+
+.interview-report-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 860px;
+}
+
+.interview-report-table thead tr {
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.interview-report-table th {
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
+
+.interview-report-table td {
+    padding: 14px;
+    border-top: 1px solid var(--border);
+    vertical-align: middle;
+    font-size: 13px;
+}
+
+.interview-report-table tbody tr:hover {
+    background: rgba(0, 87, 255, .03);
+}
+
+.interview-report-candidate-name {
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.interview-report-candidate-email,
+.interview-report-schedule-end,
+.interview-report-action-muted {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.interview-report-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.interview-report-score {
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.interview-report-code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent2);
+}
+
+.interview-report-empty {
+    padding: 32px 20px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
 }
 
 /* ─── MODAL ─────────────────────────────────────────────────────────────── */
@@ -591,7 +731,7 @@
 }
 
 .modal-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 18px;
     font-weight: 800;
     color: var(--ink);
@@ -656,7 +796,7 @@
     display: block;
     font-size: 13px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
     margin-bottom: 6px;
 }
@@ -669,7 +809,7 @@
     border: 1.5px solid var(--border);
     border-radius: 8px;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     background: var(--surface);
     transition: border-color .15s;
 }
@@ -773,7 +913,7 @@ input[type="checkbox"]:checked {
 }
 
 .login-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 28px;
     font-weight: 700;
     color: var(--ink);
@@ -782,7 +922,7 @@ input[type="checkbox"]:checked {
 
 .login-subtitle {
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
 }
 
@@ -796,7 +936,7 @@ input[type="checkbox"]:checked {
     color: var(--red);
     border-radius: 8px;
     font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     margin-bottom: 16px;
 }
 
@@ -813,7 +953,7 @@ input[type="checkbox"]:checked {
 
 .login-footer p {
     font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
 }
 
@@ -840,7 +980,7 @@ input[type="checkbox"]:checked {
 }
 
 .system-check-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 24px;
     font-weight: 700;
     color: var(--ink);
@@ -849,7 +989,7 @@ input[type="checkbox"]:checked {
 
 .system-check-subtitle {
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
 }
 
@@ -888,13 +1028,13 @@ input[type="checkbox"]:checked {
 .check-item-name {
     font-size: 15px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
 }
 
 .check-item-detail {
     font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
     margin-top: 4px;
 }
@@ -917,7 +1057,7 @@ input[type="checkbox"]:checked {
 .instructions-title {
     font-size: 14px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
     margin-bottom: 12px;
 }
@@ -930,7 +1070,7 @@ input[type="checkbox"]:checked {
 
 .instructions-list li {
     font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
     padding: 4px 0;
     padding-left: 16px;
@@ -982,7 +1122,7 @@ input[type="checkbox"]:checked {
 }
 
 .complete-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 24px;
     font-weight: 700;
     color: var(--ink);
@@ -991,7 +1131,7 @@ input[type="checkbox"]:checked {
 
 .complete-message {
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
     margin-bottom: 24px;
     line-height: 1.6;
@@ -1008,7 +1148,7 @@ input[type="checkbox"]:checked {
 .complete-info-title {
     font-size: 14px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
     margin-bottom: 12px;
 }
@@ -1021,7 +1161,7 @@ input[type="checkbox"]:checked {
 
 .complete-info li {
     font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
     padding: 4px 0;
     padding-left: 16px;
@@ -1037,7 +1177,7 @@ input[type="checkbox"]:checked {
 
 .complete-note {
     font-size: 13px;
-    font-family: 'DM Sans, sans-serif';
+    font-family: 'var(--font-body)';
     color: var(--muted);
 }
 
@@ -1060,7 +1200,7 @@ input[type="checkbox"]:checked {
 }
 
 .live-interview-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 20px;
     font-weight: 700;
     color: white;
@@ -1071,7 +1211,7 @@ input[type="checkbox"]:checked {
     font-size: 13px;
     color: rgba(255,255,255,.5);
     margin: 0;
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--font-body);
 }
 
 .live-interview-status {
@@ -1103,7 +1243,7 @@ input[type="checkbox"]:checked {
 .live-connection-text {
     font-size: 13px;
     color: rgba(255,255,255,.7);
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--font-body);
 }
 
 .live-interview-main {
@@ -1173,7 +1313,7 @@ input[type="checkbox"]:checked {
 }
 
 .live-ai-state-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 28px;
     font-weight: 700;
     letter-spacing: -.8px;
@@ -1185,7 +1325,7 @@ input[type="checkbox"]:checked {
     font-size: 14px;
     line-height: 1.6;
     color: rgba(255,255,255,.66);
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--font-body);
     margin: 0;
 }
 
@@ -1244,7 +1384,7 @@ input[type="checkbox"]:checked {
     border-radius: 10px;
     font-size: 14px;
     font-weight: 600;
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--font-body);
     border: none;
     cursor: pointer;
     transition: all .2s;
@@ -1281,7 +1421,7 @@ input[type="checkbox"]:checked {
     text-align: center;
     color: rgba(255,255,255,.5);
     font-size: 13px;
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--font-body);
     min-height: 20px;
     margin: 0;
 }
@@ -1306,7 +1446,7 @@ input[type="checkbox"]:checked {
 }
 
 .live-error-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 18px;
     font-weight: 600;
     color: var(--red);
@@ -1316,7 +1456,7 @@ input[type="checkbox"]:checked {
 .live-error-message {
     font-size: 14px;
     color: rgba(255,255,255,.8);
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--font-body);
     margin-bottom: 16px;
     line-height: 1.5;
 }
@@ -1621,6 +1761,10 @@ input[type="checkbox"]:checked {
 }
 
 @media (max-width: 640px) {
+    .interview-report-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .live-interview-header {
         padding: 14px 16px;
         gap: 12px;
@@ -1881,3 +2025,4 @@ input[type="checkbox"]:checked {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+

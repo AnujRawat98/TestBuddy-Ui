@@ -34,7 +34,7 @@
 
 /* ─── LOGO ─────────────────────────────────────────────── */
 .student-entry-wrap .logo {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 28px;
     font-weight: 800;
     letter-spacing: -1px;
@@ -62,7 +62,7 @@
 
 /* ─── EXAM TITLE ───────────────────────────────────────── */
 .student-entry-wrap .exam-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 24px;
     font-weight: 800;
     letter-spacing: -.5px;
@@ -127,7 +127,7 @@
     border: 1.5px solid var(--border);
     border-radius: 10px;
     font-size: 15px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
     background: var(--surface);
     outline: none;
@@ -159,7 +159,7 @@
 }
 
 .student-entry-wrap .instructions-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 14px;
     font-weight: 700;
     color: var(--ink);
@@ -223,7 +223,7 @@
     border: none;
     border-radius: 12px;
     font-size: 16px;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     letter-spacing: .5px;
     cursor: pointer;
@@ -290,7 +290,7 @@
 }
 
 .student-entry-wrap .success-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 24px;
     font-weight: 800;
     margin-bottom: 8px;
@@ -323,7 +323,7 @@
     border: none;
     border-radius: 11px;
     font-size: 15px;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(0, 194, 113, .3);

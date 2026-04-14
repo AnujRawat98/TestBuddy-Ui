@@ -1,58 +1,77 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import './Interviews.css';
 
-interface TopicScore {
-  topicName: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface SkillEvaluation {
+  skill: string;
   score: number;
-  comments: string;
-  strengths: string;
-  areasForImprovement: string;
+  feedback: string;
 }
 
-interface Feedback {
-  feedbackId: string;
-  overallScore: number;
-  topicScores: TopicScore[];
-  aIComments: string;
-  recommendation: string;
-  generatedAt: string;
+interface QuestionAnalysis {
+  question: string;
+  answerQuality: string;
+  score: number;
+  remarks: string;
 }
 
-interface TranscriptEntry {
-  speaker: string;
-  text: string;
-  timestamp: string;
-}
-
-interface Session {
-  sessionId: string;
-  startTime: string;
-  endTime: string;
-  duration: string;
-  interruptCount: number;
-  averageLatencyMs: number;
-  speechConfidence: number;
-  transcript: TranscriptEntry[];
-}
-
-interface Report {
+interface InterviewReportData {
+  id: string;
+  interviewId: string;
   candidateId: string;
-  candidateName: string;
-  email: string;
-  interviewName: string;
-  difficulty: string;
-  session: Session;
-  feedback: Feedback;
+  overallScore: number;
+  decision: string;
+  summary: string;
+  recommendation: string;
+  createdAt: string;
+  skillsEvaluation: SkillEvaluation[];
+  strengths: string[];
+  weaknesses: string[];
+  questionAnalysis: QuestionAnalysis[];
 }
 
-export default function InterviewReport() {
-  const { candidateId } = useParams<{ candidateId: string }>();
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const getScoreColor = (score: number) => {
+  if (score >= 7.5) return 'var(--green)';
+  if (score >= 5) return 'var(--yellow)';
+  return 'var(--red)';
+};
+
+const getDecisionColor = (decision: string) => {
+  const d = decision?.toLowerCase() || '';
+  if (d.includes('selected')) return { color: 'var(--green)', bg: 'rgba(0,194,113,.12)' };
+  if (d.includes('hold')) return { color: 'var(--yellow)', bg: 'rgba(245,166,35,.12)' };
+  if (d.includes('rejected')) return { color: 'var(--red)', bg: 'rgba(224,59,59,.12)' };
+  return { color: 'var(--muted)', bg: 'rgba(138,138,138,.1)' };
+};
+
+const fmtDT = (s: string) => {
+  if (!s) return '—';
+  return new Date(s).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  });
+};
+
+// ─── Main Component ────────────────────────────────────────────────────────────
+interface Props {
+  candidateId?: string;
+  onClose?: () => void;
+  showAsPage?: boolean;
+}
+
+export default function InterviewReport({ candidateId: propCandidateId, onClose, showAsPage }: Props) {
+  const params = useParams<{ candidateId: string }>();
   const navigate = useNavigate();
-  const [report, setReport] = useState<Report | null>(null);
+  const candidateId = propCandidateId || params.candidateId;
+  
+  const [report, setReport] = useState<InterviewReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'questions' | 'transcript'>('overview');
 
   useEffect(() => {
     fetchReport();
@@ -62,296 +81,362 @@ export default function InterviewReport() {
     if (!candidateId) return;
     
     try {
-      const res = await api.get(`/interviews/reports/${candidateId}`);
-      const data = res.data;
-      
-      const reportData: Report = {
-        candidateId: data.candidateId || data.CandidateId,
-        candidateName: data.candidateName || data.CandidateName || 'Unknown',
-        email: data.email || data.Email || '',
-        interviewName: data.interviewName || data.InterviewName || '',
-        difficulty: data.difficulty || data.Difficulty || 'Medium',
-        session: data.session || data.Session ? {
-          sessionId: data.session?.sessionId || data.Session?.SessionId || '',
-          startTime: data.session?.startTime || data.Session?.StartTime || '',
-          endTime: data.session?.endTime || data.Session?.EndTime || '',
-          duration: data.session?.duration || data.Session?.Duration || 'N/A',
-          interruptCount: data.session?.interruptCount || data.Session?.InterruptCount || 0,
-          averageLatencyMs: data.session?.averageLatencyMs || data.Session?.AverageLatencyMs || 0,
-          speechConfidence: data.session?.speechConfidence || data.Session?.SpeechConfidence || 0,
-          transcript: (data.session?.transcript || data.Session?.Transcript || []).map((t: any) => ({
-            speaker: t.speaker || t.Speaker || 'assistant',
-            text: t.text || t.Text || '',
-            timestamp: t.timestamp || t.Timestamp || ''
-          }))
-        } : null as any,
-        feedback: data.feedback || data.Feedback ? {
-          feedbackId: data.feedback?.feedbackId || data.Feedback?.FeedbackId || '',
-          overallScore: data.feedback?.overallScore || data.Feedback?.OverallScore || data.feedback?.marksObtained || 0,
-          topicScores: data.feedback?.topicScores || data.Feedback?.TopicScores || [],
-          aIComments: data.feedback?.aIComments || data.Feedback?.AIComments || data.feedback?.remarks || '',
-          recommendation: data.feedback?.recommendation || data.Feedback?.Recommendation || data.feedback?.finalAIResult || 'Pending',
-          generatedAt: data.feedback?.generatedAt || data.Feedback?.GeneratedAt || data.feedback?.createdAt || new Date().toISOString()
-        } : null as any
-      };
-      
-      setReport(reportData);
+      setLoading(true);
+      // Fetch from new API endpoint
+      const res = await api.get(`/interview-reports/candidate/${candidateId}`);
+      setReport(res.data);
+      setError(null);
     } catch (err: any) {
+      console.error('Error fetching report:', err);
       setError(err.response?.data?.message || 'Failed to load report');
     } finally {
       setLoading(false);
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 75) return 'var(--green)';
-    if (score >= 50) return 'var(--yellow)';
-    return 'var(--red)';
-  };
-
-  const getRecommendationColor = (rec: string) => {
-    const r = rec?.toLowerCase() || '';
-    if (r.includes('strong')) return 'var(--green)';
-    if (r.includes('average') || r.includes('hire')) return 'var(--yellow)';
-    if (r.includes('below') || r.includes('no hire')) return 'var(--red)';
-    return 'var(--muted)';
-  };
-
-  const formatScore = (score: number, total: number) => {
-    if (total > 0) {
-      return `${Math.round((score / total) * 100)}% (${score}/${total})`;
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate('/interviews');
     }
-    return score;
   };
 
-  if (loading) {
-    return (
-      <div className="interview-page">
-        <div className="empty-state">
-          <div className="empty-icon">⏳</div>
-          <div className="empty-title">Loading report...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !report) {
-    return (
-      <div className="interview-page">
-        <div className="empty-state">
-          <div className="empty-state-icon">⚠️</div>
-          <p className="empty-state-text">{error || 'Report not found'}</p>
-          <button className="btn btn-outline" onClick={() => navigate('/interviews')}>
-            ← Back to Interviews
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="interview-page">
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button 
-            onClick={() => navigate('/interviews')} 
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', padding: '8px', display: 'flex', alignItems: 'center' }}
-          >
-            ←
-          </button>
-          <h1 className="page-title">Interview Report</h1>
-        </div>
-      </div>
-
-      {/* Candidate Info Card */}
-      <div className="interview-card">
-        <div className="interview-card-header">
-          <div>
-            <h2 className="interview-card-title">{report.candidateName}</h2>
-            <div className="interview-card-meta">
-              <span className="interview-badge interview-badge-difficulty">{report.difficulty}</span>
-              <span className="interview-badge interview-badge-topic">{report.interviewName}</span>
-            </div>
+  const content = (
+    <>
+      {loading ? (
+        <div className="interview-page">
+          <div className="empty-state">
+            <div className="empty-icon">⏳</div>
+            <div className="empty-title">Loading report...</div>
           </div>
         </div>
-        <p style={{ fontSize: '13px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>
-          Email: {report.email}
-        </p>
-      </div>
+      ) : error || !report ? (
+        <div className="interview-page">
+          <div className="empty-state">
+            <div className="empty-state-icon">⚠️</div>
+            <p className="empty-state-text">{error || 'Report not found'}</p>
+            <button className="btn btn-outline" onClick={handleClose}>
+              ← Back
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="interview-page">
+          {/* Header */}
+          <div className="page-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {onClose && (
+                <button 
+                  onClick={onClose}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', padding: '8px', display: 'flex', alignItems: 'center' }}
+                >
+                  ←
+                </button>
+              )}
+              <h1 className="page-title">Interview Report</h1>
+            </div>
+          </div>
 
-      {/* AI Feedback Card */}
-      {report.feedback && (
-        <div className="interview-card">
-          <h3 className="interview-card-title" style={{ marginBottom: '16px' }}>AI Feedback</h3>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '20px' }}>
-            <div style={{
-              width: '100px',
-              height: '100px',
-              borderRadius: '50%',
-              background: `conic-gradient(${getScoreColor(report.feedback.overallScore)} ${Math.min(report.feedback.overallScore, 100)}%, var(--border) 0%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative'
-            }}>
+          {/* Score Card */}
+          <div className="interview-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '20px' }}>
+              {/* Score Circle */}
               <div style={{
-                width: '80px',
-                height: '80px',
+                width: '120px',
+                height: '120px',
                 borderRadius: '50%',
-                background: 'var(--card)',
+                background: `conic-gradient(${getScoreColor(report.overallScore)} ${Math.min(report.overallScore * 10, 100)}%, var(--border) 0%)`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: getScoreColor(report.feedback.overallScore)
+                position: 'relative',
+                flexShrink: 0
               }}>
-                {report.feedback.overallScore}
+                <div style={{
+                  width: '96px',
+                  height: '96px',
+                  borderRadius: '50%',
+                  background: 'var(--card)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '28px',
+                  fontWeight: 'bold',
+                  color: getScoreColor(report.overallScore)
+                }}>
+                  {report.overallScore.toFixed(1)}
+                </div>
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  display: 'inline-block',
+                  padding: '8px 20px',
+                  borderRadius: '100px',
+                  ...getDecisionColor(report.decision),
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  fontFamily: 'var(--font-body)',
+                  marginBottom: '8px'
+                }}>
+                  {report.decision || 'Pending'}
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--muted)', fontFamily: 'var(--font-body)', margin: 0 }}>
+                  Generated: {fmtDT(report.createdAt)}
+                </p>
               </div>
             </div>
-            <div>
-              <div style={{
-                display: 'inline-block',
-                padding: '6px 16px',
-                borderRadius: '100px',
-                background: `${getRecommendationColor(report.feedback.recommendation)}20`,
-                color: getRecommendationColor(report.feedback.recommendation),
-                fontWeight: '600',
-                fontSize: '14px',
-                fontFamily: 'DM Sans, sans-serif'
-              }}>
-                {report.feedback.recommendation}
+
+            {/* Summary */}
+            {report.summary && (
+              <div style={{ marginTop: '16px', padding: '16px', background: 'var(--surface)', borderRadius: '8px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', fontFamily: 'var(--font-body)' }}>Summary</h4>
+                <p style={{ fontSize: '14px', color: 'var(--ink)', fontFamily: 'var(--font-body)', lineHeight: '1.6', margin: 0, whiteSpace: 'pre-wrap' }}>
+                  {report.summary}
+                </p>
               </div>
-              <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>
-                Generated: {new Date(report.feedback.generatedAt).toLocaleString()}
+            )}
+          </div>
+
+          {/* Recommendation */}
+          {report.recommendation && (
+            <div className="interview-card">
+              <h3 className="interview-card-title" style={{ marginBottom: '12px' }}>Recommendation</h3>
+              <p style={{ fontSize: '14px', color: 'var(--ink)', fontFamily: 'var(--font-body)', lineHeight: '1.6', margin: 0, whiteSpace: 'pre-wrap' }}>
+                {report.recommendation}
               </p>
             </div>
+          )}
+
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '0' }}>
+            {['overview', 'skills', 'questions'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as typeof activeTab)}
+                style={{
+                  padding: '10px 20px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
+                  color: activeTab === tab ? 'var(--accent)' : 'var(--muted)',
+                  fontWeight: activeTab === tab ? '600' : '400',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                  textTransform: 'capitalize',
+                  fontSize: '14px'
+                }}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', fontFamily: 'DM Sans, sans-serif' }}>AI Assessment</h4>
-            <p style={{ fontSize: '14px', color: 'var(--ink)', fontFamily: 'DM Sans, sans-serif', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-              {report.feedback.aIComments || 'No assessment comments available.'}
-            </p>
-          </div>
-
-          {report.feedback.topicScores && report.feedback.topicScores.length > 0 && (
-            <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', fontFamily: 'DM Sans, sans-serif' }}>Topic-wise Scores</h4>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {report.feedback.topicScores.map((topic, i) => (
-                  <div key={i} style={{
-                    padding: '12px',
-                    background: 'var(--surface)',
-                    borderRadius: '8px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontWeight: '500', fontFamily: 'DM Sans, sans-serif' }}>{topic.topicName}</span>
-                      <span style={{ fontWeight: 'bold', color: getScoreColor(topic.score) }}>{topic.score}%</span>
-                    </div>
-                    <div style={{ height: '4px', background: 'var(--border)', borderRadius: '100px', marginBottom: '8px' }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${topic.score}%`,
-                        background: getScoreColor(topic.score),
-                        borderRadius: '100px'
-                      }} />
-                    </div>
-                    {topic.strengths && (
-                      <div style={{ fontSize: '12px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>
-                        <strong>Strengths:</strong> {topic.strengths}
-                      </div>
-                    )}
-                    {topic.areasForImprovement && (
-                      <div style={{ fontSize: '12px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif', marginTop: '4px' }}>
-                        <strong>Improvements:</strong> {topic.areasForImprovement}
-                      </div>
-                    )}
+          {/* Tab Content */}
+          {activeTab === 'overview' && (
+            <div className="interview-card">
+              {/* Strengths */}
+              {report.strengths && report.strengths.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: 'var(--green)' }}>✓</span> Strengths
+                  </h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {report.strengths.map((strength, i) => (
+                      <span key={i} style={{
+                        padding: '6px 12px',
+                        background: 'rgba(0,194,113,.12)',
+                        color: 'var(--green)',
+                        borderRadius: '100px',
+                        fontSize: '12px',
+                        fontFamily: 'var(--font-body)'
+                      }}>
+                        {strength}
+                      </span>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* Weaknesses */}
+              {report.weaknesses && report.weaknesses.length > 0 && (
+                <div>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: 'var(--red)' }}>!</span> Areas for Improvement
+                  </h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {report.weaknesses.map((weakness, i) => (
+                      <span key={i} style={{
+                        padding: '6px 12px',
+                        background: 'rgba(224,59,59,.12)',
+                        color: 'var(--red)',
+                        borderRadius: '100px',
+                        fontSize: '12px',
+                        fontFamily: 'var(--font-body)'
+                      }}>
+                        {weakness}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(!report.strengths?.length && !report.weaknesses?.length) && (
+                <p style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center' }}>
+                  No overview data available
+                </p>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'skills' && (
+            <div className="interview-card">
+              {report.skillsEvaluation && report.skillsEvaluation.length > 0 ? (
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  {report.skillsEvaluation.map((skill, i) => (
+                    <div key={i} style={{ padding: '16px', background: 'var(--surface)', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontWeight: '600', fontFamily: 'var(--font-body)' }}>{skill.skill}</span>
+                        <span style={{ fontWeight: 'bold', color: getScoreColor(skill.score), fontSize: '16px' }}>{skill.score}/10</span>
+                      </div>
+                      <div style={{ height: '6px', background: 'var(--border)', borderRadius: '100px', marginBottom: '12px' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${skill.score * 10}%`,
+                          background: getScoreColor(skill.score),
+                          borderRadius: '100px'
+                        }} />
+                      </div>
+                      {skill.feedback && (
+                        <p style={{ fontSize: '13px', color: 'var(--muted)', fontFamily: 'var(--font-body)', margin: 0 }}>
+                          {skill.feedback}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center' }}>
+                  No skills evaluation available
+                </p>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'questions' && (
+            <div className="interview-card">
+              {report.questionAnalysis && report.questionAnalysis.length > 0 ? (
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  {report.questionAnalysis.map((qa, i) => (
+                    <div key={i} style={{ padding: '16px', background: 'var(--surface)', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '12px' }}>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: '11px', color: 'var(--muted)', fontFamily: 'var(--font-body)' }}>Q{i + 1}</span>
+                          <p style={{ fontSize: '14px', fontWeight: '500', fontFamily: 'var(--font-body)', margin: '4px 0 0 0' }}>{qa.question}</p>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 10px',
+                            borderRadius: '100px',
+                            background: qa.answerQuality === 'Excellent' ? 'rgba(0,194,113,.12)' :
+                                        qa.answerQuality === 'Good' ? 'rgba(0,194,113,.08)' :
+                                        qa.answerQuality === 'Average' ? 'rgba(245,166,35,.12)' : 'rgba(224,59,59,.12)',
+                            color: qa.answerQuality === 'Excellent' || qa.answerQuality === 'Good' ? 'var(--green)' :
+                                   qa.answerQuality === 'Average' ? 'var(--yellow)' : 'var(--red)',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            fontFamily: 'var(--font-body)'
+                          }}>
+                            {qa.answerQuality}
+                          </span>
+                          <div style={{ fontSize: '14px', fontWeight: 'bold', color: getScoreColor(qa.score), marginTop: '4px' }}>{qa.score}/10</div>
+                        </div>
+                      </div>
+                      {qa.remarks && (
+                        <p style={{ fontSize: '13px', color: 'var(--muted)', fontFamily: 'var(--font-body)', margin: 0, paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+                          {qa.remarks}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: '13px', color: 'var(--muted)', textAlign: 'center' }}>
+                  No question analysis available
+                </p>
+              )}
             </div>
           )}
         </div>
       )}
+    </>
+  );
 
-      {/* No Feedback Message */}
-      {!report.feedback && (
-        <div className="interview-card">
-          <div style={{ textAlign: 'center', padding: '32px' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
-            <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>Feedback Pending</h3>
-            <p style={{ fontSize: '13px', color: 'var(--muted)' }}>
-              AI feedback will be generated after the interview is completed.
-            </p>
-          </div>
-        </div>
-      )}
+  // If showAsPage is true or there's no onClose, render as a page
+  if (showAsPage || !onClose) {
+    return content;
+  }
 
-      {/* Session Metrics */}
-      {report.session && (
-        <div className="interview-card">
-          <h3 className="interview-card-title" style={{ marginBottom: '16px' }}>Session Details</h3>
-          
-          <div className="interview-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-            <div className="interview-stat-card stat-1">
-              <div className="interview-stat-icon">⏱️</div>
-              <div className="interview-stat-num">
-                {report.session.duration && report.session.duration !== '00:00:00' 
-                  ? report.session.duration 
-                  : 'N/A'}
-              </div>
-              <div className="interview-stat-label">Duration</div>
-            </div>
-            <div className="interview-stat-card stat-2">
-              <div className="interview-stat-icon">🔇</div>
-              <div className="interview-stat-num">{report.session.interruptCount}</div>
-              <div className="interview-stat-label">Interruptions</div>
-            </div>
-            <div className="interview-stat-card stat-3">
-              <div className="interview-stat-icon">🎤</div>
-              <div className="interview-stat-num">{report.session.speechConfidence.toFixed(1)}%</div>
-              <div className="interview-stat-label">Speech Clarity</div>
-            </div>
-          </div>
+  // Otherwise, render as a modal
+  return createPortal(
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      width: '100vw', height: '100vh',
+      background: 'rgba(13, 17, 23, 0.85)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)'
+    }}>
+      <div style={{
+        width: '90vw',
+        maxWidth: '800px',
+        maxHeight: '90vh',
+        background: 'var(--background)',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {/* Modal Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--surface)'
+        }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '600', margin: 0, fontFamily: 'var(--font-body)' }}>
+            Interview Report
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              color: 'var(--muted)'
+            }}
+          >
+            ✕
+          </button>
         </div>
-      )}
-
-      {/* Transcript */}
-      {report.session?.transcript && report.session.transcript.length > 0 && (
-        <div className="interview-card">
-          <h3 className="interview-card-title" style={{ marginBottom: '16px' }}>Conversation Transcript</h3>
-          
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            {report.session.transcript.map((entry, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  justifyContent: entry.speaker === 'assistant' || entry.speaker === 'interviewer' ? 'flex-start' : 'flex-end',
-                  marginBottom: '12px'
-                }}
-              >
-                <div style={{
-                  maxWidth: '70%',
-                  padding: '10px 14px',
-                  borderRadius: '12px',
-                  background: entry.speaker === 'assistant' || entry.speaker === 'interviewer' ? 'var(--accent2)' : 'var(--accent)',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontFamily: 'DM Sans, sans-serif'
-                }}>
-                  <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>
-                    {entry.speaker === 'assistant' || entry.speaker === 'interviewer' ? 'AI Interviewer' : 'Candidate'}
-                  </div>
-                  {entry.text}
-                </div>
-              </div>
-            ))}
-          </div>
+        
+        {/* Modal Content */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '20px' }}>
+          {content}
         </div>
-      )}
-    </div>
+      </div>
+    </div>,
+    document.body
   );
 }

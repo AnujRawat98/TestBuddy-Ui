@@ -29,7 +29,7 @@
     font-size: 13px; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s;
 }
 .rp-back-btn:hover { background: var(--surface, #f3f4f6); color: var(--ink, #111); }
-.rp-assessment-name { font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 700; color: var(--ink, #111); margin-bottom: 4px; }
+.rp-assessment-name { font-family: var(--font-body); font-size: 18px; font-weight: 700; color: var(--ink, #111); margin-bottom: 4px; }
 .rp-assessment-meta { display: flex; flex-wrap: wrap; gap: 6px; }
 .rp-meta-pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 100px; background: rgba(0,87,255,.08); color: var(--accent2, #0057ff); }
 .rp-meta-red  { background: rgba(224,59,59,.1); color: #e03b3b; }
@@ -143,7 +143,7 @@
 .rp-score-card { /* no extra padding — section-body provides it */ }
 .rp-score-main { display: flex; align-items: center; gap: 24px; }
 .rp-score-circle { width: 90px; height: 90px; border-radius: 50%; border: 4px solid #00c271; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
-.rp-score-num { font-family: 'DM Sans', sans-serif; font-size: 26px; font-weight: 700; color: var(--ink, #111); line-height: 1; }
+.rp-score-num { font-family: var(--font-body); font-size: 26px; font-weight: 700; color: var(--ink, #111); line-height: 1; }
 .rp-score-denom { font-size: 12px; color: var(--muted, #888); margin-top: 2px; }
 .rp-pass-badge { font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 8px; margin-bottom: 6px; display: inline-block; }
 .rp-score-pct { font-size: 22px; font-weight: 700; color: var(--ink, #111); }
@@ -151,7 +151,7 @@
 /* Stats grid */
 .rp-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .rp-stat-box { background: var(--surface, #f7f8fa); border: 1px solid var(--border, #e5e7eb); border-radius: 10px; padding: 12px 14px; text-align: center; }
-.rp-stat-val { font-family: 'DM Sans', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.rp-stat-val { font-family: var(--font-body); font-size: 20px; font-weight: 700; margin-bottom: 4px; }
 .rp-stat-lbl { font-size: 11px; color: var(--muted, #888); font-weight: 500; }
 
 /* Violations grid */

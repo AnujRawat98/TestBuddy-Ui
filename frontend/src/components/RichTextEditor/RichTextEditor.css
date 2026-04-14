@@ -1,6 +1,4 @@
 /* ─── FONT IMPORT ─────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
-
 /* ── Wrapper ─────────────────────────────────────────────────────────────── */
 .rte-wrap {
     border: 1.5px solid var(--border);
@@ -38,7 +36,7 @@
     align-items: center;
     justify-content: center;
     font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-weight: 500;
     color: var(--ink);
     text-decoration: none !important;
@@ -76,7 +74,7 @@
     font-weight: 700;
     color: var(--accent2);
     white-space: nowrap;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     text-transform: uppercase;
     letter-spacing: .5px;
 }
@@ -103,7 +101,7 @@
     border-radius: 7px;
     font-size: 12px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     cursor: pointer;
     white-space: nowrap;
 }
@@ -125,7 +123,7 @@
     padding: 12px 14px;
     outline: none;
     font-size: 15px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
     line-height: 1.65;
     word-break: break-word;
@@ -139,7 +137,7 @@
     left: 14px;
     right: 14px;
     font-size: 15px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: #bbb;
     pointer-events: none;
     line-height: 1.65;

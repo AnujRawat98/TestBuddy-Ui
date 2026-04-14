@@ -224,11 +224,11 @@ export default function IJPDetail() {
         <button className={`ijp-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
           Overview
         </button>
-        <button className={`ijp-tab ${activeTab === 'config' ? 'active' : ''}`} onClick={() => setActiveTab('config')}>
-          Interview Config
-        </button>
         <button className={`ijp-tab ${activeTab === 'documents' ? 'active' : ''}`} onClick={() => setActiveTab('documents')}>
           Documents ({documents.length})
+        </button>
+        <button className={`ijp-tab ${activeTab === 'config' ? 'active' : ''}`} onClick={() => setActiveTab('config')}>
+          Interview Config
         </button>
         <button className={`ijp-tab ${activeTab === 'interviews' ? 'active' : ''}`} onClick={() => setActiveTab('interviews')}>
           Interviews ({interviews.length})

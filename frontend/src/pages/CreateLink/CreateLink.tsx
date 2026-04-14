@@ -751,7 +751,7 @@ const CreateLink: React.FC = () => {
                                 <div className="summary-row" key={r.key}>
                                     <span className="summary-key">{r.key}</span>
                                     <span className="summary-val" style={
-                                        r.key === 'Access Code' && !opts.credAccess ? { fontFamily: '"Syne",sans-serif', letterSpacing: '2px', color: 'var(--accent2)' } :
+                                        r.key === 'Access Code' && !opts.credAccess ? { fontFamily: 'var(--font-display)', letterSpacing: '2px', color: 'var(--accent2)' } :
                                         r.key === 'Proctoring' && anyProctor ? { color: 'var(--green)' } :
                                         r.key === 'Shuffle Qs' && opts.shuffleQs ? { color: 'var(--green)' } : {}
                                     }>{r.val}</span>

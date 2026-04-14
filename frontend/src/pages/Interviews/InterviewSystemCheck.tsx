@@ -218,7 +218,7 @@ export default function InterviewSystemCheck() {
         </button>
 
         {candidate.instructions && (
-          <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif' }}>
+          <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)', fontFamily: 'var(--font-body)' }}>
             {candidate.instructions}
           </p>
         )}
@@ -226,3 +226,4 @@ export default function InterviewSystemCheck() {
     </div>
   );
 }
+

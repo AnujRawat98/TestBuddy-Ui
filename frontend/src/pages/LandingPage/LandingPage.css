@@ -79,14 +79,14 @@
   border-radius: 14px;
   background: linear-gradient(135deg, var(--accent), #ff934f);
   color: #fff;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: 14px;
   font-weight: 800;
   box-shadow: 0 16px 32px rgba(255, 92, 0, 0.18);
 }
 
 .landing-brand-text {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -120,6 +120,25 @@
 .landing-link-btn:hover {
   color: var(--ink);
   transform: translateY(-1px);
+}
+
+.landing-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(13, 17, 23, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.66));
+  box-shadow: 0 12px 28px rgba(13, 17, 23, 0.08);
+  backdrop-filter: blur(10px);
+  font-weight: 700;
+}
+
+.landing-link-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 92, 0, 0.12), rgba(0, 87, 255, 0.1));
+  box-shadow: 0 16px 32px rgba(13, 17, 23, 0.12);
 }
 
 .landing-hero {
@@ -156,7 +175,7 @@
 
 .landing-title {
   margin-top: 18px;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(3rem, 5vw, 5.35rem);
   line-height: 0.95;
   letter-spacing: -0.06em;
@@ -226,7 +245,7 @@
 
 .landing-stat-card strong {
   display: block;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: 1.65rem;
   margin-bottom: 8px;
 }
@@ -394,7 +413,7 @@
 .landing-highlight-copy h2,
 .landing-cta h2 {
   margin-top: 16px;
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2rem, 3.6vw, 3.25rem);
   line-height: 1.02;
   letter-spacing: -0.05em;
@@ -465,7 +484,7 @@
   height: 48px;
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(255, 92, 0, 0.12), rgba(0, 87, 255, 0.12));
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 800;
 }
@@ -611,3 +630,4 @@
     padding: 18px;
   }
 }
+

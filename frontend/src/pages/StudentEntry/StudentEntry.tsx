@@ -261,7 +261,7 @@ const StudentEntry: React.FC = () => {
         <div className="student-entry-wrap"><div className="entry-card" style={{ textAlign: 'center' }}>
             <div className="logo">Test<span>Buddy</span></div>
             <div style={{ fontSize: '48px', margin: '28px 0 14px' }}>🔒</div>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 700, marginBottom: '10px' }}>Link Unavailable</div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: '20px', fontWeight: 700, marginBottom: '10px' }}>Link Unavailable</div>
             <div style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: 1.6 }}>{errorMsg || 'This exam link is invalid, inactive, or has expired.'}</div>
         </div></div>
     );
@@ -271,7 +271,7 @@ const StudentEntry: React.FC = () => {
         <div className="student-entry-wrap"><div className="entry-card" style={{ textAlign: 'center', maxWidth: 420 }}>
             <div className="logo">Test<span>Buddy</span></div>
             <div style={{ fontSize: '60px', margin: '28px 0 14px' }}>🚀</div>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 700, marginBottom: '10px', color: 'var(--green)' }}>Exam Window Opened!</div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: '20px', fontWeight: 700, marginBottom: '10px', color: 'var(--green)' }}>Exam Window Opened!</div>
             <div style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: 1.8 }}>
                 Your exam is running in a separate window.<br />
                 Please switch to that window to begin.<br />
@@ -440,7 +440,7 @@ const StudentEntry: React.FC = () => {
                         maxLength={10} value={code}
                         onChange={e => { clearErr(); setCode(e.target.value.toUpperCase()); }}
                         disabled={loading} onKeyDown={e => e.key === 'Enter' && handleVerify()}
-                        style={{ letterSpacing: '3px', fontFamily: '"Syne",sans-serif', fontWeight: 700 }} />
+                        style={{ letterSpacing: '3px', fontFamily: 'var(--font-display)', fontWeight: 700 }} />
                 </div>
                 <div className="instructions">
                     <div className="instructions-title">📋 Before you begin</div>
@@ -464,3 +464,4 @@ const StudentEntry: React.FC = () => {
 };
 
 export default StudentEntry;
+

@@ -1,6 +1,4 @@
 /* ─── FONT IMPORT ─────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
-
 /* ─── STAT CARDS ───────────────────────────────────────────── */
 .stats-grid {
     display: grid;
@@ -53,7 +51,7 @@
     content: attr(data-bg);
     position: absolute;
     right: -8px; bottom: -12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 80px;
     font-weight: 800;
     opacity: .04;
@@ -91,7 +89,7 @@
     gap: 4px;
     font-size: 12px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     padding: 4px 9px;
     border-radius: 100px;
 }
@@ -101,7 +99,7 @@
 .trend-flat { background: var(--surface);          color: var(--muted); }
 
 .stat-num {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-size: 28px;
     font-weight: 800;
     letter-spacing: -1px;
@@ -111,7 +109,7 @@
 
 .stat-label {
     font-size: 13px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
 }
 
@@ -146,7 +144,7 @@ th {
     background: #fafaf7;
     font-size: 11px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     letter-spacing: .8px;
     text-transform: uppercase;
     color: var(--muted);
@@ -159,7 +157,7 @@ th {
 td {
     padding: 13px 22px;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     border-bottom: 1px solid #f5f3ee;
     vertical-align: middle;
 }
@@ -170,13 +168,13 @@ tbody tr:hover td { background: #fafaf7; }
 
 .assessment-name {
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     margin-bottom: 2px;
 }
 
 .assessment-meta {
     font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
 }
 
@@ -188,7 +186,7 @@ tbody tr:hover td { background: #fafaf7; }
     border-radius: 100px;
     font-size: 12px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     white-space: nowrap;
 }
 
@@ -258,7 +256,7 @@ tbody tr:hover td { background: #fafaf7; }
 .quick-label {
     font-size: 12px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
 }
 
@@ -291,7 +289,7 @@ tbody tr:hover td { background: #fafaf7; }
 .link-title {
     font-size: 14px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -299,7 +297,7 @@ tbody tr:hover td { background: #fafaf7; }
 
 .link-meta {
     font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
     margin-top: 2px;
 }
@@ -307,7 +305,7 @@ tbody tr:hover td { background: #fafaf7; }
 .link-time {
     font-size: 11px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--accent2);
     background: rgba(0, 87, 255, .08);
     padding: 3px 9px;
@@ -349,18 +347,18 @@ tbody tr:hover td { background: #fafaf7; }
 .topic-name {
     font-size: 14px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     flex: 1;
 }
 
 .topic-count {
     font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
 }
 
 .topic-num-text {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-weight: 700;
     font-size: 16px;
     min-width: 36px;
@@ -424,7 +422,7 @@ tbody tr:hover td { background: #fafaf7; }
 
 .activity-text {
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     line-height: 1.5;
 }
 
@@ -432,7 +430,7 @@ tbody tr:hover td { background: #fafaf7; }
 
 .activity-time {
     font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
     margin-top: 2px;
 }

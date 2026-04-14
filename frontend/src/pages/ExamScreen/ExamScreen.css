@@ -35,7 +35,7 @@
 }
 
 .exam-screen-wrap .tb-logo {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 18px;
     font-weight: 800;
     color: #fff;
@@ -193,7 +193,7 @@
 }
 
 .exam-screen-wrap .timer-value {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 38px;
     font-weight: 800;
     color: #fff;
@@ -275,7 +275,7 @@
 }
 
 .exam-screen-wrap .sm-num {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 20px;
     font-weight: 800;
     line-height: 1;
@@ -333,7 +333,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     transition: all .15s;
     color: var(--ink);
 }
@@ -529,7 +529,7 @@
 .exam-screen-wrap .q-num-badge {
     background: var(--ink);
     color: #fff;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 12px;
     font-weight: 700;
     padding: 4px 12px;
@@ -681,7 +681,7 @@
     justify-content: center;
     font-size: 13px;
     font-weight: 700;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     flex-shrink: 0;
     transition: all .18s;
     color: var(--muted);
@@ -727,7 +727,7 @@
     border: 2px solid var(--border);
     border-radius: 12px;
     font-size: 15px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
     background: var(--surface);
     outline: none;
@@ -809,7 +809,7 @@
     padding: 9px 18px;
     border-radius: 9px;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-weight: 500;
     cursor: pointer;
     border: none;
@@ -874,7 +874,7 @@
     box-shadow: 0 3px 12px rgba(0, 194, 113, .3);
     border: none;
     margin-left: auto;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
 }
 
@@ -960,7 +960,7 @@
 }
 
 .exam-screen-wrap .result-score-big {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 72px;
     font-weight: 800;
     color: #fff;
@@ -995,7 +995,7 @@
     font-weight: 700;
     margin-top: 14px;
     position: relative;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
 }
 
 .exam-screen-wrap .result-body {
@@ -1018,7 +1018,7 @@
 }
 
 .exam-screen-wrap .rs-num {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 28px;
     font-weight: 800;
     line-height: 1;
@@ -1048,7 +1048,7 @@
 
 /* topic performance */
 .exam-screen-wrap .topic-perf-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 14px;
     font-weight: 700;
     margin-bottom: 14px;
@@ -1102,7 +1102,7 @@
     border-radius: 11px;
     font-size: 14px;
     font-weight: 600;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     cursor: pointer;
     border: none;
     display: flex;
@@ -1155,7 +1155,7 @@
 }
 
 .exam-screen-wrap .tw-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 32px;
     font-weight: 800;
     color: #fff;
@@ -1178,7 +1178,7 @@
     border-radius: 10px;
     font-size: 15px;
     font-weight: 700;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     cursor: pointer;
     transition: all .18s;
 }
@@ -1245,7 +1245,7 @@
 }
 
 .exam-screen-wrap .sg-num {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 28px;
     font-weight: 800;
     line-height: 1;
@@ -1315,7 +1315,7 @@
     border: 2px solid var(--border);
     border-radius: 12px;
     font-size: 15px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
     background: var(--surface);
     outline: none;
@@ -1372,7 +1372,7 @@
 }
 
 .exam-screen-wrap .sg-num {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 28px;
     font-weight: 800;
     line-height: 1;
@@ -1442,7 +1442,7 @@
     border: 2px solid var(--border);
     border-radius: 12px;
     font-size: 15px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--ink);
     background: var(--surface);
     outline: none;
@@ -1509,3 +1509,4 @@
 .nav-bar {
     flex-shrink: 0;
 }
+

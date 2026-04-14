@@ -36,7 +36,7 @@
     justify-content: center;
     font-size: 14px;
     font-weight: 700;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     color: var(--muted);
     flex-shrink: 0;
     transition: all .25s;
@@ -126,7 +126,7 @@
 }
 
 .create-assessment-container .section-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     font-size: 15px;
     display: flex;
@@ -175,7 +175,7 @@
     border: 1.5px solid var(--border);
     border-radius: 9px;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     outline: none;
     background: var(--surface);
     color: var(--ink);
@@ -234,7 +234,7 @@
 .create-assessment-container .marks-card input {
     width: 100%;
     text-align: center;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 22px;
     font-weight: 800;
     border: none !important;
@@ -297,7 +297,7 @@
     border: 1.5px solid var(--border);
     border-radius: 8px;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     text-align: center;
     outline: none;
     background: var(--card);
@@ -374,7 +374,7 @@
     color: var(--muted);
     transition: all .18s;
     background: transparent;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     margin-top: 14px;
     width: 100%;
 }
@@ -424,7 +424,7 @@
 .create-assessment-container .diff-input-wrap input {
     width: 80px;
     text-align: center;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 28px;
     font-weight: 800;
     border: none !important;
@@ -525,7 +525,7 @@
 }
 
 .create-assessment-container .info-panel-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     font-size: 14px;
 }
@@ -567,7 +567,7 @@
 }
 
 .create-assessment-container .score-big {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 42px;
     font-weight: 800;
     color: #fff;
@@ -596,7 +596,7 @@
 }
 
 .create-assessment-container .score-item-num {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 16px;
     font-weight: 800;
     color: #fff;
@@ -666,7 +666,7 @@
     border: 1.5px solid var(--border);
     background: var(--card);
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     font-weight: 600;
     cursor: pointer;
     transition: all .18s;
@@ -739,7 +739,7 @@
 }
 
 .create-assessment-container .modal-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 18px;
     font-weight: 800;
     letter-spacing: -.4px;
@@ -834,7 +834,7 @@
     font-weight: 700;
     color: var(--muted);
     flex-shrink: 0;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
 }
 
 .create-assessment-container .q-body  { flex: 1; min-width: 0; }
@@ -908,7 +908,7 @@
     padding: 2px 7px;
     border-radius: 4px;
     margin-left: 7px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     text-transform: none;
     line-height: 1;
 }
@@ -1039,7 +1039,7 @@
     font-weight: 600;
     letter-spacing: .3px;
     margin-top: 1px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
 }
 
 /* ── Score breakdown inside dark card ── */
@@ -1048,3 +1048,4 @@
     grid-template-columns: 1fr 1fr;
     gap: 8px;
 }
+

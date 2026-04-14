@@ -542,7 +542,7 @@ const CreateAssessment: React.FC = () => {
 
                                                 {/* Q count */}
                                                 <td>
-                                                    <strong style={{ color, fontFamily: "'Syne',sans-serif", fontWeight: 700 }}>
+                                                    <strong style={{ color, fontFamily: "var(--font-display)", fontWeight: 700 }}>
                                                         {qCount}
                                                     </strong>
                                                     {isRandomized && (
@@ -926,3 +926,4 @@ const CreateAssessment: React.FC = () => {
 };
 
 export default CreateAssessment;
+

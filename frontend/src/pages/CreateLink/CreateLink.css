@@ -62,7 +62,7 @@
 }
 
 .create-link-container .section-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     font-size: 15px;
     display: flex;
@@ -156,7 +156,7 @@
     border: 1.5px solid var(--border);
     border-radius: 9px;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     outline: none;
     background: var(--surface);
     color: var(--ink);
@@ -282,7 +282,7 @@
 }
 
 .create-link-container .code-field-wrap input {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 16px;
     font-weight: 700;
     letter-spacing: 3px;
@@ -487,7 +487,7 @@
 }
 
 .create-link-container .info-panel-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     font-size: 14px;
 }
@@ -543,7 +543,7 @@
 }
 
 .create-link-container .lp-url {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 13px;
     font-weight: 700;
     color: #fff;
@@ -570,7 +570,7 @@
     border-radius: 8px;
     font-size: 13px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     cursor: pointer;
     border: none;
     display: inline-flex;
@@ -620,7 +620,7 @@
 }
 
 .create-link-container .lp-stat-num {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 20px;
     font-weight: 800;
     color: #fff;
@@ -744,7 +744,7 @@
 }
 
 .create-link-container .link-code {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 13px;
     font-weight: 700;
     color: var(--accent2);
@@ -877,7 +877,7 @@
 }
 
 .create-link-container .modal-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 18px;
     font-weight: 800;
     letter-spacing: -.5px;
@@ -958,7 +958,7 @@
 }
 
 .create-link-container .confirm-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 20px;
     font-weight: 800;
     margin-bottom: 8px;
@@ -1025,7 +1025,7 @@
     padding: 2px 7px;
     border-radius: 4px;
     margin-left: 7px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     text-transform: none;
     line-height: 1;
 }
@@ -1085,7 +1085,7 @@
     padding: 2px 7px;
     border-radius: 4px;
     margin-left: 7px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     text-transform: none;
     line-height: 1;
 }
@@ -1194,7 +1194,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
 }
 
 .create-link-container .added-user-email {
@@ -1250,7 +1250,7 @@
     padding: 2px 7px;
     border-radius: 4px;
     margin-left: 7px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     text-transform: none;
     line-height: 1;
 }
@@ -1359,7 +1359,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
 }
 
 .create-link-container .added-user-email {
@@ -1396,7 +1396,7 @@
 .create-link-container .aic-title {
     font-size: 16px;
     font-weight: 700;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     color: var(--ink);
     margin-bottom: 14px;
 }
@@ -1415,7 +1415,7 @@
 .create-link-container .aic-stat-val {
     font-size: 20px;
     font-weight: 800;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     color: var(--ink);
     line-height: 1.2;
 }
@@ -1478,7 +1478,7 @@
 
 .create-link-container .slr-code {
     font-size: 12px;
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: 1px;
     color: var(--accent2);
@@ -1526,3 +1526,4 @@
     background: rgba(0, 87, 255, .06);
     border-color: var(--accent2);
 }
+

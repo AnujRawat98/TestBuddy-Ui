@@ -10,7 +10,7 @@
 }
 
 .page-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: 24px;
   font-weight: 800;
   color: var(--ink);
@@ -38,7 +38,7 @@
 }
 
 .ijp-stat-num {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: 28px;
   font-weight: 800;
   color: var(--ink);
@@ -76,7 +76,7 @@
 }
 
 .ijp-card-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
   color: var(--ink);
@@ -181,7 +181,7 @@
 }
 
 .ijp-detail-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: 24px;
   font-weight: 800;
   color: var(--ink);
@@ -228,7 +228,7 @@
 }
 
 .ijp-section-title {
-  font-family: 'Syne', sans-serif;
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
   color: var(--ink);
@@ -326,3 +326,4 @@
   font-size: 12px;
   color: var(--muted);
 }
+

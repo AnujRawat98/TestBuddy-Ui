@@ -196,7 +196,7 @@ const BulkUploadModal: React.FC<BulkUploadModalProps> = ({ isOpen, onClose, onSu
                                 ].map(s => (
                                     <div key={s.label} style={{ padding: '14px', background: '#f8faff', border: '1px solid #e5e7eb', borderRadius: '10px', textAlign: 'center' }}>
                                         <div style={{ fontSize: '20px', marginBottom: '4px' }}>{s.icon}</div>
-                                        <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '24px', fontWeight: 800, color: s.color }}>{s.val}</div>
+                                        <div style={{ fontFamily: "var(--font-display)", fontSize: '24px', fontWeight: 800, color: s.color }}>{s.val}</div>
                                         <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{s.label}</div>
                                     </div>
                                 ))}
@@ -580,7 +580,7 @@ const Topics: React.FC = () => {
                                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
                                         <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${t.color}18`, margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>📂</div>
                                         <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>{t.name}</div>
-                                        <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 800, color: t.color, margin: '6px 0' }}>{t.questions}</div>
+                                        <div style={{ fontFamily: "var(--font-display)", fontSize: '20px', fontWeight: 800, color: t.color, margin: '6px 0' }}>{t.questions}</div>
                                         <div style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: '4px' }}>questions</div>
                                         {t.date && <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{t.date}</div>}
                                         <div style={{ display: 'flex', gap: '6px', marginTop: '12px', justifyContent: 'center' }}>
@@ -758,3 +758,4 @@ const Topics: React.FC = () => {
 };
 
 export default Topics;
+

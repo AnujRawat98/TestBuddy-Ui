@@ -18,7 +18,7 @@
 }
 
 .assessments-container .stat-val {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 32px;
     font-weight: 800;
     line-height: 1;
@@ -63,7 +63,7 @@
     border: 1.5px solid var(--border);
     border-radius: 10px;
     font-size: 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     background: var(--card);
     color: var(--ink);
     outline: none;
@@ -108,7 +108,7 @@
     background: transparent;
     font-size: 13px;
     font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-body);
     color: var(--muted);
     cursor: pointer;
     transition: all .18s;
@@ -217,7 +217,7 @@
 }
 
 .assessments-container .marks-val {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     font-size: 15px;
     color: var(--ink);
@@ -304,7 +304,7 @@
 }
 
 .assessments-container .empty-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 18px;
     font-weight: 700;
     color: var(--ink);
@@ -388,3 +388,4 @@
 .share-btn.share-email:hover { background: rgba(0,87,255,.06); border-color: rgba(0,87,255,.3); }
 .share-btn.share-qr       { font-size: 12px; }
 .share-btn.share-qr:hover { background: rgba(0,0,0,.05); }
+

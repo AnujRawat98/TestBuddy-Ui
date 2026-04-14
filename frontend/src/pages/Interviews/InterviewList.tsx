@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import * as XLSX from 'xlsx';
 import './Interviews.css';
+import InterviewReport from './InterviewReport';
 
 function ModalPortal({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) {
   if (typeof document === 'undefined') return null;
@@ -105,6 +105,12 @@ interface InlineCandidateDraft {
   fileName?: string;
 }
 
+interface LinkReportModalState {
+  open: boolean;
+  interviewName: string;
+  link: InterviewLink | null;
+}
+
 const parseInterviewDateTime = (value?: string) => {
   if (!value) return null;
   const normalized = value.replace(' ', 'T');
@@ -161,6 +167,64 @@ const fmtDT = (s: string) => {
   return parsed
     ? parsed.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
     : '—';
+};
+
+const INTERVIEW_PASS_SCORE = 70;
+
+const getCandidateLifecycleStatus = (candidate: CandidateInfo) => {
+  const rawStatus = (candidate.status || '').trim().toLowerCase();
+  if (rawStatus === 'completed' || rawStatus === 'submitted' || rawStatus === 'finished') {
+    return 'Completed';
+  }
+  if (rawStatus === 'inprogress' || rawStatus === 'in_progress' || rawStatus === 'started') {
+    return 'In Progress';
+  }
+  if (rawStatus === 'no show' || rawStatus === 'noshow') {
+    return 'No Show';
+  }
+
+  const now = new Date();
+  const start = parseInterviewDateTime(candidate.startTime);
+  const end = parseInterviewDateTime(candidate.endTime);
+
+  if (start && start > now) {
+    return 'Scheduled';
+  }
+  if (start && end && now >= start && now <= end) {
+    return 'In Progress';
+  }
+  if (end && end < now) {
+    return 'Pending Review';
+  }
+
+  return 'Pending';
+};
+
+const getCandidateResult = (candidate: CandidateInfo) => {
+  if (getCandidateLifecycleStatus(candidate) !== 'Completed') {
+    return { label: 'Awaiting', tone: 'neutral' as const };
+  }
+
+  if (typeof candidate.score === 'number') {
+    return candidate.score >= INTERVIEW_PASS_SCORE
+      ? { label: 'Passed', tone: 'success' as const }
+      : { label: 'Failed', tone: 'danger' as const };
+  }
+
+  return { label: 'Completed', tone: 'neutral' as const };
+};
+
+const getToneStyles = (tone: 'success' | 'danger' | 'warning' | 'neutral') => {
+  switch (tone) {
+    case 'success':
+      return { bg: 'rgba(0,194,113,.12)', color: 'var(--green)' };
+    case 'danger':
+      return { bg: 'rgba(224,59,59,.1)', color: 'var(--red)' };
+    case 'warning':
+      return { bg: 'rgba(245,166,35,.12)', color: 'var(--yellow)' };
+    default:
+      return { bg: 'rgba(138,138,138,.1)', color: 'var(--muted)' };
+  }
 };
 
 interface BulkUploadModalProps {
@@ -440,7 +504,20 @@ export default function InterviewList() {
   });
   const [topics, setTopics] = useState<TopicInfo[]>([]);
   const [toast, setToast] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [linkReportModal, setLinkReportModal] = useState<LinkReportModalState>({
+    open: false,
+    interviewName: '',
+    link: null,
+  });
+  const [candidateReportModal, setCandidateReportModal] = useState<{
+    open: boolean;
+    candidateId: string | null;
+    candidateName: string;
+  }>({
+    open: false,
+    candidateId: null,
+    candidateName: '',
+  });
 
   useEffect(() => {
     fetchInterviews();
@@ -884,6 +961,22 @@ export default function InterviewList() {
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   };
 
+  const openLinkReport = (link: InterviewLink, interviewName: string) => {
+    setLinkReportModal({
+      open: true,
+      interviewName,
+      link,
+    });
+  };
+
+  const closeLinkReport = () => {
+    setLinkReportModal({
+      open: false,
+      interviewName: '',
+      link: null,
+    });
+  };
+
   const handleCreateLink = async (data: {
     name: string;
     instructions: string;
@@ -978,6 +1071,29 @@ export default function InterviewList() {
     });
     return completed;
   };
+
+  const reportCandidates = linkReportModal.link?.candidates || [];
+  const reportSummary = reportCandidates.reduce((acc, candidate) => {
+    const lifecycleStatus = getCandidateLifecycleStatus(candidate);
+    const result = getCandidateResult(candidate);
+
+    acc.total += 1;
+    if (lifecycleStatus === 'Completed') acc.completed += 1;
+    if (lifecycleStatus === 'In Progress') acc.inProgress += 1;
+    if (lifecycleStatus === 'Scheduled') acc.scheduled += 1;
+    if (lifecycleStatus === 'Pending' || lifecycleStatus === 'Pending Review') acc.pending += 1;
+    if (result.label === 'Passed') acc.passed += 1;
+    if (result.label === 'Failed') acc.failed += 1;
+    return acc;
+  }, {
+    total: 0,
+    completed: 0,
+    inProgress: 0,
+    scheduled: 0,
+    pending: 0,
+    passed: 0,
+    failed: 0,
+  });
 
   if (loading) {
     return (
@@ -1090,7 +1206,7 @@ export default function InterviewList() {
               </div>
 
               {isInterviewExpanded && interview.instructions && (
-                <p className="text-sm" style={{ color: 'var(--muted)', fontFamily: 'DM Sans, sans-serif', marginBottom: '12px', fontSize: '13px' }}>
+                <p className="text-sm" style={{ color: 'var(--muted)', fontFamily: 'var(--font-body)', marginBottom: '12px', fontSize: '13px' }}>
                   {interview.instructions}
                 </p>
               )}
@@ -1128,6 +1244,12 @@ export default function InterviewList() {
                               <div className="interview-link-meta">
                                 👥 {link.completedCandidates}/{link.totalCandidates} completed
                               </div>
+                              <button
+                                className="share-btn"
+                                title="Open link report"
+                                onClick={() => openLinkReport(link, viewLinksModal.interviewName)}
+                                style={{ color: 'var(--green)', display: 'none' }}
+                              >ðŸ“Š</button>
                             </div>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <button className="share-btn" title="Copy link" onClick={() => copyLink(link.id)}>📋</button>
@@ -1140,7 +1262,7 @@ export default function InterviewList() {
                               <button 
                                 className="share-btn" 
                                 title="View report"
-                                onClick={() => navigate(`/interviews/reports/link/${link.id}`)}
+                                onClick={() => openLinkReport(link, interview.name)}
                                 style={{ color: 'var(--green)' }}
                               >📊</button>
                             </div>
@@ -1265,7 +1387,7 @@ export default function InterviewList() {
                                               <button 
                                                 className="share-btn" 
                                                 title="View Report"
-                                                onClick={() => navigate(`/interviews/reports/link/${candidate.interviewLinkId}?candidateId=${candidate.id}`)}
+                                                onClick={() => setCandidateReportModal({ open: true, candidateId: candidate.id || null, candidateName: candidate.candidateName || candidate.email })}
                                                 style={{ fontSize: '11px', color: 'var(--green)' }}
                                               >📊</button>
                                             </div>
@@ -1335,7 +1457,7 @@ export default function InterviewList() {
           <div className="modal" style={{ maxWidth: '920px', width: '96vw', position: 'relative', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0 16px 0', borderBottom: '1px solid var(--border)', marginBottom: '20px' }}>
               <div>
-                <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: '18px', fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Interview Links</h2>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: '18px', fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Interview Links</h2>
                 <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '4px 0 0 0' }}>{viewLinksModal.interviewName}</p>
               </div>
               <button className="modal-close" onClick={() => setViewLinksModal(p => ({ ...p, open: false }))}>✕</button>
@@ -1381,7 +1503,7 @@ export default function InterviewList() {
                                   {st === 'active' ? 'Running' : st === 'expired' ? 'Expired' : 'Scheduled'}
                                 </span>
                               </div>
-                              <div style={{ display: 'flex', gap: '20px', fontSize: '13px', color: 'var(--muted)', fontFamily: "'DM Sans', sans-serif" }}>
+                              <div style={{ display: 'flex', gap: '20px', fontSize: '13px', color: 'var(--muted)', fontFamily: "var(--font-body)" }}>
                                 <span>👥 {completedCount}/{link.totalCandidates || 0} completed</span>
                               </div>
                             </div>
@@ -1583,6 +1705,115 @@ export default function InterviewList() {
         </ModalPortal>
       )}
 
+      {linkReportModal.open && linkReportModal.link && (
+        <ModalPortal onClose={closeLinkReport}>
+          <div className="modal interview-report-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1100px', width: '96vw', maxHeight: '88vh' }}>
+            <div className="interview-report-modal-header">
+              <div>
+                <h2 className="interview-report-modal-title">{linkReportModal.link.name}</h2>
+                <p className="interview-report-modal-subtitle">
+                  {linkReportModal.interviewName} - {reportSummary.total} candidate{reportSummary.total !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <button className="modal-close" onClick={closeLinkReport}>X</button>
+            </div>
+
+            <div className="interview-report-summary-grid">
+              {[
+                { label: 'Completed', value: reportSummary.completed, tone: 'success' as const },
+                { label: 'Pending', value: reportSummary.pending + reportSummary.scheduled, tone: 'warning' as const },
+                { label: 'Passed', value: reportSummary.passed, tone: 'success' as const },
+                { label: 'Failed', value: reportSummary.failed, tone: 'danger' as const },
+              ].map((item) => {
+                const tone = getToneStyles(item.tone);
+                return (
+                  <div key={item.label} className="interview-report-summary-card">
+                    <div className="interview-report-summary-value" style={{ color: tone.color }}>{item.value}</div>
+                    <div className="interview-report-summary-label">{item.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {reportCandidates.length > 0 ? (
+              <div className="interview-report-table-wrap">
+                <table className="interview-report-table">
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      <th>Schedule</th>
+                      <th>Status</th>
+                      <th>Result</th>
+                      <th>Score</th>
+                      <th>Access Code</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportCandidates.map((candidate, index) => {
+                      const lifecycleStatus = getCandidateLifecycleStatus(candidate);
+                      const lifecycleTone = getCandidateStatusColor(lifecycleStatus.replace(' ', ''));
+                      const result = getCandidateResult(candidate);
+                      const resultTone = getToneStyles(result.tone);
+                      return (
+                        <tr key={candidate.id || `${candidate.email}-${index}`}>
+                          <td>
+                            <div className="interview-report-candidate-cell">
+                              <div className="interview-report-candidate-name">{candidate.candidateName || 'Unnamed candidate'}</div>
+                              <div className="interview-report-candidate-email">{candidate.email}</div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="interview-report-schedule">
+                              <div>{fmtDT(candidate.startTime)}</div>
+                              <div className="interview-report-schedule-end">to {fmtDT(candidate.endTime)}</div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="interview-report-pill" style={{ background: lifecycleTone.bg, color: lifecycleTone.color }}>
+                              {lifecycleStatus}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="interview-report-pill" style={{ background: resultTone.bg, color: resultTone.color }}>
+                              {result.label}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="interview-report-score">
+                              {typeof candidate.score === 'number' ? `${Math.round(candidate.score)}%` : '—'}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="interview-report-code">{candidate.accessCode || '—'}</div>
+                          </td>
+                          <td>
+                            {candidate.id ? (
+                              <button
+                                className="btn btn-outline btn-sm"
+                                onClick={() => setCandidateReportModal({ open: true, candidateId: candidate.id ?? null, candidateName: candidate.candidateName || candidate.email })}
+                              >
+                                View
+                              </button>
+                            ) : (
+                              <span className="interview-report-action-muted">Not ready</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="interview-report-empty">
+                No candidates have been added to this link yet.
+              </div>
+            )}
+          </div>
+        </ModalPortal>
+      )}
+
       {bulkUploadModal.open && (
         <InterviewBulkUploadModal
           onClose={() => setBulkUploadModal({ open: false, linkId: '', linkName: '' })}
@@ -1618,6 +1849,13 @@ export default function InterviewList() {
         />
       )}
 
+      {candidateReportModal.open && candidateReportModal.candidateId && (
+        <InterviewReport
+          candidateId={candidateReportModal.candidateId}
+          onClose={() => setCandidateReportModal({ open: false, candidateId: null, candidateName: '' })}
+        />
+      )}
+
       {toast && (
         <div style={{
           position: 'fixed',
@@ -1629,7 +1867,7 @@ export default function InterviewList() {
           padding: '12px 24px',
           borderRadius: '8px',
           fontSize: '14px',
-          fontFamily: 'DM Sans, sans-serif',
+          fontFamily: 'var(--font-body)',
           zIndex: 100,
           animation: 'fadeUp .2s ease both'
         }}>
@@ -1753,7 +1991,7 @@ function CreateInterviewModal({
                         fontSize: '12px', 
                         color: 'var(--accent2)', 
                         textDecoration: 'none',
-                        fontFamily: 'DM Sans, sans-serif'
+                        fontFamily: 'var(--font-body)'
                       }}
                     >
                       Go to Topics page to create one →
@@ -1787,13 +2025,13 @@ function CreateInterviewModal({
                         }}
                         style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
                       />
-                      <span style={{ fontSize: '13px', fontFamily: 'DM Sans, sans-serif' }}>{t.name}</span>
+                      <span style={{ fontSize: '13px', fontFamily: 'var(--font-body)' }}>{t.name}</span>
                     </label>
                   ))
                 )}
               </div>
               {formData.topicIds.length > 0 && (
-                <p style={{ fontSize: '11px', color: 'var(--accent)', marginTop: '4px', fontFamily: 'DM Sans, sans-serif' }}>
+                <p style={{ fontSize: '11px', color: 'var(--accent)', marginTop: '4px', fontFamily: 'var(--font-body)' }}>
                   {formData.topicIds.length} topic(s) selected
                 </p>
               )}
@@ -2275,3 +2513,4 @@ function RescheduleCandidateModal({
     </ModalPortal>
   );
 }
+

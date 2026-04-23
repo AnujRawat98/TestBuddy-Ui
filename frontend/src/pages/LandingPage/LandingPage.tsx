@@ -65,6 +65,9 @@ export default function LandingPage() {
         </nav>
 
         <div className="landing-header-actions">
+          <Link to="/signup" className="landing-link-btn">
+            Start Free Setup
+          </Link>
           <Link to="/login" className="landing-link-btn">
             Admin Login
           </Link>
@@ -88,6 +91,9 @@ export default function LandingPage() {
             </p>
 
             <div className="landing-hero-actions">
+              <Link to="/signup" className="landing-primary-btn">
+                Create Workspace
+              </Link>
               <Link to="/login" className="landing-primary-btn">
                 Enter Admin Portal
               </Link>
@@ -234,6 +240,9 @@ export default function LandingPage() {
             <h2>Open the admin portal and start building your next evaluation flow.</h2>
           </div>
           <div className="landing-cta-actions">
+            <Link to="/signup" className="landing-primary-btn">
+              Sign Up
+            </Link>
             <Link to="/login" className="landing-primary-btn">
               Go to Login
             </Link>

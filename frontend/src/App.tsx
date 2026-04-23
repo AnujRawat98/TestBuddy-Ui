@@ -1,8 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import AdminLayout from './components/AdminLayout';
 import LandingPage from './pages/LandingPage/LandingPage';
 import AdminLogin from './pages/AdminLogin/AdminLogin';
+import AdminSignup from './pages/AdminSignup/AdminSignup';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Topics from './pages/Topics/Topics';
 import AddQuestions from './pages/AddQuestions/AddQuestions';
@@ -29,6 +30,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<AdminLogin />} />
+        <Route path="/signup" element={<AdminSignup />} />
 
         {/* Protected Admin Routes (Wrapped in Layout) */}
         <Route element={<AdminLayout />}>

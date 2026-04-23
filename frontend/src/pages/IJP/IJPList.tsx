@@ -223,22 +223,6 @@ function CreateIJPModal({ onClose, onSubmit }: CreateModalProps) {
   });
   const [loading, setLoading] = useState(false);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'jd' | 'policy') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      if (field === 'jd') {
-        setForm({ ...form, jobDescriptionFileName: file.name, jobDescriptionBase64: base64 });
-      } else {
-        setForm({ ...form, companyPoliciesFileName: file.name, companyPoliciesBase64: base64 });
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);

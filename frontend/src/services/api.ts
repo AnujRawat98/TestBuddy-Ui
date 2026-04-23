@@ -29,6 +29,9 @@ api.interceptors.response.use(
 // ─── ADMIN ───────────────────────────────────────────────────────────────────
 export const adminApi = {
     login: (data: any) => api.post('/admin/login', data),
+    signup: (data: { companyName: string; email: string; password: string }) => api.post('/admin/signup', data),
+    googleLogin: (data: { idToken: string }) => api.post('/admin/google/login', data),
+    googleSignup: (data: { companyName: string; idToken: string }) => api.post('/admin/google/signup', data),
 };
 
 // ─── AI QUESTIONS ─────────────────────────────────────────────────────────────

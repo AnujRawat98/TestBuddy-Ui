@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import GoogleAuthButton from '../../components/GoogleAuthButton';
+import { saveAuthSession } from '../../utils/auth';
 import '../AdminLogin/AdminLogin.css';
 import './AdminSignup.css';
 
@@ -61,7 +62,7 @@ const AdminSignup: React.FC = () => {
             });
 
             if (res.data?.token) {
-                localStorage.setItem('token', res.data.token);
+                saveAuthSession(res.data.token, Boolean(res.data.isSuperAdmin));
             }
 
             setStatus('success');
@@ -98,7 +99,7 @@ const AdminSignup: React.FC = () => {
             });
 
             if (res.data?.token) {
-                localStorage.setItem('token', res.data.token);
+                saveAuthSession(res.data.token, Boolean(res.data.isSuperAdmin));
             }
 
             setStatus('success');

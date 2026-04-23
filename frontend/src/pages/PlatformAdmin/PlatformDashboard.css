@@ -1,0 +1,89 @@
+.platform-page {
+  display: grid;
+  gap: 24px;
+}
+
+.platform-header,
+.platform-panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.platform-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #0f766e;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.platform-title {
+  margin: 0;
+  font-size: 30px;
+  color: #111827;
+}
+
+.platform-subtitle {
+  margin: 8px 0 0;
+  color: #4b5563;
+}
+
+.platform-panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #111827;
+}
+
+.platform-table-wrap {
+  overflow-x: auto;
+}
+
+.platform-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.platform-table th,
+.platform-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.platform-table tbody tr {
+  cursor: pointer;
+}
+
+.platform-table tbody tr.selected {
+  background: #ecfeff;
+}
+
+.platform-org-name {
+  font-weight: 700;
+  color: #111827;
+}
+
+.platform-org-date {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.platform-empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 24px;
+}
+
+.platform-alert {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  padding: 14px 16px;
+}

@@ -23,6 +23,8 @@ import InterviewComplete from './pages/Interviews/InterviewComplete';
 import AIInterviewPage from './pages/Interviews/AIInterviewPage';
 import IJPList from './pages/IJP/IJPList';
 import IJPDetail from './pages/IJP/IJPDetail';
+import WalletPage from './pages/Wallet/WalletPage';
+import PlatformDashboard from './pages/PlatformAdmin/PlatformDashboard';
 
 function App() {
   return (
@@ -47,6 +49,8 @@ function App() {
           <Route path="/interviews/reports/:candidateId"    element={<InterviewReport />} />
           <Route path="/ijp"                               element={<IJPList />} />
           <Route path="/ijp/:id"                           element={<IJPDetail />} />
+          <Route path="/wallet"                            element={<WalletPage />} />
+          <Route path="/platform"                          element={<PlatformDashboard />} />
         </Route>
 
         {/* Student Routes */}

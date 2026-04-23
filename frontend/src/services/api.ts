@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAuthSession } from '../utils/auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5022/api';
 
@@ -20,7 +21,7 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('token');
+            clearAuthSession();
         }
         return Promise.reject(error);
     }
@@ -32,6 +33,22 @@ export const adminApi = {
     signup: (data: { companyName: string; email: string; password: string }) => api.post('/admin/signup', data),
     googleLogin: (data: { idToken: string }) => api.post('/admin/google/login', data),
     googleSignup: (data: { companyName: string; idToken: string }) => api.post('/admin/google/signup', data),
+};
+
+export const walletApi = {
+    getWallet: () => api.get('/wallet'),
+    getTransactions: () => api.get('/wallet/transactions'),
+    getPricing: () => api.get('/wallet/pricing'),
+};
+
+export const paymentApi = {
+    createOrder: (data: { assessmentQuantity: number; interviewQuantity: number }) =>
+        api.post('/payment/create-order', data),
+};
+
+export const platformApi = {
+    getOrganisations: () => api.get('/platform/organisations'),
+    getPayments: (organisationId: string) => api.get(`/platform/organisations/${organisationId}/payments`),
 };
 
 // ─── AI QUESTIONS ─────────────────────────────────────────────────────────────

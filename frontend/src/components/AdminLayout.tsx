@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
 import './AdminLayout.css';
+import { clearAuthSession, isSuperAdminSession } from '../utils/auth';
 
 const AdminLayout: React.FC = () => {
     const [currentDate, setCurrentDate] = useState('');
     const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
     const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
     const [isInterviewOpen, setIsInterviewOpen] = useState(false);
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const location = useLocation();
 
     useEffect(() => {
+        setIsSuperAdmin(isSuperAdminSession());
         const now = new Date();
         setCurrentDate(
             now.toLocaleDateString('en-US', {
@@ -36,7 +39,6 @@ const AdminLayout: React.FC = () => {
 
     return (
         <>
-            {/* ═══ SIDEBAR ══════════════════════════════════════════════ */}
             <aside className="sidebar" id="sidebar">
                 <div className="sidebar-logo">
                     Test<span>Buddy</span>
@@ -45,77 +47,84 @@ const AdminLayout: React.FC = () => {
 
                 <div className="sidebar-section">Main Menu</div>
 
-                <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <span className="nav-icon">📊</span>
-                    <span className="nav-label">Dashboard</span>
-                </NavLink>
+                {isSuperAdmin ? (
+                    <NavLink to="/platform" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <span className="nav-icon">PL</span>
+                        <span className="nav-label">Platform</span>
+                    </NavLink>
+                ) : (
+                    <>
+                        <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <span className="nav-icon">DB</span>
+                            <span className="nav-label">Dashboard</span>
+                        </NavLink>
 
-                {/* ── Questionnaire submenu ── */}
-                <a className={`nav-item ${isQuestionnaireOpen ? 'active' : ''}`} href="#"
-                    onClick={e => { e.preventDefault(); setIsQuestionnaireOpen(o => !o); }}>
-                    <span className="nav-icon">📚</span>
-                    <span className="nav-label">Questionnaire</span>
-                    <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isQuestionnaireOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>▼</span>
-                </a>
-                <div className={`nav-sub ${isQuestionnaireOpen ? 'open' : ''}`}>
-                    <NavLink to="/topics" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                        <div className="nav-sub-dot"></div>Topics
-                    </NavLink>
-                    <NavLink to="/questions/add" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                        <div className="nav-sub-dot"></div>Questions
-                    </NavLink>
-                    <NavLink to="/ai-generator" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                        <div className="nav-sub-dot"></div>AI Generator
-                    </NavLink>
-                </div>
+                        <a className={`nav-item ${isQuestionnaireOpen ? 'active' : ''}`} href="#"
+                            onClick={e => { e.preventDefault(); setIsQuestionnaireOpen(o => !o); }}>
+                            <span className="nav-icon">QB</span>
+                            <span className="nav-label">Questionnaire</span>
+                            <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isQuestionnaireOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>v</span>
+                        </a>
+                        <div className={`nav-sub ${isQuestionnaireOpen ? 'open' : ''}`}>
+                            <NavLink to="/topics" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
+                                <div className="nav-sub-dot"></div>Topics
+                            </NavLink>
+                            <NavLink to="/questions/add" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
+                                <div className="nav-sub-dot"></div>Questions
+                            </NavLink>
+                            <NavLink to="/ai-generator" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
+                                <div className="nav-sub-dot"></div>AI Generator
+                            </NavLink>
+                        </div>
 
-                {/* ── Assessment submenu ── */}
-                <a className={`nav-item ${isAssessmentOpen ? 'active' : ''}`} href="#"
-                    onClick={e => { e.preventDefault(); setIsAssessmentOpen(o => !o); }}>
-                    <span className="nav-icon">📝</span>
-                    <span className="nav-label">Assessments</span>
-                    <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isAssessmentOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>▼</span>
-                </a>
-                <div className={`nav-sub ${isAssessmentOpen ? 'open' : ''}`}>
-                    <NavLink to="/assessments" end className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                        <div className="nav-sub-dot"></div>Assessment List
-                    </NavLink>
-                    <NavLink to="/assessments/create" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                        <div className="nav-sub-dot"></div>Create Assessment
-                    </NavLink>
-                    {/* Exam Links removed from sidebar — access via 🔗 button on Assessment List */}
-                </div>
+                        <a className={`nav-item ${isAssessmentOpen ? 'active' : ''}`} href="#"
+                            onClick={e => { e.preventDefault(); setIsAssessmentOpen(o => !o); }}>
+                            <span className="nav-icon">AS</span>
+                            <span className="nav-label">Assessments</span>
+                            <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isAssessmentOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>v</span>
+                        </a>
+                        <div className={`nav-sub ${isAssessmentOpen ? 'open' : ''}`}>
+                            <NavLink to="/assessments" end className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
+                                <div className="nav-sub-dot"></div>Assessment List
+                            </NavLink>
+                            <NavLink to="/assessments/create" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
+                                <div className="nav-sub-dot"></div>Create Assessment
+                            </NavLink>
+                        </div>
 
-                {/* <a className="nav-item" href="#">
-                    <span className="nav-icon">👥</span>
-                    <span className="nav-label">Attempts</span>
-                </a> */}
-
-                {/* ── Interviews submenu ── */}
-                <a className={`nav-item ${isInterviewOpen ? 'active' : ''}`} href="#"
-                    onClick={e => { e.preventDefault(); setIsInterviewOpen(o => !o); }}>
-                    <span className="nav-icon">🎙️</span>
-                    <span className="nav-label">Interviews</span>
-                    <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isInterviewOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>▼</span>
-                </a>
-                <div className={`nav-sub ${isInterviewOpen ? 'open' : ''}`}>
-                    <NavLink to="/ijp" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                        <div className="nav-sub-dot"></div>Job Posting
-                    </NavLink>
-                    <NavLink to="/interviews" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                        <div className="nav-sub-dot"></div>Create Interview
-                    </NavLink>
-                </div>
+                        <a className={`nav-item ${isInterviewOpen ? 'active' : ''}`} href="#"
+                            onClick={e => { e.preventDefault(); setIsInterviewOpen(o => !o); }}>
+                            <span className="nav-icon">IV</span>
+                            <span className="nav-label">Interviews</span>
+                            <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isInterviewOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>v</span>
+                        </a>
+                        <div className={`nav-sub ${isInterviewOpen ? 'open' : ''}`}>
+                            <NavLink to="/ijp" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
+                                <div className="nav-sub-dot"></div>Job Posting
+                            </NavLink>
+                            <NavLink to="/interviews" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
+                                <div className="nav-sub-dot"></div>Create Interview
+                            </NavLink>
+                        </div>
+                    </>
+                )}
 
                 <div className="sidebar-section">System</div>
 
+                {!isSuperAdmin && (
+                    <NavLink to="/wallet" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <span className="nav-icon">WL</span>
+                        <span className="nav-label">Wallet</span>
+                    </NavLink>
+                )}
+
                 <a className="nav-item" href="#">
-                    <span className="nav-icon">⚙️</span>
+                    <span className="nav-icon">ST</span>
                     <span className="nav-label">Settings</span>
                 </a>
 
-                <Link className="nav-item" to="/login">
-                    <span className="nav-icon">🚪</span>
+                <Link className="nav-item" to="/login" onClick={() => clearAuthSession()}>
+                    <span className="nav-icon">LO</span>
                     <span className="nav-label">Logout</span>
                 </Link>
 
@@ -124,28 +133,27 @@ const AdminLayout: React.FC = () => {
                         <div className="admin-avatar">A</div>
                         <div>
                             <div className="admin-name">Admin</div>
-                            <div className="admin-role">Super Administrator</div>
+                            <div className="admin-role">{isSuperAdmin ? 'Platform Superadmin' : 'Workspace Admin'}</div>
                         </div>
-                        <div className="admin-more">⋯</div>
+                        <div className="admin-more">...</div>
                     </div>
                 </div>
             </aside>
 
-            {/* ═══ MAIN AREA ════════════════════════════════════════════ */}
             <div className="main">
                 <header className="topbar">
                     <div className="topbar-left">
-                        <div className="topbar-greeting">Good morning, Admin 👋</div>
+                        <div className="topbar-greeting">Good morning, Admin</div>
                         <div className="topbar-date">{currentDate}</div>
                     </div>
                     <div className="topbar-right">
                         <div className="topbar-search">
-                            <span>🔍</span>
-                            <input type="text" placeholder="Search anything…"
+                            <span>?</span>
+                            <input type="text" placeholder="Search anything..."
                                 style={{ border: 'none', background: 'transparent', outline: 'none', color: 'var(--muted)', width: '100%', fontSize: '13px' }} />
                         </div>
-                        <div className="icon-btn" title="Notifications">🔔<div className="notif-dot"></div></div>
-                        <div className="icon-btn" title="Help">❓</div>
+                        <div className="icon-btn" title="Notifications">N<div className="notif-dot"></div></div>
+                        <div className="icon-btn" title="Help">H</div>
                         <div className="topbar-avatar" title="Profile">A</div>
                     </div>
                 </header>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import GoogleAuthButton from '../../components/GoogleAuthButton';
+import { saveAuthSession } from '../../utils/auth';
 
 // ── SWAP THIS LINE TO CHANGE THEME ──────────────────────────────────────────
 // Theme 1: Midnight Blue + Cyan    → './Theme1_MidnightCyan.css'
@@ -34,9 +35,11 @@ const AdminLogin: React.FC = () => {
 
         try {
             const res = await adminApi.login({ email, password });
-            if (res.data?.token) localStorage.setItem('token', res.data.token);
+            if (res.data?.token) {
+                saveAuthSession(res.data.token, Boolean(res.data.isSuperAdmin));
+            }
             setStatus('success');
-            setTimeout(() => navigate('/dashboard'), 900);
+            setTimeout(() => navigate(res.data?.isSuperAdmin ? '/platform' : '/dashboard'), 900);
         } catch (err: any) {
             console.error(err);
             setStatus('idle');
@@ -53,10 +56,10 @@ const AdminLogin: React.FC = () => {
         try {
             const res = await adminApi.googleLogin({ idToken });
             if (res.data?.token) {
-                localStorage.setItem('token', res.data.token);
+                saveAuthSession(res.data.token, Boolean(res.data.isSuperAdmin));
             }
             setStatus('success');
-            setTimeout(() => navigate('/dashboard'), 900);
+            setTimeout(() => navigate(res.data?.isSuperAdmin ? '/platform' : '/dashboard'), 900);
         } catch (err: any) {
             console.error(err);
             setStatus('idle');
@@ -166,6 +169,9 @@ const AdminLogin: React.FC = () => {
 
                 <div className="auth-switch-banner">
                     New to TestBuddy? <Link to="/signup">Create your company workspace</Link>
+                </div>
+                <div className="auth-switch-banner">
+                    Platform superadmins can sign in here and will be routed to the organisation billing console.
                 </div>
 
                 {/* Error */}

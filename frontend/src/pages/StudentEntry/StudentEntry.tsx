@@ -223,7 +223,7 @@ const StudentEntry: React.FC = () => {
 
             const sw       = screen.width, sh = screen.height;
             const features = [`width=${sw}`, `height=${sh}`, `top=0`, `left=0`, `toolbar=no`, `menubar=no`, `location=no`, `status=no`, `scrollbars=no`, `resizable=no`, `directories=no`].join(',');
-            const popup    = window.open(`${window.location.origin}/exam/${attemptId}`, 'TestBuddyExam', features);
+            const popup    = window.open(`${window.location.origin}/exam/${attemptId}`, 'MazeAIExam', features);
             if (!popup || popup.closed) {
                 showToast('Popup blocked! Allow popups for this site in browser settings.', 'error');
                 setStage('instructions'); return;

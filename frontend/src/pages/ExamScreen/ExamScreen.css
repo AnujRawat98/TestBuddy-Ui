@@ -1213,6 +1213,14 @@
     opacity: 1;
 }
 
+.exam-screen-wrap .modal-overlay {
+    display: none !important;
+}
+
+.exam-screen-wrap .modal-overlay.open {
+    display: flex !important;
+}
+
 @media (max-width: 768px) {
     .exam-screen-wrap .exam-body {
         flex-direction: column;

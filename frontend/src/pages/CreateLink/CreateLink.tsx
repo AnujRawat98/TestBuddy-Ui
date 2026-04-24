@@ -336,13 +336,16 @@ const CreateLink: React.FC = () => {
         setAccessCode(code);
     };
 
-    const toLocalISO = (dt: string): string => dt.length === 16 ? `${dt}:00` : dt;
+    const toUtcISO = (dt: string): string => {
+        const normalized = dt.length === 16 ? `${dt}:00` : dt;
+        return new Date(normalized).toISOString();
+    };
 
     const buildPayload = () => ({
         name:                    linkName.trim(),
         assessmentId:            selectedAssessmentId,
-        examStartDateTime:       toLocalISO(startDate),
-        examEndDateTime:         toLocalISO(endDate),
+        examStartDateTime:       toUtcISO(startDate),
+        examEndDateTime:         toUtcISO(endDate),
         isCredentialBased:       opts.credAccess,
         accessCode:              accessCode.trim(),
         maxAttempts:             toInt(attempts, 1),
@@ -788,7 +791,8 @@ const CreateLink: React.FC = () => {
             <BulkUploadModal isOpen={modalBulkUpload} onClose={() => setModalBulkUpload(false)} onUpload={handleBulkUpload} />
 
             {/* QR Modal */}
-            <div className={`modal-overlay ${modalQR ? 'open' : ''}`} onClick={e => { if (e.target === e.currentTarget) setModalQR(false); }}>
+            {modalQR && generatedLink && (
+            <div className="modal-overlay open" onClick={e => { if (e.target === e.currentTarget) setModalQR(false); }}>
                 <div className="modal">
                     <div className="modal-header"><div className="modal-title">QR Code</div><div className="modal-close" onClick={() => setModalQR(false)}>✕</div></div>
                     <div className="modal-body">
@@ -798,10 +802,11 @@ const CreateLink: React.FC = () => {
                     </div>
                     <div className="modal-footer">
                         <button className="btn btn-secondary btn-sm" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { showToast('Downloading QR…', 'info'); setModalQR(false); }}>⬇ Download PNG</button>
-                        <button className="btn btn-primary btn-sm"   style={{ flex: 1, justifyContent: 'center' }} onClick={() => { navigator.clipboard.writeText(generatedLink || ''); showToast('Link copied!'); setModalQR(false); }}>📋 Copy Link</button>
+                        <button className="btn btn-primary btn-sm"   style={{ flex: 1, justifyContent: 'center' }} onClick={() => { navigator.clipboard.writeText(generatedLink); showToast('Link copied!'); setModalQR(false); }}>📋 Copy Link</button>
                     </div>
                 </div>
             </div>
+            )}
 
             <div className={`toast ${toast.show ? 'show' : ''}`} style={{ background: toast.type === 'error' ? '#c0392b' : toast.type === 'delete' ? '#444' : toast.type === 'info' ? '#1a2540' : '#0d1117' }}>
                 <span>{toast.type === 'error' ? '❌' : toast.type === 'info' ? 'ℹ️' : toast.type === 'delete' ? '🗑️' : '✅'}</span>

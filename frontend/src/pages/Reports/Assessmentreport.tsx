@@ -74,11 +74,14 @@ interface CandidateSession {
     fullscreenExitCount:    number;
     devToolsCount:          number;
     copyPasteCount:         number;
+    faceAnomalyCount?:      number;
     totalSnapshots:         number;
     flaggedSnapshots:       number;
     reviewStatus:           string;
     recordingUrl:           string | null;
     screenRecordingEnabled: boolean;
+    sessionStartedAt?:      string | null;
+    sessionEndedAt?:        string | null;
     snapshotItems:          SnapshotItem[];
     negativeDeduction?:     number;
     passingMarks?:          number;
@@ -95,6 +98,25 @@ const fmtDate = (s: string) =>
     !s ? '—' : new Date(s).toLocaleDateString('en-US', {
         month: 'short', day: 'numeric', year: 'numeric',
     });
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5022/api';
+const API_ORIGIN = (() => {
+    try {
+        return new URL(API_BASE_URL).origin;
+    } catch {
+        return window.location.origin;
+    }
+})();
+
+const normaliseMediaUrl = (raw?: string | null): string => {
+    if (!raw) return '';
+    const cleaned = String(raw).trim().replace(/^['"]+|['"]+$/g, '');
+    if (!cleaned) return '';
+    if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) return cleaned;
+    if (cleaned.startsWith('/')) return `${API_ORIGIN}${cleaned}`;
+    if (cleaned.startsWith('uploads/')) return `${API_ORIGIN}/${cleaned}`;
+    return cleaned;
+};
 
 const riskColor = (level: string) => {
     switch ((level ?? '').toLowerCase()) {
@@ -227,13 +249,40 @@ const AssessmentReport: React.FC = () => {
             const list: any[] = Array.isArray(res.data) ? res.data : (res.data?.items ?? res.data?.data ?? []);
             if (list.length === 0) { showToast('No snapshot images found', 'info'); return; }
             const rawItems = list.map((item: any) => ({
-                originalUrl: item.url ?? item.imageUrl ?? item.snapshotUrl ?? item.filePath ?? item.path ?? item.src ?? '',
-                capturedAt:  item.capturedAt ?? item.takenAt ?? item.timestamp ?? '',
-                isFlagged:   item.isFlagged ?? item.flagged ?? false,
+                originalUrl: normaliseMediaUrl(item.url ?? item.imageUrl ?? item.ImageUrl ?? item.snapshotUrl ?? item.filePath ?? item.path ?? item.src ?? ''),
+                capturedAt:  item.capturedAt ?? item.CapturedAt ?? item.takenAt ?? item.timestamp ?? '',
+                isFlagged:   item.isAutoFlagged ?? item.IsAutoFlagged ?? item.isFlagged ?? item.flagged ?? false,
             })).filter((i: any) => i.originalUrl);
             loadSnapshotBlobs(rawItems);
         } catch { showToast('Could not load snapshot images', 'error'); }
     }, [loadSnapshotBlobs]);
+
+    const loadProctoringSession = useCallback(async (attemptId: string) => {
+        try {
+            const res = await proctoringApi.getSessionByAttempt(attemptId);
+            const d: any = res.data ?? {};
+            return {
+                proctoringSessionId: d.sessionId ?? d.SessionId ?? '',
+                riskScore: d.riskScore ?? d.RiskScore ?? 0,
+                riskLevel: d.riskLevel ?? d.RiskLevel ?? '',
+                totalViolations: d.totalViolations ?? d.TotalViolations ?? 0,
+                tabSwitchCount: d.tabSwitchCount ?? d.TabSwitchCount ?? 0,
+                fullscreenExitCount: d.fullscreenExitCount ?? d.FullscreenExitCount ?? 0,
+                devToolsCount: d.devToolsCount ?? d.DevToolsCount ?? 0,
+                copyPasteCount: d.copyPasteCount ?? d.CopyPasteCount ?? 0,
+                faceAnomalyCount: d.faceAnomalyCount ?? d.FaceAnomalyCount ?? 0,
+                totalSnapshots: d.totalSnapshots ?? d.TotalSnapshots ?? 0,
+                flaggedSnapshots: d.flaggedSnapshots ?? d.FlaggedSnapshots ?? 0,
+                reviewStatus: d.reviewStatus ?? d.ReviewStatus ?? '',
+                recordingUrl: normaliseMediaUrl(d.recordingUrl ?? d.RecordingUrl ?? null) || null,
+                screenRecordingEnabled: d.screenRecordingEnabled ?? d.ScreenRecordingEnabled ?? false,
+                sessionStartedAt: d.startedAt ?? d.StartedAt ?? null,
+                sessionEndedAt: d.endedAt ?? d.EndedAt ?? null,
+            };
+        } catch {
+            return null;
+        }
+    }, []);
 
     // ── Load question review ──────────────────────────────────────────────────
     // Calls GET /Assessments/attempt/{attemptId}/question-review
@@ -362,7 +411,15 @@ const AssessmentReport: React.FC = () => {
         setOpenSections({ score: true, performance: true, questions: false, proctoring: false, timing: false });
 
         try {
-            const res = await assessmentsApi.getAttemptFullReport(s.assessmentAttemptId);
+            const [reportResult, proctoringSummary] = await Promise.allSettled([
+                assessmentsApi.getAttemptFullReport(s.assessmentAttemptId),
+                loadProctoringSession(s.assessmentAttemptId),
+            ]);
+
+            const res = reportResult.status === 'fulfilled' ? reportResult.value : null;
+            const sessionSummary = proctoringSummary.status === 'fulfilled' ? proctoringSummary.value : null;
+            const fallbackSessionId = sessionSummary?.proctoringSessionId ?? s.proctoringSessionId ?? '';
+
             if (res?.data) {
                 const d               = res.data;
                 const totalM          = d.totalMarks    ?? (totalQuestions * marksPerQuestion);
@@ -383,7 +440,7 @@ const AssessmentReport: React.FC = () => {
                     passed = obtained >= threshold;
                 }
 
-                const sessionId = d.proctoringSessionId ?? '';
+                const sessionId = d.proctoringSessionId ?? fallbackSessionId;
 
                 setSelectedSession(prev => prev ? {
                     ...prev,
@@ -393,23 +450,49 @@ const AssessmentReport: React.FC = () => {
                     correct, wrong, unattempted,
                     percentage: pct, passed, status: normStatus,
                     endedAt:             d.endedAt               ?? prev.endedAt,
-                    riskScore:           d.riskScore             ?? 0,
-                    riskLevel:           d.riskLevel             ?? '',
-                    totalViolations:     d.totalViolations       ?? 0,
-                    tabSwitchCount:      d.tabSwitchCount        ?? 0,
-                    fullscreenExitCount: d.fullscreenExitCount   ?? 0,
-                    devToolsCount:       d.devToolsCount         ?? 0,
-                    copyPasteCount:      d.copyPasteCount        ?? 0,
-                    totalSnapshots:      d.totalSnapshots        ?? 0,
-                    flaggedSnapshots:    d.flaggedSnapshots      ?? 0,
-                    reviewStatus:        d.reviewStatus          ?? '',
-                    recordingUrl:        d.recordingUrl          ?? null,
-                    screenRecordingEnabled: d.screenRecordingEnabled ?? false,
+                    riskScore:           d.riskScore             ?? sessionSummary?.riskScore ?? 0,
+                    riskLevel:           d.riskLevel             ?? sessionSummary?.riskLevel ?? '',
+                    totalViolations:     d.totalViolations       ?? sessionSummary?.totalViolations ?? 0,
+                    tabSwitchCount:      d.tabSwitchCount        ?? sessionSummary?.tabSwitchCount ?? 0,
+                    fullscreenExitCount: d.fullscreenExitCount   ?? sessionSummary?.fullscreenExitCount ?? 0,
+                    devToolsCount:       d.devToolsCount         ?? sessionSummary?.devToolsCount ?? 0,
+                    copyPasteCount:      d.copyPasteCount        ?? sessionSummary?.copyPasteCount ?? 0,
+                    faceAnomalyCount:    d.faceAnomalyCount      ?? sessionSummary?.faceAnomalyCount ?? 0,
+                    totalSnapshots:      d.totalSnapshots        ?? sessionSummary?.totalSnapshots ?? 0,
+                    flaggedSnapshots:    d.flaggedSnapshots      ?? sessionSummary?.flaggedSnapshots ?? 0,
+                    reviewStatus:        d.reviewStatus          ?? sessionSummary?.reviewStatus ?? '',
+                    recordingUrl:        normaliseMediaUrl(d.recordingUrl ?? sessionSummary?.recordingUrl ?? null) || null,
+                    screenRecordingEnabled: d.screenRecordingEnabled ?? sessionSummary?.screenRecordingEnabled ?? false,
+                    sessionStartedAt:    d.sessionStartedAt      ?? d.SessionStartedAt ?? sessionSummary?.sessionStartedAt ?? null,
+                    sessionEndedAt:      d.sessionEndedAt        ?? d.SessionEndedAt ?? sessionSummary?.sessionEndedAt ?? null,
                     negativeDeduction:   d.negativeDeduction ?? d.NegativeDeduction ?? (wrong * spNegativeMarks),
                     snapshotItems: [],
                 } : prev);
+            } else if (sessionSummary) {
+                setSelectedSession(prev => prev ? {
+                    ...prev,
+                    proctoringSessionId: fallbackSessionId,
+                    riskScore: sessionSummary.riskScore ?? 0,
+                    riskLevel: sessionSummary.riskLevel ?? '',
+                    totalViolations: sessionSummary.totalViolations ?? 0,
+                    tabSwitchCount: sessionSummary.tabSwitchCount ?? 0,
+                    fullscreenExitCount: sessionSummary.fullscreenExitCount ?? 0,
+                    devToolsCount: sessionSummary.devToolsCount ?? 0,
+                    copyPasteCount: sessionSummary.copyPasteCount ?? 0,
+                    faceAnomalyCount: sessionSummary.faceAnomalyCount ?? 0,
+                    totalSnapshots: sessionSummary.totalSnapshots ?? 0,
+                    flaggedSnapshots: sessionSummary.flaggedSnapshots ?? 0,
+                    reviewStatus: sessionSummary.reviewStatus ?? '',
+                    recordingUrl: normaliseMediaUrl(sessionSummary.recordingUrl ?? null) || null,
+                    screenRecordingEnabled: sessionSummary.screenRecordingEnabled ?? false,
+                    sessionStartedAt: sessionSummary.sessionStartedAt ?? null,
+                    sessionEndedAt: sessionSummary.sessionEndedAt ?? null,
+                    snapshotItems: [],
+                } : prev);
+            }
 
-                if ((d.totalSnapshots ?? 0) > 0 && sessionId) loadSnapshotsForSession(sessionId);
+            if (fallbackSessionId) {
+                loadSnapshotsForSession(fallbackSessionId);
             }
         } catch { /* show basic info */ }
         finally { setLoadingReport(false); }

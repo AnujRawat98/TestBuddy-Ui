@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { BarChart3, Copy, Eye, Link2, Mail, Plus, QrCode, Search } from 'lucide-react';
 import { assessmentsApi, assessmentLinksApi } from '../../services/api';
 import './Assessments.css';
 
@@ -122,6 +123,8 @@ const Assessments: React.FC = () => {
 
     // ── Navigate to CreateLink ───────────────────────────────────────────────
     const handleCreateLink = (a: any) => {
+        setViewModal(prev => ({ ...prev, open: false }));
+        setQrModal(prev => ({ ...prev, open: false }));
         navigate('/links/create', {
             state: {
                 prefill: {
@@ -177,7 +180,10 @@ const Assessments: React.FC = () => {
                     <div className="page-sub">Manage all your assessments and generate exam links.</div>
                 </div>
                 <div className="header-actions">
-                    <button className="btn btn-primary btn-sm" onClick={() => navigate('/assessments/create')}>+ New Assessment</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => navigate('/assessments/create')}>
+                        <Plus size={16} />
+                        New Assessment
+                    </button>
                 </div>
             </div>
 
@@ -198,7 +204,7 @@ const Assessments: React.FC = () => {
             {/* ── Toolbar ── */}
             <div className="toolbar">
                 <div className="search-wrap">
-                    <span className="search-icon">🔍</span>
+                    <span className="search-icon"><Search size={15} /></span>
                     <input className="search-input" type="text" placeholder="Search assessments…"
                         value={search} onChange={e => setSearch(e.target.value)} />
                     {search && <button className="search-clear" onClick={() => setSearch('')}>✕</button>}
@@ -228,7 +234,8 @@ const Assessments: React.FC = () => {
                         <div className="empty-sub">{search ? 'Try a different search term.' : 'Create your first assessment to get started.'}</div>
                         {!search && (
                             <button className="btn btn-primary btn-sm" style={{ marginTop: '16px' }} onClick={() => navigate('/assessments/create')}>
-                                + Create Assessment
+                                <Plus size={16} />
+                                Create Assessment
                             </button>
                         )}
                     </div>
@@ -314,23 +321,32 @@ const Assessments: React.FC = () => {
                                                 <button
                                                     className="act-btn act-link"
                                                     title="Create Exam Link"
-                                                    onClick={() => handleCreateLink(a)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleCreateLink(a);
+                                                    }}
                                                 >
-                                                    🔗
+                                                    <Link2 size={15} />
                                                 </button>
                                                 <button
                                                     className="act-btn act-view"
                                                     title="View Links"
-                                                    onClick={() => handleViewLinks(a)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleViewLinks(a);
+                                                    }}
                                                 >
-                                                    👁
+                                                    <Eye size={15} />
                                                 </button>
                                                 <button
                                                     className="act-btn act-report"
                                                     title="View Report"
-                                                    onClick={() => handleViewReport(a)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleViewReport(a);
+                                                    }}
                                                 >
-                                                    📊
+                                                    <BarChart3 size={15} />
                                                 </button>
                                             </div>
                                         </td>
@@ -348,7 +364,7 @@ const Assessments: React.FC = () => {
                     <div className="modal" style={{ maxWidth: '820px', width: '96vw', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
                         <div className="modal-header">
                             <div>
-                                <div className="modal-title">🔗 Exam Links</div>
+                                <div className="modal-title">Exam Links</div>
                                 <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '3px' }}>{viewModal.assessmentTitle}</div>
                             </div>
                             <button className="modal-close" onClick={() => setViewModal(p => ({ ...p, open: false }))}>✕</button>
@@ -359,14 +375,17 @@ const Assessments: React.FC = () => {
                                 <div style={{ textAlign: 'center', padding: '48px', color: 'var(--muted)' }}>⏳ Loading links…</div>
                             ) : viewModal.links.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-                                    <div style={{ fontSize: '36px', marginBottom: '12px' }}>🔗</div>
+                                    <div className="modal-empty-icon"><Link2 size={30} /></div>
                                     <div style={{ fontWeight: 600, fontSize: '15px', marginBottom: '6px', color: 'var(--ink)' }}>No links yet</div>
                                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '20px' }}>Create a link to share this assessment with students.</div>
                                     <button className="btn btn-primary btn-sm" onClick={() => {
                                         setViewModal(p => ({ ...p, open: false }));
                                         const found = assessments.find(a => getVal(a, 'id', 'Id') === viewModal.assessmentId);
                                         if (found) handleCreateLink(found);
-                                    }}>🔗 Create Exam Link</button>
+                                    }}>
+                                        <Link2 size={16} />
+                                        Create Exam Link
+                                    </button>
                                 </div>
                             ) : (
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -392,7 +411,7 @@ const Assessments: React.FC = () => {
                                                     <td style={{ padding: '13px 16px', color: 'var(--muted)', fontSize: '12px', whiteSpace: 'nowrap' }}>{fmtDT(lnk.examEndDateTime)}</td>
                                                     <td style={{ padding: '13px 16px' }}>
                                                         <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: lnk.isCredentialBased ? 'rgba(139,92,246,.12)' : 'rgba(0,87,255,.1)', color: lnk.isCredentialBased ? '#8b5cf6' : 'var(--accent2)' }}>
-                                                            {lnk.isCredentialBased ? '🔐 Credential' : '🔓 Direct'}
+                                                            {lnk.isCredentialBased ? 'Credential' : 'Direct'}
                                                         </span>
                                                     </td>
                                                     <td style={{ padding: '13px 16px' }}>
@@ -403,15 +422,15 @@ const Assessments: React.FC = () => {
                                                     </td>
                                                     <td style={{ padding: '13px 16px' }}>
                                                         <div style={{ display: 'flex', gap: '6px' }}>
-                                                            <button className="share-btn" title="Copy link" onClick={() => copyLink(lnk)}>📋</button>
+                                                            <button className="share-btn" title="Copy link" onClick={() => copyLink(lnk)}><Copy size={14} /></button>
                                                             <button className="share-btn share-wa" title="WhatsApp" onClick={() => shareWA(lnk)}>
                                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                                                                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                                                                     <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.555 4.122 1.528 5.855L0 24l6.326-1.508C8.02 23.459 9.972 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.907 0-3.682-.527-5.192-1.438l-.37-.22-3.753.894.939-3.652-.243-.385C2.618 15.452 2.182 13.77 2.182 12 2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
                                                                 </svg>
                                                             </button>
-                                                            <button className="share-btn share-email" title="Email" onClick={() => shareEmail(lnk)}>✉️</button>
-                                                            <button className="share-btn share-qr" title="QR Code" onClick={() => setQrModal({ open: true, url: examUrl(lnk.id), name: lnk.name || viewModal.assessmentTitle })}>⬛</button>
+                                                            <button className="share-btn share-email" title="Email" onClick={() => shareEmail(lnk)}><Mail size={14} /></button>
+                                                            <button className="share-btn share-qr" title="QR Code" onClick={() => setQrModal({ open: true, url: examUrl(lnk.id), name: lnk.name || viewModal.assessmentTitle })}><QrCode size={14} /></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -428,7 +447,10 @@ const Assessments: React.FC = () => {
                                 setViewModal(p => ({ ...p, open: false }));
                                 const found = assessments.find(a => getVal(a, 'id', 'Id') === viewModal.assessmentId);
                                 if (found) handleCreateLink(found);
-                            }}>🔗 Create New Link</button>
+                            }}>
+                                <Link2 size={16} />
+                                Create New Link
+                            </button>
                         </div>
                     </div>
                 </ModalPortal>
@@ -452,7 +474,10 @@ const Assessments: React.FC = () => {
                         </div>
                         <div className="modal-footer">
                             <button className="btn btn-secondary btn-sm" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setQrModal(p => ({ ...p, open: false }))}>Close</button>
-                            <button className="btn btn-primary btn-sm"   style={{ flex: 1, justifyContent: 'center' }} onClick={() => { navigator.clipboard.writeText(qrModal.url); showToast('Link copied!'); }}>📋 Copy</button>
+                            <button className="btn btn-primary btn-sm"   style={{ flex: 1, justifyContent: 'center' }} onClick={() => { navigator.clipboard.writeText(qrModal.url); showToast('Link copied!'); }}>
+                                <Copy size={15} />
+                                Copy
+                            </button>
                         </div>
                     </div>
                 </ModalPortal>

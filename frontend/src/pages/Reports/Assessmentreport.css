@@ -505,3 +505,55 @@
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+.rp-root {
+    background:
+        radial-gradient(circle at top left, rgba(5, 150, 105, 0.05), transparent 26%),
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.06), transparent 28%),
+        linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
+}
+
+.rp-topbar,
+.rp-panel,
+.rp-section,
+.rp-modal {
+    box-shadow: var(--shadow-sm);
+    border-radius: 18px;
+}
+
+.rp-topbar,
+.rp-panel,
+.rp-section,
+.rp-report-header,
+.rp-modal {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(226, 232, 240, 0.92);
+}
+
+.rp-toggle-btn.active,
+.rp-btn-download {
+    background: var(--gradient);
+    color: #fff;
+}
+
+.rp-panel-count,
+.rp-section-badge,
+.rp-meta-pill,
+.rp-report-avatar,
+.rp-candidate-avatar {
+    background: rgba(14, 165, 233, 0.1);
+    color: #0284c7;
+}
+
+.rp-link-item.selected,
+.rp-candidate-item.selected,
+.rp-qr-topic-item.active {
+    background: rgba(14, 165, 233, 0.08);
+    border-color: rgba(14, 165, 233, 0.3);
+}
+
+.rp-action-btn,
+.rp-share-option,
+.rp-back-btn {
+    border-radius: 12px;
+}

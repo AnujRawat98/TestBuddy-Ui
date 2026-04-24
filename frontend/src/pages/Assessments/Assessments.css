@@ -1,391 +1,311 @@
-/* ─── STATS ROW ────────────────────────────────────────── */
 .assessments-container .stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-    animation: fadeUp .35s ease both .02s;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .assessments-container .stat-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
+  padding: 20px 22px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  box-shadow: var(--shadow-sm);
 }
 
 .assessments-container .stat-val {
-    font-family: var(--font-display);
-    font-size: 32px;
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: -1px;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
 }
 
 .assessments-container .stat-label {
-    font-size: 13px;
-    color: var(--muted);
-    font-weight: 500;
-    margin-top: 4px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-/* ─── TOOLBAR ──────────────────────────────────────────── */
 .assessments-container .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 20px;
-    animation: fadeUp .35s ease both .04s;
-    flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .assessments-container .search-wrap {
-    position: relative;
-    flex: 1;
-    min-width: 200px;
+  position: relative;
+  flex: 1;
+  min-width: 240px;
 }
 
 .assessments-container .search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 14px;
-    pointer-events: none;
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  display: inline-flex;
 }
 
 .assessments-container .search-input {
-    width: 100%;
-    padding: 10px 36px 10px 36px;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    font-size: 14px;
-    font-family: var(--font-body);
-    background: var(--card);
-    color: var(--ink);
-    outline: none;
-    transition: border-color .2s, box-shadow .2s;
-}
-
-.assessments-container .search-input:focus {
-    border-color: var(--accent2);
-    box-shadow: 0 0 0 3px rgba(0, 87, 255, .07);
+  padding-left: 42px;
+  padding-right: 42px;
 }
 
 .assessments-container .search-clear {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--muted);
-    font-size: 13px;
-    padding: 2px 5px;
-    border-radius: 4px;
-    transition: color .15s;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
 }
 
-.assessments-container .search-clear:hover { color: var(--ink); }
-
 .assessments-container .filter-tabs {
-    display: flex;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 3px;
-    gap: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.94);
+  border: 1px solid rgba(226, 232, 240, 0.94);
 }
 
 .assessments-container .filter-tab {
-    padding: 7px 16px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: var(--font-body);
-    color: var(--muted);
-    cursor: pointer;
-    transition: all .18s;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .assessments-container .filter-tab.active {
-    background: var(--card);
-    color: var(--ink);
-    box-shadow: 0 1px 4px rgba(0,0,0,.08);
-    font-weight: 600;
+  background: var(--gradient);
+  color: #fff;
 }
 
 .assessments-container .result-count {
-    font-size: 13px;
-    color: var(--muted);
-    white-space: nowrap;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
-/* ─── TABLE CARD ───────────────────────────────────────── */
 .assessments-container .table-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    animation: fadeUp .4s ease both .06s;
+  overflow: hidden;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  box-shadow: var(--shadow-sm);
 }
 
 .assessments-container .assessments-table {
-    width: 100%;
-    border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.assessments-container .assessments-table th,
+.assessments-container .assessments-table td {
+  padding: 15px 18px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.88);
 }
 
 .assessments-container .assessments-table th {
-    background: #fafaf7;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .7px;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding: 12px 20px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-}
-
-.assessments-container .assessments-table td {
-    padding: 14px 20px;
-    border-bottom: 1px solid #f0ede8;
-    vertical-align: middle;
-    font-size: 14px;
-    animation: fadeUp .3s ease both;
-}
-
-.assessments-container .assessments-table tr:last-child td {
-    border-bottom: none;
-}
-
-.assessments-container .assessments-table tbody tr {
-    transition: background .14s;
+  background: rgba(248, 250, 252, 0.92);
 }
 
 .assessments-container .assessments-table tbody tr:hover td {
-    background: #fafaf7;
+  background: rgba(248, 250, 252, 0.7);
 }
 
-/* ─── TABLE CELL STYLES ────────────────────────────────── */
 .assessments-container .assessment-name {
-    font-weight: 600;
-    color: var(--ink);
-    font-size: 14px;
-    max-width: 280px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-weight: 700;
+  color: var(--ink);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .assessments-container .assessment-id {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 2px;
-    font-family: monospace;
+  margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  color: var(--muted);
 }
 
 .assessments-container .pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 10px;
-    border-radius: 100px;
-    font-size: 12px;
-    font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 .assessments-container .pill-blue {
-    background: rgba(0, 87, 255, .1);
-    color: var(--accent2);
+  background: rgba(14, 165, 233, 0.1);
+  color: #0284c7;
 }
 
 .assessments-container .pill-purple {
-    background: rgba(139, 92, 246, .1);
-    color: var(--purple);
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
 }
 
 .assessments-container .pill-red {
-    background: rgba(224, 59, 59, .1);
-    color: var(--red);
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
 }
 
 .assessments-container .marks-val {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 15px;
-    color: var(--ink);
+  font-weight: 800;
+  color: var(--ink);
 }
 
 .assessments-container .marks-sub {
-    font-size: 12px;
-    color: var(--muted);
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
-/* ─── STATUS BADGE ─────────────────────────────────────── */
 .assessments-container .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 100px;
-    font-size: 12px;
-    font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .assessments-container .badge-active {
-    background: rgba(0, 194, 113, .12);
-    color: #008a50;
+  background: rgba(5, 150, 105, 0.08);
+  color: #047857;
 }
 
 .assessments-container .badge-draft {
-    background: rgba(138, 138, 138, .1);
-    color: #666;
+  background: rgba(148, 163, 184, 0.16);
+  color: #64748b;
 }
 
 .assessments-container .bdot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
 }
 
-/* ─── ACTION BUTTONS ───────────────────────────────────── */
 .assessments-container .action-btns {
-    display: flex;
-    gap: 6px;
+  display: flex;
+  gap: 8px;
 }
 
-.assessments-container .act-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 1.5px solid var(--border);
-    background: var(--card);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all .15s;
+.assessments-container .act-btn,
+.share-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(248, 250, 252, 0.92);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.assessments-container .act-btn:hover {
-    background: var(--surface);
-    border-color: #bbb;
-    transform: translateY(-1px);
+.assessments-container .act-btn:hover,
+.share-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(14, 165, 233, 0.24);
+  box-shadow: var(--shadow-sm);
 }
 
-.assessments-container .act-link:hover {
-    background: rgba(0, 87, 255, .07);
-    border-color: rgba(0, 87, 255, .3);
-}
-
-.assessments-container .act-copy:hover {
-    background: rgba(139, 92, 246, .07);
-    border-color: rgba(139, 92, 246, .3);
-}
-
-/* ─── EMPTY STATE ──────────────────────────────────────── */
 .assessments-container .empty-state {
-    padding: 64px 24px;
-    text-align: center;
+  padding: 68px 24px;
+  text-align: center;
 }
 
-.assessments-container .empty-icon {
-    font-size: 40px;
-    margin-bottom: 16px;
+.assessments-container .empty-icon,
+.modal-empty-icon {
+  margin: 0 auto 14px;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-soft);
+  color: #0284c7;
 }
 
 .assessments-container .empty-title {
-    font-family: var(--font-display);
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--ink);
-    margin-bottom: 8px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 8px;
 }
 
 .assessments-container .empty-sub {
-    font-size: 14px;
-    color: var(--muted);
+  color: var(--muted);
 }
 
-/* ─── ANIMATIONS ───────────────────────────────────────── */
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0);    }
-}
-
-/* ─── RESPONSIVE ───────────────────────────────────────── */
-@media (max-width: 768px) {
-    .assessments-container .stats-row {
-        grid-template-columns: 1fr 1fr;
-    }
-    .assessments-container .toolbar {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .assessments-container .assessments-table th:nth-child(4),
-    .assessments-container .assessments-table td:nth-child(4),
-    .assessments-container .assessments-table th:nth-child(5),
-    .assessments-container .assessments-table td:nth-child(5) {
-        display: none;
-    }
-}
-/* ── Status toggle button ─────────────────────────────────────────────────── */
 .assessments-container .status-toggle {
-    cursor: pointer;
-    border: none;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 100px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    transition: opacity .15s, transform .15s;
-    font-family: inherit;
+  cursor: pointer;
+  border: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
+
 .assessments-container .status-toggle:hover:not(:disabled) {
-    opacity: 0.78;
-    transform: scale(1.04);
+  transform: translateY(-1px);
 }
+
 .assessments-container .status-toggle.toggling {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* ── View icon button ─────────────────────────────────────────────────────── */
-.assessments-container .act-view {
-    font-size: 15px;
+.share-btn.share-wa {
+  color: #25d366;
 }
 
-/* ── Share buttons inside modal ───────────────────────────────────────────── */
-.share-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 7px;
-    border: 1.5px solid var(--border);
-    background: var(--card);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    flex-shrink: 0;
-    transition: transform .15s, background .15s;
-    color: var(--ink);
+.share-btn.share-email {
+  color: #0284c7;
 }
-.share-btn:hover          { transform: scale(1.1); }
-.share-btn.share-wa       { border-color: rgba(37,211,102,.35); color: #25d366; }
-.share-btn.share-wa:hover { background: rgba(37,211,102,.08); }
-.share-btn.share-email:hover { background: rgba(0,87,255,.06); border-color: rgba(0,87,255,.3); }
-.share-btn.share-qr       { font-size: 12px; }
-.share-btn.share-qr:hover { background: rgba(0,0,0,.05); }
 
+.share-btn.share-qr {
+  color: #0f172a;
+}
+
+@media (max-width: 768px) {
+  .assessments-container .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .assessments-container .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .assessments-container .filter-tabs {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .assessments-container .filter-tab {
+    flex: 1;
+  }
+}

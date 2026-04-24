@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import GoogleAuthButton from '../../components/GoogleAuthButton';
 import { saveAuthSession } from '../../utils/auth';
+import MazeLogo from '../../components/MazeLogo';
 
 // ── SWAP THIS LINE TO CHANGE THEME ──────────────────────────────────────────
 // Theme 1: Midnight Blue + Cyan    → './Theme1_MidnightCyan.css'
@@ -81,8 +82,8 @@ const AdminLogin: React.FC = () => {
 
                     {/* Brand */}
                     <div className="brand">
-                        <div className="brand-icon">✦</div>
-                        Test<span>Buddy</span>
+                        <div className="brand-icon"><MazeLogo className="brand-logo-svg" /></div>
+                        Maze<span>AI</span>
                     </div>
 
                     {/* Headline */}
@@ -168,7 +169,7 @@ const AdminLogin: React.FC = () => {
                 </div>
 
                 <div className="auth-switch-banner">
-                    New to TestBuddy? <Link to="/signup">Create your company workspace</Link>
+                    New to MazeAI? <Link to="/signup">Create your company workspace</Link>
                 </div>
                 <div className="auth-switch-banner">
                     Platform superadmins can sign in here and will be routed to the organisation billing console.
@@ -184,7 +185,7 @@ const AdminLogin: React.FC = () => {
                         <input
                             type="email"
                             id="email"
-                            placeholder="admin@testbuddy.app"
+                            placeholder="admin@mazeai.app"
                             autoComplete="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}

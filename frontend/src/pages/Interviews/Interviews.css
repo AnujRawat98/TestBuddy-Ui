@@ -2026,3 +2026,45 @@ input[type="checkbox"]:checked {
     to { transform: rotate(360deg); }
 }
 
+.interview-page,
+.assessments-container {
+    background: transparent;
+}
+
+.interview-stat-card,
+.interview-card,
+.table-card,
+.empty-state,
+.modal,
+.input-section,
+.conversation-container {
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(226, 232, 240, 0.92);
+    box-shadow: var(--shadow-sm);
+}
+
+.interview-stat-icon,
+.interview-link-item,
+.current-question {
+    background: var(--gradient-soft);
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-success {
+    background: var(--gradient);
+    color: #fff;
+    box-shadow: 0 18px 28px rgba(14, 165, 233, 0.18);
+}
+
+.btn-outline {
+    background: rgba(248, 250, 252, 0.92);
+}
+
+.interview-link-item:hover,
+.assessments-table tbody tr:hover,
+.interview-report-table tbody tr:hover {
+    background: rgba(248, 250, 252, 0.72);
+}
+

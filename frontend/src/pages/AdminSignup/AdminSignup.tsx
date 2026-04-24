@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import GoogleAuthButton from '../../components/GoogleAuthButton';
 import { saveAuthSession } from '../../utils/auth';
+import MazeLogo from '../../components/MazeLogo';
 import '../AdminLogin/AdminLogin.css';
 import './AdminSignup.css';
 
@@ -120,8 +121,8 @@ const AdminSignup: React.FC = () => {
 
                 <div className="left-inner">
                     <div className="brand">
-                        <div className="brand-icon">*</div>
-                        Test<span>Buddy</span>
+                        <div className="brand-icon"><MazeLogo className="brand-logo-svg" /></div>
+                        Maze<span>AI</span>
                     </div>
 
                     <div>

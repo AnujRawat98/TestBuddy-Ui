@@ -1,168 +1,295 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
+import {
+  Bell,
+  BriefcaseBusiness,
+  Building2,
+  ChevronDown,
+  CreditCard,
+  FileText,
+  FolderKanban,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Search,
+  Settings,
+  Sparkles,
+  UsersRound,
+  WalletCards,
+  X,
+} from 'lucide-react';
 import './AdminLayout.css';
 import { clearAuthSession, isSuperAdminSession } from '../utils/auth';
+import MazeLogo from './MazeLogo';
+
+type NavEntry = {
+  label: string;
+  to: string;
+  icon: React.ElementType;
+  end?: boolean;
+};
+
+type NavGroup = {
+  label: string;
+  icon: React.ElementType;
+  isOpen: boolean;
+  onToggle: () => void;
+  isActive: boolean;
+  children: NavEntry[];
+};
 
 const AdminLayout: React.FC = () => {
-    const [currentDate, setCurrentDate] = useState('');
-    const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
-    const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
-    const [isInterviewOpen, setIsInterviewOpen] = useState(false);
-    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-    const location = useLocation();
+  const [currentDate, setCurrentDate] = useState('');
+  const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
+  const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
+  const [isInterviewOpen, setIsInterviewOpen] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const location = useLocation();
 
-    useEffect(() => {
-        setIsSuperAdmin(isSuperAdminSession());
-        const now = new Date();
-        setCurrentDate(
-            now.toLocaleDateString('en-US', {
-                weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
-            })
-        );
-    }, []);
-
-    useEffect(() => {
-        if (location.pathname.includes('/topics') ||
-            location.pathname.includes('/questions') ||
-            location.pathname.includes('/ai-generator')) {
-            setIsQuestionnaireOpen(true);
-        }
-        if (location.pathname.includes('/assessments') ||
-            location.pathname.includes('/links')) {
-            setIsAssessmentOpen(true);
-        }
-        if (location.pathname.includes('/interviews') ||
-            location.pathname.includes('/ijp')) {
-            setIsInterviewOpen(true);
-        }
-    }, [location.pathname]);
-
-    return (
-        <>
-            <aside className="sidebar" id="sidebar">
-                <div className="sidebar-logo">
-                    Test<span>Buddy</span>
-                    <div className="logo-dot" title="System online"></div>
-                </div>
-
-                <div className="sidebar-section">Main Menu</div>
-
-                {isSuperAdmin ? (
-                    <NavLink to="/platform" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                        <span className="nav-icon">PL</span>
-                        <span className="nav-label">Platform</span>
-                    </NavLink>
-                ) : (
-                    <>
-                        <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                            <span className="nav-icon">DB</span>
-                            <span className="nav-label">Dashboard</span>
-                        </NavLink>
-
-                        <a className={`nav-item ${isQuestionnaireOpen ? 'active' : ''}`} href="#"
-                            onClick={e => { e.preventDefault(); setIsQuestionnaireOpen(o => !o); }}>
-                            <span className="nav-icon">QB</span>
-                            <span className="nav-label">Questionnaire</span>
-                            <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isQuestionnaireOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>v</span>
-                        </a>
-                        <div className={`nav-sub ${isQuestionnaireOpen ? 'open' : ''}`}>
-                            <NavLink to="/topics" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                                <div className="nav-sub-dot"></div>Topics
-                            </NavLink>
-                            <NavLink to="/questions/add" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                                <div className="nav-sub-dot"></div>Questions
-                            </NavLink>
-                            <NavLink to="/ai-generator" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                                <div className="nav-sub-dot"></div>AI Generator
-                            </NavLink>
-                        </div>
-
-                        <a className={`nav-item ${isAssessmentOpen ? 'active' : ''}`} href="#"
-                            onClick={e => { e.preventDefault(); setIsAssessmentOpen(o => !o); }}>
-                            <span className="nav-icon">AS</span>
-                            <span className="nav-label">Assessments</span>
-                            <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isAssessmentOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>v</span>
-                        </a>
-                        <div className={`nav-sub ${isAssessmentOpen ? 'open' : ''}`}>
-                            <NavLink to="/assessments" end className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                                <div className="nav-sub-dot"></div>Assessment List
-                            </NavLink>
-                            <NavLink to="/assessments/create" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                                <div className="nav-sub-dot"></div>Create Assessment
-                            </NavLink>
-                        </div>
-
-                        <a className={`nav-item ${isInterviewOpen ? 'active' : ''}`} href="#"
-                            onClick={e => { e.preventDefault(); setIsInterviewOpen(o => !o); }}>
-                            <span className="nav-icon">IV</span>
-                            <span className="nav-label">Interviews</span>
-                            <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'rgba(255,255,255,.3)', transform: isInterviewOpen ? 'rotate(180deg)' : '', transition: 'transform .2s' }}>v</span>
-                        </a>
-                        <div className={`nav-sub ${isInterviewOpen ? 'open' : ''}`}>
-                            <NavLink to="/ijp" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                                <div className="nav-sub-dot"></div>Job Posting
-                            </NavLink>
-                            <NavLink to="/interviews" className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}>
-                                <div className="nav-sub-dot"></div>Create Interview
-                            </NavLink>
-                        </div>
-                    </>
-                )}
-
-                <div className="sidebar-section">System</div>
-
-                {!isSuperAdmin && (
-                    <NavLink to="/wallet" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                        <span className="nav-icon">WL</span>
-                        <span className="nav-label">Wallet</span>
-                    </NavLink>
-                )}
-
-                <a className="nav-item" href="#">
-                    <span className="nav-icon">ST</span>
-                    <span className="nav-label">Settings</span>
-                </a>
-
-                <Link className="nav-item" to="/login" onClick={() => clearAuthSession()}>
-                    <span className="nav-icon">LO</span>
-                    <span className="nav-label">Logout</span>
-                </Link>
-
-                <div className="sidebar-footer">
-                    <div className="admin-card">
-                        <div className="admin-avatar">A</div>
-                        <div>
-                            <div className="admin-name">Admin</div>
-                            <div className="admin-role">{isSuperAdmin ? 'Platform Superadmin' : 'Workspace Admin'}</div>
-                        </div>
-                        <div className="admin-more">...</div>
-                    </div>
-                </div>
-            </aside>
-
-            <div className="main">
-                <header className="topbar">
-                    <div className="topbar-left">
-                        <div className="topbar-greeting">Good morning, Admin</div>
-                        <div className="topbar-date">{currentDate}</div>
-                    </div>
-                    <div className="topbar-right">
-                        <div className="topbar-search">
-                            <span>?</span>
-                            <input type="text" placeholder="Search anything..."
-                                style={{ border: 'none', background: 'transparent', outline: 'none', color: 'var(--muted)', width: '100%', fontSize: '13px' }} />
-                        </div>
-                        <div className="icon-btn" title="Notifications">N<div className="notif-dot"></div></div>
-                        <div className="icon-btn" title="Help">H</div>
-                        <div className="topbar-avatar" title="Profile">A</div>
-                    </div>
-                </header>
-                <main className="content">
-                    <Outlet />
-                </main>
-            </div>
-        </>
+  useEffect(() => {
+    setIsSuperAdmin(isSuperAdminSession());
+    const now = new Date();
+    setCurrentDate(
+      now.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
     );
+  }, []);
+
+  useEffect(() => {
+    if (
+      location.pathname.includes('/topics') ||
+      location.pathname.includes('/questions') ||
+      location.pathname.includes('/ai-generator')
+    ) {
+      setIsQuestionnaireOpen(true);
+    }
+    if (location.pathname.includes('/assessments') || location.pathname.includes('/links')) {
+      setIsAssessmentOpen(true);
+    }
+    if (location.pathname.includes('/interviews') || location.pathname.includes('/ijp')) {
+      setIsInterviewOpen(true);
+    }
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
+  const navGroups = useMemo<NavGroup[]>(
+    () => [
+      {
+        label: 'Question Bank',
+        icon: FolderKanban,
+        isOpen: isQuestionnaireOpen,
+        onToggle: () => setIsQuestionnaireOpen((open) => !open),
+        isActive:
+          location.pathname.includes('/topics') ||
+          location.pathname.includes('/questions') ||
+          location.pathname.includes('/ai-generator'),
+        children: [
+          { label: 'Topics', to: '/topics', icon: BriefcaseBusiness },
+          { label: 'Questions', to: '/questions/add', icon: FileText },
+          { label: 'AI Generator', to: '/ai-generator', icon: Sparkles },
+        ],
+      },
+      {
+        label: 'Assessments',
+        icon: LayoutDashboard,
+        isOpen: isAssessmentOpen,
+        onToggle: () => setIsAssessmentOpen((open) => !open),
+        isActive: location.pathname.includes('/assessments') || location.pathname.includes('/links'),
+        children: [
+          { label: 'Assessment List', to: '/assessments', icon: LayoutDashboard, end: true },
+          { label: 'Create Assessment', to: '/assessments/create', icon: Sparkles },
+        ],
+      },
+      {
+        label: 'AI Interviews',
+        icon: UsersRound,
+        isOpen: isInterviewOpen,
+        onToggle: () => setIsInterviewOpen((open) => !open),
+        isActive: location.pathname.includes('/interviews') || location.pathname.includes('/ijp'),
+        children: [
+          { label: 'Job Posting', to: '/ijp', icon: BriefcaseBusiness },
+          { label: 'Interview Studio', to: '/interviews', icon: UsersRound },
+        ],
+      },
+    ],
+    [isAssessmentOpen, isInterviewOpen, isQuestionnaireOpen, location.pathname],
+  );
+
+  return (
+    <div className="admin-shell">
+      <div
+        className={`admin-shell-backdrop ${mobileNavOpen ? 'open' : ''}`}
+        onClick={() => setMobileNavOpen(false)}
+      />
+
+      <aside className={`sidebar ${mobileNavOpen ? 'open' : ''}`} id="sidebar">
+        <div className="sidebar-top">
+          <Link to={isSuperAdmin ? '/platform' : '/dashboard'} className="sidebar-logo">
+            <span className="sidebar-logo-mark">
+              <MazeLogo className="sidebar-logo-svg" />
+            </span>
+            <span className="sidebar-logo-text">
+              Maze<span>AI</span>
+            </span>
+          </Link>
+
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={() => setMobileNavOpen(false)}
+            aria-label="Close navigation"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="sidebar-section">Workspace</div>
+
+        {isSuperAdmin ? (
+          <NavLink to="/platform" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span className="nav-icon">
+              <Building2 size={18} />
+            </span>
+            <span className="nav-label">Organisation Billing</span>
+          </NavLink>
+        ) : (
+          <>
+            <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <span className="nav-icon">
+                <LayoutDashboard size={18} />
+              </span>
+              <span className="nav-label">Dashboard</span>
+            </NavLink>
+
+            {navGroups.map((group) => {
+              const GroupIcon = group.icon;
+              return (
+                <div key={group.label} className="nav-group">
+                  <button
+                    type="button"
+                    className={`nav-item nav-group-trigger ${group.isActive ? 'active' : ''}`}
+                    onClick={group.onToggle}
+                  >
+                    <span className="nav-icon">
+                      <GroupIcon size={18} />
+                    </span>
+                    <span className="nav-label">{group.label}</span>
+                    <ChevronDown size={16} className={`nav-caret ${group.isOpen ? 'open' : ''}`} />
+                  </button>
+
+                  <div className={`nav-sub ${group.isOpen ? 'open' : ''}`}>
+                    {group.children.map((entry) => {
+                      const EntryIcon = entry.icon;
+                      return (
+                        <NavLink
+                          key={entry.to}
+                          to={entry.to}
+                          end={entry.end}
+                          className={({ isActive }) => `nav-sub-item ${isActive ? 'active' : ''}`}
+                        >
+                          <span className="nav-sub-icon">
+                            <EntryIcon size={15} />
+                          </span>
+                          {entry.label}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        <div className="sidebar-section">Billing</div>
+
+        {!isSuperAdmin && (
+          <NavLink to="/wallet" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <span className="nav-icon">
+              <WalletCards size={18} />
+            </span>
+            <span className="nav-label">Wallet</span>
+          </NavLink>
+        )}
+
+        <button type="button" className="nav-item nav-item-static">
+          <span className="nav-icon">
+            <Settings size={18} />
+          </span>
+          <span className="nav-label">Settings</span>
+          <span className="nav-soon">Soon</span>
+        </button>
+
+        <Link className="nav-item nav-logout" to="/login" onClick={() => clearAuthSession()}>
+          <span className="nav-icon">
+            <LogOut size={18} />
+          </span>
+          <span className="nav-label">Logout</span>
+        </Link>
+
+        <div className="sidebar-footer">
+          <div className="admin-card">
+            <div className="admin-avatar">A</div>
+            <div className="admin-meta">
+              <div className="admin-name">Admin Workspace</div>
+              <div className="admin-role">{isSuperAdmin ? 'Platform Superadmin' : 'Workspace Admin'}</div>
+            </div>
+            <span className="admin-status" />
+          </div>
+        </div>
+      </aside>
+
+      <div className="main">
+        <header className="topbar">
+          <div className="topbar-left">
+            <button
+              type="button"
+              className="mobile-menu-btn"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open navigation"
+            >
+              <Menu size={18} />
+            </button>
+
+            <div>
+              <div className="topbar-greeting">{isSuperAdmin ? 'Platform Command Center' : 'MazeAI Workspace'}</div>
+              <div className="topbar-date">{currentDate}</div>
+            </div>
+          </div>
+
+          <div className="topbar-right">
+            <label className="topbar-search">
+              <Search size={16} />
+              <input type="text" placeholder="Search assessments, candidates, reports..." />
+            </label>
+
+            <button type="button" className="icon-btn" title="Notifications">
+              <Bell size={18} />
+              <span className="notif-dot" />
+            </button>
+
+            <div className="topbar-profile">
+              <div className="topbar-avatar">A</div>
+              <div className="topbar-profile-copy">
+                <span className="topbar-profile-name">Admin</span>
+                <span className="topbar-profile-role">{isSuperAdmin ? 'Superadmin' : 'Organisation Admin'}</span>
+              </div>
+              <CreditCard size={16} className="topbar-profile-icon" />
+            </div>
+          </div>
+        </header>
+
+        <main className="content">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
 };
 
 export default AdminLayout;

@@ -69,6 +69,7 @@ const ExamScreen: React.FC = () => {
     const webcamStreamRef     = useRef<MediaStream | null>(null);
     const mediaRecorderRef    = useRef<MediaRecorder | null>(null);
     const recordingChunksRef  = useRef<Blob[]>([]);
+    const screenStreamRef     = useRef<MediaStream | null>(null);
     const timerRef            = useRef<ReturnType<typeof setInterval> | null>(null);
     const submitRef           = useRef(false);
 
@@ -229,6 +230,8 @@ const ExamScreen: React.FC = () => {
             } else {
                 stream = await (navigator.mediaDevices as any).getDisplayMedia({ video: { frameRate: fps } as MediaTrackConstraints, audio: false });
             }
+            recordingChunksRef.current = [];
+            screenStreamRef.current = stream;
             stream.getVideoTracks()[0].addEventListener('ended', () => {
                 logViolation('SCREEN_SHARE_STOP', 'Screen sharing stopped by candidate');
                 setScreenRecording(false);
@@ -245,16 +248,49 @@ const ExamScreen: React.FC = () => {
             setScreenRecBanner(true);
         }
     };
-    const stopScreenRecording = () => { if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop(); };
+    const stopScreenRecording = async () => {
+        const recorder = mediaRecorderRef.current;
+        const stream = screenStreamRef.current;
+
+        if (!recorder) {
+            stream?.getTracks().forEach(t => t.stop());
+            screenStreamRef.current = null;
+            return;
+        }
+
+        if (recorder.state === 'inactive') {
+            stream?.getTracks().forEach(t => t.stop());
+            mediaRecorderRef.current = null;
+            screenStreamRef.current = null;
+            return;
+        }
+
+        await new Promise<void>((resolve) => {
+            const finish = () => {
+                recorder.removeEventListener('stop', finish);
+                stream?.getTracks().forEach(t => t.stop());
+                mediaRecorderRef.current = null;
+                screenStreamRef.current = null;
+                resolve();
+            };
+
+            recorder.addEventListener('stop', finish, { once: true });
+            try { recorder.requestData(); } catch {}
+            recorder.stop();
+        });
+    };
     const uploadRecording = async () => {
-        if (!sessionIdRef.current || !attemptId || recordingChunksRef.current.length === 0) return;
+        if (!sessionIdRef.current || !attemptId) return;
         try {
-            stopScreenRecording();
+            await stopScreenRecording();
+            if (recordingChunksRef.current.length === 0) return;
             const blob = new Blob(recordingChunksRef.current, { type: 'video/webm' });
+            if (blob.size === 0) return;
             const fd = new FormData();
             fd.append('sessionId', sessionIdRef.current); fd.append('attemptId', attemptId);
             fd.append('recording', blob, `recording_${attemptId}.webm`);
             await proctoringApi.uploadRecording(fd);
+            recordingChunksRef.current = [];
         } catch (err) { console.warn('[Proctoring] upload recording failed:', err); }
     };
 
@@ -481,11 +517,16 @@ const ExamScreen: React.FC = () => {
 
         // Stop webcam and proctoring immediately (non-blocking)
         stopWebcam();
-        if (sessionIdRef.current) {
-            proctoringApi.endSession({ sessionId: sessionIdRef.current, attemptId }).catch(() => {});
-        }
+        const pendingUploads: Promise<unknown>[] = [];
         if (procConfigRef.current?.screenRecordingEnabled) {
-            uploadRecording().catch(() => {});
+            pendingUploads.push(uploadRecording());
+        }
+        if (sessionIdRef.current) {
+            pendingUploads.push(
+                Promise.allSettled(pendingUploads).then(() =>
+                    proctoringApi.endSession({ sessionId: sessionIdRef.current!, attemptId }).catch(() => {})
+                )
+            );
         }
 
         // Close modal and show result immediately - DON'T WAIT for backend
@@ -506,8 +547,12 @@ const ExamScreen: React.FC = () => {
         
         setResultOpen(true);
 
-        // Now send submit to backend (fire-and-forget)
-        assessmentsApi.submitAttempt(attemptId).catch((err: any) => {
+        // Finalize proctoring in the background, then notify the backend.
+        Promise.allSettled(pendingUploads).then(() =>
+            assessmentsApi.submitAttempt(attemptId).catch((err: any) => {
+                console.warn('Submit notification failed:', err);
+            })
+        ).catch((err) => {
             console.warn('Submit notification failed:', err);
         });
     };
@@ -735,30 +780,32 @@ const ExamScreen: React.FC = () => {
                 </main>
             </div>
 
-            <div className={`modal-overlay ${submitModal ? 'open' : ''}`}>
-                <div className="modal">
-                    <div className="modal-header"><div className="modal-title">Submit Exam?</div><button className="modal-close" onClick={() => setSubmitModal(false)}>✕</button></div>
-                    <div className="modal-body">
-                        <div className="submit-grid">
-                            <div className="sg-item"><div className="sg-num sg-green">{stats.ans}</div><div className="sg-label">Answered</div></div>
-                            <div className="sg-item"><div className="sg-num sg-yellow">{stats.mrk}</div><div className="sg-label">Marked</div></div>
-                            <div className="sg-item"><div className="sg-num sg-red">{stats.skp}</div><div className="sg-label">Skipped</div></div>
-                            <div className="sg-item"><div className="sg-num" style={{ color: 'var(--muted)' }}>{stats.rem}</div><div className="sg-label">Remaining</div></div>
-                        </div>
-                        {(stats.rem + stats.skp) > 0 && (
-                            <div style={{ textAlign: 'center', fontSize: '13px', color: 'var(--yellow)', marginTop: '12px', padding: '10px', background: 'rgba(245,166,35,.08)', borderRadius: '8px' }}>
-                                ⚠ You have {stats.rem + stats.skp} unanswered question{stats.rem + stats.skp !== 1 ? 's' : ''}. You cannot go back after submitting.
+            {submitModal && (
+                <div className="modal-overlay open" onClick={(e) => { if (e.target === e.currentTarget) setSubmitModal(false); }}>
+                    <div className="modal">
+                        <div className="modal-header"><div className="modal-title">Submit Exam?</div><button className="modal-close" onClick={() => setSubmitModal(false)}>✕</button></div>
+                        <div className="modal-body">
+                            <div className="submit-grid">
+                                <div className="sg-item"><div className="sg-num sg-green">{stats.ans}</div><div className="sg-label">Answered</div></div>
+                                <div className="sg-item"><div className="sg-num sg-yellow">{stats.mrk}</div><div className="sg-label">Marked</div></div>
+                                <div className="sg-item"><div className="sg-num sg-red">{stats.skp}</div><div className="sg-label">Skipped</div></div>
+                                <div className="sg-item"><div className="sg-num" style={{ color: 'var(--muted)' }}>{stats.rem}</div><div className="sg-label">Remaining</div></div>
                             </div>
-                        )}
-                    </div>
-                    <div className="modal-footer">
-                        <button className="btn btn-secondary" onClick={() => setSubmitModal(false)}>Back to Exam</button>
-                        <button className="btn btn-primary" style={{ background: 'var(--green)', cursor: 'pointer', fontWeight: 700 }} onClick={finalSubmit}>
-                            ✅ Submit Now
-                        </button>
+                            {(stats.rem + stats.skp) > 0 && (
+                                <div style={{ textAlign: 'center', fontSize: '13px', color: 'var(--yellow)', marginTop: '12px', padding: '10px', background: 'rgba(245,166,35,.08)', borderRadius: '8px' }}>
+                                    ⚠ You have {stats.rem + stats.skp} unanswered question{stats.rem + stats.skp !== 1 ? 's' : ''}. You cannot go back after submitting.
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setSubmitModal(false)}>Back to Exam</button>
+                            <button className="btn btn-primary" style={{ background: 'var(--green)', cursor: 'pointer', fontWeight: 700 }} onClick={finalSubmit}>
+                                ✅ Submit Now
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             <div className={`result-screen ${resultOpen ? 'open' : ''}`}>
                 <div className="result-card">

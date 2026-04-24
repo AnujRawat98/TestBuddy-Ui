@@ -1,4 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowUpRight,
+  BadgeIndianRupee,
+  CalendarClock,
+  CreditCard,
+  ReceiptText,
+  Sparkles,
+  Target,
+  UserRoundSearch,
+} from 'lucide-react';
 import { paymentApi, walletApi } from '../../services/api';
 import './WalletPage.css';
 
@@ -71,10 +81,30 @@ const WalletPage: React.FC = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  const totalAmount = useMemo(() => {
-    return assessmentQuantity * (pricing?.assessmentUnitPrice ?? 0) +
-      interviewQuantity * (pricing?.interviewUnitPrice ?? 0);
-  }, [assessmentQuantity, interviewQuantity, pricing]);
+  const totalAmount = useMemo(
+    () =>
+      assessmentQuantity * (pricing?.assessmentUnitPrice ?? 0) +
+      interviewQuantity * (pricing?.interviewUnitPrice ?? 0),
+    [assessmentQuantity, interviewQuantity, pricing],
+  );
+
+  const walletInsights = useMemo(
+    () => [
+      {
+        label: 'Assessment Credits',
+        value: loading ? '--' : wallet?.assessmentCredits ?? 0,
+        note: '1 assessment link consumes 1 credit',
+        icon: Target,
+      },
+      {
+        label: 'Interview Credits',
+        value: loading ? '--' : wallet?.interviewCredits ?? 0,
+        note: '1 interview start consumes 1 credit',
+        icon: UserRoundSearch,
+      },
+    ],
+    [loading, wallet],
+  );
 
   const loadWallet = async () => {
     setError('');
@@ -127,7 +157,7 @@ const WalletPage: React.FC = () => {
         amount: Math.round(order.amount * 100),
         currency: order.currency,
         order_id: order.razorpayOrderId,
-        name: 'TestBuddy',
+        name: 'MazeAI',
         description: 'Wallet credit recharge',
         handler: () => {
           setMessage('Payment submitted. Credits will update after Razorpay webhook confirmation.');
@@ -141,7 +171,7 @@ const WalletPage: React.FC = () => {
           },
         },
         theme: {
-          color: '#1f7a4c',
+          color: '#059669',
         },
       });
 
@@ -155,44 +185,97 @@ const WalletPage: React.FC = () => {
 
   return (
     <div className="wallet-page">
-      <div className="wallet-page-header">
+      <section className="wallet-hero">
         <div>
-          <div className="wallet-eyebrow">Billing</div>
-          <h1 className="wallet-title">Wallet and Credits</h1>
-          <p className="wallet-subtitle">Recharge assessment and interview credits for your workspace.</p>
+          <div className="wallet-eyebrow">Wallet and Billing</div>
+          <h1 className="wallet-title">Keep MazeAI credits ready for every assessment and interview run.</h1>
+          <p className="wallet-subtitle">
+            Monitor live credit balance, review payment activity, and recharge instantly from one premium billing dashboard.
+          </p>
         </div>
-        {wallet && (
-          <div className="wallet-updated">
-            Updated {new Date(wallet.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+
+        <div className="wallet-hero-meta">
+          <div className="wallet-meta-chip">
+            <CalendarClock size={16} />
+            {wallet
+              ? `Updated ${new Date(wallet.updatedAt).toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}`
+              : 'Fetching wallet summary'}
           </div>
-        )}
-      </div>
+          <div className="wallet-meta-chip subtle">
+            <Sparkles size={16} />
+            Shared pricing from public catalog
+          </div>
+        </div>
+      </section>
 
       {error && <div className="wallet-alert wallet-alert-error">{error}</div>}
       {message && <div className="wallet-alert wallet-alert-success">{message}</div>}
 
-      <div className="wallet-grid">
-        <section className="wallet-panel">
-          <div className="wallet-panel-title">Current Balance</div>
-          <div className="wallet-summary-grid">
-            <div className="wallet-summary-card">
-              <div className="wallet-card-label">Assessment Credits</div>
-              <div className="wallet-card-value">{loading ? '--' : wallet?.assessmentCredits ?? 0}</div>
-              <div className="wallet-card-note">1 assessment link consumes 1 credit</div>
+      <section className="wallet-overview-grid">
+        {walletInsights.map((item) => {
+          const Icon = item.icon;
+          return (
+            <article key={item.label} className="wallet-balance-card">
+              <div className="wallet-balance-top">
+                <span className="wallet-balance-icon">
+                  <Icon size={18} />
+                </span>
+                <span className="wallet-balance-status">Active</span>
+              </div>
+              <div className="wallet-card-label">{item.label}</div>
+              <div className="wallet-card-value">{item.value}</div>
+              <div className="wallet-card-note">{item.note}</div>
+            </article>
+          );
+        })}
+
+        <article className="wallet-pricing-card">
+          <div className="wallet-pricing-header">
+            <div>
+              <div className="wallet-panel-kicker">Current Pricing</div>
+              <h2>Public credit catalog</h2>
             </div>
-            <div className="wallet-summary-card">
-              <div className="wallet-card-label">Interview Credits</div>
-              <div className="wallet-card-value">{loading ? '--' : wallet?.interviewCredits ?? 0}</div>
-              <div className="wallet-card-note">1 interview start consumes 1 credit</div>
+            <BadgeIndianRupee size={18} />
+          </div>
+
+          <div className="wallet-pricing-list">
+            <div className="wallet-pricing-row">
+              <span>Assessment credit</span>
+              <strong>Rs. {pricing?.assessmentUnitPrice ?? '--'}</strong>
+            </div>
+            <div className="wallet-pricing-row">
+              <span>Interview credit</span>
+              <strong>Rs. {pricing?.interviewUnitPrice ?? '--'}</strong>
             </div>
           </div>
-        </section>
 
-        <section className="wallet-panel">
-          <div className="wallet-panel-title">Recharge Credits</div>
+          <p className="wallet-pricing-footnote">
+            Charges are fetched from the shared public pricing table so billing stays aligned across the platform.
+          </p>
+        </article>
+      </section>
+
+      <section className="wallet-main-grid">
+        <article className="wallet-panel recharge-panel">
+          <div className="wallet-panel-header">
+            <div>
+              <div className="wallet-panel-kicker">Recharge</div>
+              <h2>Top up credits</h2>
+              <p>Choose how many assessment and interview credits you want to add to this workspace.</p>
+            </div>
+            <span className="wallet-panel-icon">
+              <CreditCard size={20} />
+            </span>
+          </div>
+
           <div className="wallet-form-grid">
             <label className="wallet-field">
-              <span>Assessments</span>
+              <span>Assessment credits</span>
               <input
                 type="number"
                 min={0}
@@ -203,7 +286,7 @@ const WalletPage: React.FC = () => {
             </label>
 
             <label className="wallet-field">
-              <span>Interviews</span>
+              <span>Interview credits</span>
               <input
                 type="number"
                 min={0}
@@ -220,14 +303,62 @@ const WalletPage: React.FC = () => {
               <div className="wallet-total-value">Rs. {totalAmount}</div>
             </div>
             <button className="wallet-pay-btn" disabled={paying || totalAmount <= 0 || !pricing} onClick={openCheckout}>
-              {paying ? 'Preparing payment...' : 'Pay with Razorpay'}
+              <span>{paying ? 'Preparing payment...' : 'Pay with Razorpay'}</span>
+              {!paying && <ArrowUpRight size={16} />}
             </button>
           </div>
-        </section>
-      </div>
+        </article>
+
+        <article className="wallet-panel wallet-summary-panel">
+          <div className="wallet-panel-header">
+            <div>
+              <div className="wallet-panel-kicker">Billing Notes</div>
+              <h2>Credit usage rules</h2>
+              <p>Keep these simple wallet rules in mind while planning candidate volume.</p>
+            </div>
+            <span className="wallet-panel-icon">
+              <ReceiptText size={20} />
+            </span>
+          </div>
+
+          <div className="wallet-usage-list">
+            <div className="wallet-usage-item">
+              <span className="wallet-usage-dot" />
+              <div>
+                <strong>Assessment links</strong>
+                <p>Every assessment attempt consumes one assessment credit from the organisation wallet.</p>
+              </div>
+            </div>
+            <div className="wallet-usage-item">
+              <span className="wallet-usage-dot" />
+              <div>
+                <strong>Interview sessions</strong>
+                <p>Each interview session start uses one interview credit once the candidate enters the live flow.</p>
+              </div>
+            </div>
+            <div className="wallet-usage-item">
+              <span className="wallet-usage-dot" />
+              <div>
+                <strong>Webhook confirmation</strong>
+                <p>Credits appear after Razorpay confirms the payment through the backend webhook flow.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
 
       <section className="wallet-panel wallet-history">
-        <div className="wallet-panel-title">Transaction History</div>
+        <div className="wallet-panel-header">
+          <div>
+            <div className="wallet-panel-kicker">Transactions</div>
+            <h2>Payment history</h2>
+            <p>Review every credit movement, recharge event, and debit reference in one place.</p>
+          </div>
+          <span className="wallet-panel-icon">
+            <ReceiptText size={20} />
+          </span>
+        </div>
+
         <div className="wallet-table-wrap">
           <table className="wallet-table">
             <thead>
@@ -243,16 +374,24 @@ const WalletPage: React.FC = () => {
             <tbody>
               {!loading && transactions.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="wallet-empty">No transactions yet.</td>
+                  <td colSpan={6} className="wallet-empty">
+                    No transactions yet.
+                  </td>
                 </tr>
               )}
               {transactions.map((item) => (
                 <tr key={item.id}>
-                  <td>{new Date(item.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</td>
                   <td>
-                    <span className={`wallet-badge ${item.type === 'CREDIT' ? 'credit' : 'debit'}`}>
-                      {item.type}
-                    </span>
+                    {new Date(item.createdAt).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </td>
+                  <td>
+                    <span className={`wallet-badge ${item.type === 'CREDIT' ? 'credit' : 'debit'}`}>{item.type}</span>
                   </td>
                   <td>{item.creditType}</td>
                   <td>{item.quantity}</td>

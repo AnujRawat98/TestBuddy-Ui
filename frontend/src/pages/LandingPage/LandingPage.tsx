@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import './LandingPage.css';
+import MazeLogo from '../../components/MazeLogo';
 
 const platformStats = [
   { value: 'AI', label: 'Question generation and interview orchestration' },
@@ -52,9 +53,11 @@ export default function LandingPage() {
 
       <header className="landing-header">
         <Link to="/" className="landing-brand">
-          <span className="landing-brand-mark">TB</span>
+          <span className="landing-brand-mark">
+            <MazeLogo className="landing-brand-logo" />
+          </span>
           <span className="landing-brand-text">
-            Test<span>Buddy</span>
+            Maze<span>AI</span>
           </span>
         </Link>
 
@@ -86,7 +89,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="landing-subtitle">
-              TestBuddy brings together question generation, secure assessments, voice-based interviews,
+              MazeAI brings together question generation, secure assessments, voice-based interviews,
               transcript capture, proctoring, and reporting in a single admin experience.
             </p>
 
@@ -176,7 +179,7 @@ export default function LandingPage() {
         <section id="platform" className="landing-section">
           <div className="landing-section-heading">
             <span className="landing-section-kicker">Platform</span>
-            <h2>Designed around the real TestBuddy workflow</h2>
+            <h2>Designed around the real MazeAI workflow</h2>
             <p>
               Everything on this page maps to the product you already have: topics, assessments,
               interview links, live sessions, reports, and admin operations.
@@ -219,7 +222,7 @@ export default function LandingPage() {
             <span className="landing-section-kicker">Why Teams Use It</span>
             <h2>Operationally simple, visually sharp, and built for evaluation teams.</h2>
             <p>
-              TestBuddy is not just a form builder or a chatbot wrapper. It is a hiring and assessment
+              MazeAI is not just a form builder or a chatbot wrapper. It is a hiring and assessment
               workspace that connects creation, delivery, integrity, and reporting.
             </p>
           </div>

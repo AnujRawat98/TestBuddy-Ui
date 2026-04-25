@@ -37,6 +37,8 @@ export const adminApi = {
     signup: (data: { companyName: string; email: string; password: string }) => api.post('/admin/signup', data),
     googleLogin: (data: { idToken: string }) => api.post('/admin/google/login', data),
     googleSignup: (data: { companyName: string; idToken: string }) => api.post('/admin/google/signup', data),
+    forgotPassword: (data: { email: string }) => api.post('/admin/forgot-password', data),
+    resetPassword: (token: string, data: { newPassword: string }) => api.post(`/admin/reset-password?token=${encodeURIComponent(token)}`, data),
 };
 
 export const walletApi = {

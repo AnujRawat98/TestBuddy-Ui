@@ -4,6 +4,8 @@ import AdminLayout from './components/AdminLayout';
 import LandingPage from './pages/LandingPage/LandingPage';
 import AdminLogin from './pages/AdminLogin/AdminLogin';
 import AdminSignup from './pages/AdminSignup/AdminSignup';
+import AdminForgotPassword from './pages/AdminForgotPassword/AdminForgotPassword';
+import AdminResetPassword from './pages/AdminResetPassword/AdminResetPassword';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Topics from './pages/Topics/Topics';
 import AddQuestions from './pages/AddQuestions/AddQuestions';
@@ -33,6 +35,8 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<AdminLogin />} />
         <Route path="/signup" element={<AdminSignup />} />
+        <Route path="/forgot-password" element={<AdminForgotPassword />} />
+        <Route path="/reset-password" element={<AdminResetPassword />} />
 
         {/* Protected Admin Routes (Wrapped in Layout) */}
         <Route element={<AdminLayout />}>

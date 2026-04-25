@@ -232,7 +232,7 @@ const AdminLogin: React.FC = () => {
                             <input type="checkbox" defaultChecked className="w-4 h-4 accent-emerald-600 rounded border-white/10 bg-neutral-900" />
                             Remember me
                         </label>
-                        <a href="#" className="font-bold text-[0.86rem] text-sky-500 hover:text-sky-400">Forgot password?</a>
+                        <Link to="/forgot-password" className="font-bold text-[0.86rem] text-sky-500 hover:text-sky-400">Forgot password?</Link>
                     </div>
 
                     {/* Submit */}

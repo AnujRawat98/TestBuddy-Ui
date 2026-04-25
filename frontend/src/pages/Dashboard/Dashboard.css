@@ -116,16 +116,30 @@
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .dashboard-table th,
 .dashboard-table td {
   padding: 15px 22px;
   border-bottom: 1px solid rgba(226, 232, 240, 0.88);
+  vertical-align: middle;
 }
 
 .dashboard-table th {
   background: rgba(248, 250, 252, 0.92);
+  text-align: left;
+}
+
+.dashboard-grid .card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.2;
+}
+
+.dashboard-grid .card-title svg {
+  flex-shrink: 0;
 }
 
 .dashboard-table tbody tr:hover td,
@@ -152,6 +166,25 @@
 .assessment-meta {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.75rem;
+}
+
+.dashboard-col-assessment {
+  width: 48%;
+}
+
+.dashboard-col-number {
+  width: 16%;
+  text-align: center;
+}
+
+.dashboard-col-duration {
+  width: 18%;
+  text-align: center;
+}
+
+.dashboard-col-status {
+  width: 18%;
+  text-align: right;
 }
 
 .badge {

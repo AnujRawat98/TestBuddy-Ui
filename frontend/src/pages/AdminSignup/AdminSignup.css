@@ -121,6 +121,13 @@
     line-height: 1.5;
 }
 
+.input-helper-text {
+    margin-top: 8px;
+    color: var(--text-3);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
 @media (max-width: 900px) {
     .signup-metric-row {
         grid-template-columns: 1fr;

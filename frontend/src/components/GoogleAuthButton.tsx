@@ -66,11 +66,11 @@ export default function GoogleAuthButton({ text, onCredential, disabled = false 
         });
 
         window.google.accounts.id.renderButton(containerRef.current, {
-          theme: 'outline',
+          theme: 'filled_black',
           size: 'large',
           shape: 'rectangular',
           text,
-          width: '360',
+          width: '440',
           logo_alignment: 'left',
         });
       } catch (err) {

@@ -383,10 +383,10 @@ const Dashboard: React.FC = () => {
               <table className="dashboard-table">
                 <thead>
                   <tr>
-                    <th>Assessment</th>
-                    <th>Questions</th>
-                    <th>Duration</th>
-                    <th>Status</th>
+                    <th className="dashboard-col-assessment">Assessment</th>
+                    <th className="dashboard-col-number">Questions</th>
+                    <th className="dashboard-col-duration">Duration</th>
+                    <th className="dashboard-col-status">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -397,13 +397,13 @@ const Dashboard: React.FC = () => {
                     const active = assessment.isActive ?? assessment.IsActive ?? false;
                     return (
                       <tr key={assessment.id}>
-                        <td>
+                        <td className="dashboard-col-assessment">
                           <div className="assessment-name">{title}</div>
                           <div className="assessment-meta">{assessment.id?.slice(0, 8)}...</div>
                         </td>
-                        <td>{questions}</td>
-                        <td>{duration} min</td>
-                        <td><span className={`badge ${active ? 'badge-active' : 'badge-draft'}`}><span className="badge-dot" />{active ? 'Active' : 'Inactive'}</span></td>
+                        <td className="dashboard-col-number">{questions}</td>
+                        <td className="dashboard-col-duration">{duration} min</td>
+                        <td className="dashboard-col-status"><span className={`badge ${active ? 'badge-active' : 'badge-draft'}`}><span className="badge-dot" />{active ? 'Active' : 'Inactive'}</span></td>
                       </tr>
                     );
                   })}

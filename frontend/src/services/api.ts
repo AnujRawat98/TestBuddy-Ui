@@ -2,10 +2,14 @@ import axios from 'axios';
 import { clearAuthSession } from '../utils/auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5022/api';
+const isNgrokApi = API_BASE_URL.includes('.ngrok-free.app');
 
 const api = axios.create({
     baseURL: API_BASE_URL,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+        'Content-Type': 'application/json',
+        ...(isNgrokApi ? { 'ngrok-skip-browser-warning': 'true' } : {}),
+    },
     timeout: 60000, // 60 seconds timeout
 });
 

@@ -113,7 +113,26 @@ interface LinkReportModalState {
 
 const parseInterviewDateTime = (value?: string) => {
   if (!value) return null;
-  const normalized = value.replace(' ', 'T');
+
+  const normalized = value.trim().replace(' ', 'T');
+  const localDateTimeMatch = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(normalized);
+  if (localDateTimeMatch) {
+    const [, year, month, day, hours, minutes, seconds] = localDateTimeMatch;
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hours),
+      Number(minutes),
+      Number(seconds ?? '0'));
+  }
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
   const parsed = new Date(normalized);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
@@ -1829,8 +1848,8 @@ export default function InterviewList() {
           onReschedule={async (data) => {
             try {
               await api.put(`/interviews/candidates/${rescheduleModal.candidate?.id}/reschedule`, {
-                startTime: new Date(data.startTime).toISOString(),
-                endTime: new Date(data.endTime).toISOString(),
+                startTime: data.startTime,
+                endTime: data.endTime,
                 bufferStartMinutes: data.bufferStartMinutes,
                 bufferEndMinutes: data.bufferEndMinutes,
               });

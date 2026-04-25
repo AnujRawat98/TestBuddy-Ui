@@ -1,17 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
 import {
-  Bell,
   BriefcaseBusiness,
   Building2,
   ChevronDown,
-  CreditCard,
   FileText,
   FolderKanban,
   LayoutDashboard,
   LogOut,
   Menu,
-  Search,
   Settings,
   Sparkles,
   UsersRound,
@@ -39,7 +36,6 @@ type NavGroup = {
 };
 
 const AdminLayout: React.FC = () => {
-  const [currentDate, setCurrentDate] = useState('');
   const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
   const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
   const [isInterviewOpen, setIsInterviewOpen] = useState(false);
@@ -49,15 +45,6 @@ const AdminLayout: React.FC = () => {
 
   useEffect(() => {
     setIsSuperAdmin(isSuperAdminSession());
-    const now = new Date();
-    setCurrentDate(
-      now.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-    );
   }, []);
 
   useEffect(() => {
@@ -245,46 +232,17 @@ const AdminLayout: React.FC = () => {
       </aside>
 
       <div className="main">
-        <header className="topbar">
-          <div className="topbar-left">
+        <main className="content">
+          <div className="content-mobile-actions">
             <button
               type="button"
-              className="mobile-menu-btn"
+              className="mobile-menu-btn content-menu-btn"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Open navigation"
             >
               <Menu size={18} />
             </button>
-
-            <div>
-              <div className="topbar-greeting">{isSuperAdmin ? 'Platform Command Center' : 'MazeAI Workspace'}</div>
-              <div className="topbar-date">{currentDate}</div>
-            </div>
           </div>
-
-          <div className="topbar-right">
-            <label className="topbar-search">
-              <Search size={16} />
-              <input type="text" placeholder="Search assessments, candidates, reports..." />
-            </label>
-
-            <button type="button" className="icon-btn" title="Notifications">
-              <Bell size={18} />
-              <span className="notif-dot" />
-            </button>
-
-            <div className="topbar-profile">
-              <div className="topbar-avatar">A</div>
-              <div className="topbar-profile-copy">
-                <span className="topbar-profile-name">Admin</span>
-                <span className="topbar-profile-role">{isSuperAdmin ? 'Superadmin' : 'Organisation Admin'}</span>
-              </div>
-              <CreditCard size={16} className="topbar-profile-icon" />
-            </div>
-          </div>
-        </header>
-
-        <main className="content">
           <Outlet />
         </main>
       </div>

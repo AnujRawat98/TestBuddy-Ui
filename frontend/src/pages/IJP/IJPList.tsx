@@ -14,6 +14,20 @@ interface IJP {
   interviewsCreated: number;
 }
 
+const parseLocalDate = (value?: string) => {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'Active': return { bg: 'rgba(0,194,113,.12)', color: 'var(--green)' };
@@ -23,7 +37,12 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const fmtDate = (s: string) => !s ? '—' : new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const fmtDate = (s: string) => {
+  const parsed = parseLocalDate(s);
+  return parsed
+    ? parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '—';
+};
 
 export default function IJPList() {
   const [ijps, setIjps] = useState<IJP[]>([]);

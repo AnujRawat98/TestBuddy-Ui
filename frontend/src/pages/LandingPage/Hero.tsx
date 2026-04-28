@@ -45,6 +45,14 @@ export default function Hero() {
                 View product
               </a>
             </div>
+            <div className="mt-4">
+              <Link
+                to="/individual"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 transition-colors duration-200 hover:text-white"
+              >
+                Individual login and signup <span>&rarr;</span>
+              </Link>
+            </div>
           </div>
         </Reveal>
 

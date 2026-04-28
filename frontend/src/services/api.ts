@@ -37,8 +37,36 @@ export const adminApi = {
     signup: (data: { companyName: string; email: string; password: string }) => api.post('/admin/signup', data),
     googleLogin: (data: { idToken: string }) => api.post('/admin/google/login', data),
     googleSignup: (data: { companyName: string; idToken: string }) => api.post('/admin/google/signup', data),
+    individualSignup: (data: { displayName: string; email: string; password: string }) =>
+        api.post('/admin/individual/signup', data),
+    individualGoogleSignup: (data: { idToken: string }) =>
+        api.post('/admin/individual/google/signup', data),
     forgotPassword: (data: { email: string }) => api.post('/admin/forgot-password', data),
     resetPassword: (token: string, data: { newPassword: string }) => api.post(`/admin/reset-password?token=${encodeURIComponent(token)}`, data),
+};
+
+export const individualApi = {
+    getOverview: () => api.get('/individual/overview'),
+    getProgress: () => api.get('/individual/progress'),
+    getNotes: () => api.get('/individual/notes'),
+    createNote: (data: { title?: string; content: string; topicId?: string; questionId?: string }) =>
+        api.post('/individual/notes', data),
+    updateNote: (id: string, data: { title?: string; content?: string; topicId?: string; questionId?: string }) =>
+        api.put(`/individual/notes/${id}`, data),
+    deleteNote: (id: string) => api.delete(`/individual/notes/${id}`),
+    getPlanner: () => api.get('/individual/planner'),
+    createPlannerItem: (data: { title: string; description?: string; scheduledFor?: string; status?: string }) =>
+        api.post('/individual/planner', data),
+    updatePlannerItem: (id: string, data: { title?: string; description?: string; scheduledFor?: string; status?: string }) =>
+        api.put(`/individual/planner/${id}`, data),
+    deletePlannerItem: (id: string) => api.delete(`/individual/planner/${id}`),
+    getBuddySessions: () => api.get('/individual/buddy/sessions'),
+    createBuddySession: (data: { mode?: string; topicId?: string; questionId?: string; summary?: string }) =>
+        api.post('/individual/buddy/sessions', data),
+    getBuddyMessages: (sessionId: string) => api.get(`/individual/buddy/sessions/${sessionId}/messages`),
+    sendBuddyMessage: (sessionId: string, data: { content: string }) =>
+        api.post(`/individual/buddy/sessions/${sessionId}/messages`, data),
+    completeBuddySession: (sessionId: string) => api.post(`/individual/buddy/sessions/${sessionId}/complete`),
 };
 
 export const walletApi = {

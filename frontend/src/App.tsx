@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import './App.css';
 import AdminLayout from './components/AdminLayout';
 import LandingPage from './pages/LandingPage/LandingPage';
@@ -6,7 +6,8 @@ import AdminLogin from './pages/AdminLogin/AdminLogin';
 import AdminSignup from './pages/AdminSignup/AdminSignup';
 import AdminForgotPassword from './pages/AdminForgotPassword/AdminForgotPassword';
 import AdminResetPassword from './pages/AdminResetPassword/AdminResetPassword';
-import Dashboard from './pages/Dashboard/Dashboard';
+import IndividualAuth from './pages/IndividualAuth/IndividualAuth';
+import SessionDashboard from './pages/Dashboard/SessionDashboard';
 import Topics from './pages/Topics/Topics';
 import AddQuestions from './pages/AddQuestions/AddQuestions';
 import AIGenerator from './pages/AIGenerator/AIGenerator';
@@ -27,6 +28,10 @@ import IJPList from './pages/IJP/IJPList';
 import IJPDetail from './pages/IJP/IJPDetail';
 import WalletPage from './pages/Wallet/WalletPage';
 import PlatformDashboard from './pages/PlatformAdmin/PlatformDashboard';
+import IndividualBuddy from './pages/Individual/IndividualBuddy';
+import IndividualNotes from './pages/Individual/IndividualNotes';
+import IndividualPlanner from './pages/Individual/IndividualPlanner';
+import IndividualProgress from './pages/Individual/IndividualProgress';
 
 function App() {
   return (
@@ -35,12 +40,18 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<AdminLogin />} />
         <Route path="/signup" element={<AdminSignup />} />
+        <Route path="/individual" element={<IndividualAuth />} />
         <Route path="/forgot-password" element={<AdminForgotPassword />} />
         <Route path="/reset-password" element={<AdminResetPassword />} />
 
         {/* Protected Admin Routes (Wrapped in Layout) */}
         <Route element={<AdminLayout />}>
-          <Route path="/dashboard"                          element={<Dashboard />} />
+          <Route path="/dashboard"                          element={<SessionDashboard />} />
+          <Route path="/practice"                          element={<SessionDashboard />} />
+          <Route path="/practice/buddy"                    element={<IndividualBuddy />} />
+          <Route path="/practice/notes"                    element={<IndividualNotes />} />
+          <Route path="/practice/planner"                  element={<IndividualPlanner />} />
+          <Route path="/practice/analytics"                element={<IndividualProgress />} />
           <Route path="/topics"                             element={<Topics />} />
           <Route path="/questions/add"                      element={<AddQuestions />} />
           <Route path="/ai-generator"                       element={<AIGenerator />} />
@@ -55,6 +66,10 @@ function App() {
           <Route path="/ijp/:id"                           element={<IJPDetail />} />
           <Route path="/wallet"                            element={<WalletPage />} />
           <Route path="/platform"                          element={<PlatformDashboard />} />
+          <Route path="/individual/buddy"                  element={<Navigate to="/practice/buddy" replace />} />
+          <Route path="/individual/notes"                  element={<Navigate to="/practice/notes" replace />} />
+          <Route path="/individual/planner"                element={<Navigate to="/practice/planner" replace />} />
+          <Route path="/individual/progress"               element={<Navigate to="/practice/analytics" replace />} />
         </Route>
 
         {/* Student Routes */}

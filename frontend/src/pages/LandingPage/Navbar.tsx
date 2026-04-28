@@ -33,6 +33,9 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <Link to="/individual" className="hidden text-sm font-semibold text-cyan-300 transition-colors duration-200 hover:text-white lg:inline-flex">
+            Individual Login
+          </Link>
           <Link to="/login" className="hidden text-sm font-semibold text-zinc-300 transition-colors duration-200 hover:text-white sm:inline-flex">
             Sign in
           </Link>
@@ -67,6 +70,9 @@ export default function Navbar() {
               </a>
             ))}
             <div className="flex gap-3 pt-3">
+              <Link to="/individual" className="flex-1 rounded-xl border border-cyan-500/20 px-4 py-3 text-center text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/10 hover:text-white">
+                Individual
+              </Link>
               <Link to="/login" className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-center text-sm font-semibold text-zinc-300 transition hover:bg-white/5 hover:text-white">
                 Sign in
               </Link>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import GoogleAuthButton from '../../components/GoogleAuthButton';
-import { saveAuthSession } from '../../utils/auth';
+import { getPostAuthRoute, saveAuthSession } from '../../utils/auth';
 import MazeLogo from '../../components/MazeLogo';
 
 const AdminLogin: React.FC = () => {
@@ -29,10 +29,15 @@ const AdminLogin: React.FC = () => {
         try {
             const res = await adminApi.login({ email, password });
             if (res.data?.token) {
-                saveAuthSession(res.data.token, Boolean(res.data.isSuperAdmin));
+                saveAuthSession(
+                    res.data.token,
+                    Boolean(res.data.isSuperAdmin),
+                    res.data.tenantType,
+                    res.data.role,
+                );
             }
             setStatus('success');
-            setTimeout(() => navigate(res.data?.isSuperAdmin ? '/platform' : '/dashboard'), 900);
+            setTimeout(() => navigate(getPostAuthRoute(res.data)), 900);
         } catch (err: any) {
             console.error(err);
             setStatus('idle');
@@ -49,10 +54,15 @@ const AdminLogin: React.FC = () => {
         try {
             const res = await adminApi.googleLogin({ idToken });
             if (res.data?.token) {
-                saveAuthSession(res.data.token, Boolean(res.data.isSuperAdmin));
+                saveAuthSession(
+                    res.data.token,
+                    Boolean(res.data.isSuperAdmin),
+                    res.data.tenantType,
+                    res.data.role,
+                );
             }
             setStatus('success');
-            setTimeout(() => navigate(res.data?.isSuperAdmin ? '/platform' : '/dashboard'), 900);
+            setTimeout(() => navigate(getPostAuthRoute(res.data)), 900);
         } catch (err: any) {
             console.error(err);
             setStatus('idle');

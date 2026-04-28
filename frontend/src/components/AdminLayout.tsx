@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
+  BookMarked,
   BriefcaseBusiness,
   Building2,
+  CalendarDays,
   ChevronDown,
   FileText,
   FolderKanban,
@@ -14,9 +16,11 @@ import {
   UsersRound,
   WalletCards,
   X,
+  BrainCircuit,
+  Trophy,
 } from 'lucide-react';
 import './AdminLayout.css';
-import { clearAuthSession, isSuperAdminSession } from '../utils/auth';
+import { clearAuthSession, getSessionHomeRoute, isIndividualSession, isSuperAdminSession } from '../utils/auth';
 import MazeLogo from './MazeLogo';
 
 type NavEntry = {
@@ -40,12 +44,31 @@ const AdminLayout: React.FC = () => {
   const [isAssessmentOpen, setIsAssessmentOpen] = useState(false);
   const [isInterviewOpen, setIsInterviewOpen] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isIndividual, setIsIndividual] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsSuperAdmin(isSuperAdminSession());
+    setIsIndividual(isIndividualSession());
   }, []);
+
+  useEffect(() => {
+    if (isIndividual) {
+      const allowedPaths = new Set([
+        '/dashboard',
+        '/practice',
+        '/practice/buddy',
+        '/practice/notes',
+        '/practice/planner',
+        '/practice/analytics',
+      ]);
+      if (!allowedPaths.has(location.pathname)) {
+        navigate('/practice', { replace: true });
+      }
+    }
+  }, [isIndividual, location.pathname, navigate]);
 
   useEffect(() => {
     if (
@@ -116,7 +139,7 @@ const AdminLayout: React.FC = () => {
 
       <aside className={`sidebar ${mobileNavOpen ? 'open' : ''}`} id="sidebar">
         <div className="sidebar-top">
-          <Link to={isSuperAdmin ? '/platform' : '/dashboard'} className="sidebar-logo">
+          <Link to={getSessionHomeRoute()} className="sidebar-logo">
             <span className="sidebar-logo-mark">
               <MazeLogo className="sidebar-logo-svg" />
             </span>
@@ -144,6 +167,39 @@ const AdminLayout: React.FC = () => {
             </span>
             <span className="nav-label">Organisation Billing</span>
           </NavLink>
+        ) : isIndividual ? (
+          <>
+            <NavLink to="/practice" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <span className="nav-icon">
+                <LayoutDashboard size={18} />
+              </span>
+              <span className="nav-label">Practice Hub</span>
+            </NavLink>
+            <NavLink to="/practice/buddy" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <span className="nav-icon">
+                <BrainCircuit size={18} />
+              </span>
+              <span className="nav-label">AI Teacher</span>
+            </NavLink>
+            <NavLink to="/practice/notes" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <span className="nav-icon">
+                <BookMarked size={18} />
+              </span>
+              <span className="nav-label">Notes</span>
+            </NavLink>
+            <NavLink to="/practice/planner" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <span className="nav-icon">
+                <CalendarDays size={18} />
+              </span>
+              <span className="nav-label">Planner</span>
+            </NavLink>
+            <NavLink to="/practice/analytics" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <span className="nav-icon">
+                <Trophy size={18} />
+              </span>
+              <span className="nav-label">Analytics</span>
+            </NavLink>
+          </>
         ) : (
           <>
             <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
@@ -193,9 +249,9 @@ const AdminLayout: React.FC = () => {
           </>
         )}
 
-        <div className="sidebar-section">Billing</div>
+        {!isIndividual && <div className="sidebar-section">Billing</div>}
 
-        {!isSuperAdmin && (
+        {!isSuperAdmin && !isIndividual && (
           <NavLink to="/wallet" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span className="nav-icon">
               <WalletCards size={18} />
@@ -223,8 +279,10 @@ const AdminLayout: React.FC = () => {
           <div className="admin-card">
             <div className="admin-avatar">A</div>
             <div className="admin-meta">
-              <div className="admin-name">Admin Workspace</div>
-              <div className="admin-role">{isSuperAdmin ? 'Platform Superadmin' : 'Workspace Admin'}</div>
+              <div className="admin-name">{isIndividual ? 'Learning Workspace' : 'Admin Workspace'}</div>
+              <div className="admin-role">
+                {isSuperAdmin ? 'Platform Superadmin' : isIndividual ? 'Individual Learner' : 'Workspace Admin'}
+              </div>
             </div>
             <span className="admin-status" />
           </div>

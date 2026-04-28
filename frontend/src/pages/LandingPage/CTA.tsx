@@ -19,6 +19,12 @@ export default function CTA() {
         </p>
         <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
           <Link
+            to="/individual"
+            className="inline-flex items-center justify-center rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-8 py-4 text-base font-semibold text-cyan-200 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-cyan-500/15 hover:text-white"
+          >
+            Individual Login
+          </Link>
+          <Link
             to="/signup"
             className="group relative inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-sky-500 px-8 py-4 text-base font-semibold text-white shadow-xl shadow-emerald-500/25 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-500/35"
           >

@@ -5,6 +5,7 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarDays,
+  ClipboardList,
   ChevronDown,
   Dumbbell,
   FileText,
@@ -171,6 +172,12 @@ const AdminLayout: React.FC = () => {
                 <LayoutDashboard size={18} />
               </span>
               <span className="nav-label">Practice Hub</span>
+            </NavLink>
+            <NavLink to="/practice/schedules" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <span className="nav-icon">
+                <ClipboardList size={18} />
+              </span>
+              <span className="nav-label">Schedules</span>
             </NavLink>
             <NavLink to="/practice/start" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <span className="nav-icon">

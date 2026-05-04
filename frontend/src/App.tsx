@@ -33,6 +33,7 @@ import IndividualNotes from './pages/Individual/IndividualNotes';
 import IndividualPlanner from './pages/Individual/IndividualPlanner';
 import IndividualProgress from './pages/Individual/IndividualProgress';
 import IndividualPractice from './pages/Individual/IndividualPractice';
+import IndividualSchedules from './pages/Individual/IndividualSchedules';
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route path="/dashboard"                          element={<SessionDashboard />} />
           <Route path="/practice"                          element={<SessionDashboard />} />
+          <Route path="/practice/schedules"                element={<IndividualSchedules />} />
           <Route path="/practice/start"                    element={<IndividualPractice />} />
           <Route path="/practice/buddy"                    element={<IndividualBuddy />} />
           <Route path="/practice/notes"                    element={<IndividualNotes />} />
@@ -69,6 +71,7 @@ function App() {
           <Route path="/wallet"                            element={<WalletPage />} />
           <Route path="/platform"                          element={<PlatformDashboard />} />
           <Route path="/individual/buddy"                  element={<Navigate to="/practice/buddy" replace />} />
+          <Route path="/individual/schedules"              element={<Navigate to="/practice/schedules" replace />} />
           <Route path="/individual/notes"                  element={<Navigate to="/practice/notes" replace />} />
           <Route path="/individual/planner"                element={<Navigate to="/practice/planner" replace />} />
           <Route path="/individual/progress"               element={<Navigate to="/practice/analytics" replace />} />

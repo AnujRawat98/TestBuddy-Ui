@@ -47,6 +47,7 @@ export const adminApi = {
 
 export const individualApi = {
     getOverview: () => api.get('/individual/overview'),
+    getSchedules: () => api.get('/individual/schedules'),
     getProgress: () => api.get('/individual/progress'),
     getNotes: () => api.get('/individual/notes'),
     createNote: (data: { title?: string; content: string; topicId?: string; questionId?: string }) =>
@@ -67,6 +68,28 @@ export const individualApi = {
     sendBuddyMessage: (sessionId: string, data: { content: string }) =>
         api.post(`/individual/buddy/sessions/${sessionId}/messages`, data),
     completeBuddySession: (sessionId: string) => api.post(`/individual/buddy/sessions/${sessionId}/complete`),
+    // Practice zone
+    getTopicsWithMastery: () => api.get('/individual/topics'),
+    getPracticeSession: (params: { topicId?: string; mode?: string; count?: number }) =>
+        api.get('/individual/practice/session', { params }),
+    submitPracticeAttempt: (data: {
+        questionId: string;
+        selectedOptionIds: string[];
+        timeTakenSeconds: number;
+        hintUsed: number;
+        mode?: string;
+    }) => api.post('/individual/practice/attempt', data),
+    // Bookmarks
+    getBookmarks: () => api.get('/individual/bookmarks'),
+    addBookmark: (data: { questionId: string; note?: string }) => api.post('/individual/bookmarks', data),
+    removeBookmark: (questionId: string) => api.delete(`/individual/bookmarks/${questionId}`),
+    // Spaced repetition
+    getSRDeck: () => api.get('/individual/sr/deck'),
+    submitSRReview: (data: { questionId: string; isCorrect: boolean; hintUsed: number }) =>
+        api.post('/individual/sr/review', data),
+    // AI question generation
+    generatePracticeQuestions: (data: { topicId: string; count?: number }) =>
+        api.post('/individual/practice/generate', data),
 };
 
 export const walletApi = {

@@ -32,6 +32,7 @@ import IndividualBuddy from './pages/Individual/IndividualBuddy';
 import IndividualNotes from './pages/Individual/IndividualNotes';
 import IndividualPlanner from './pages/Individual/IndividualPlanner';
 import IndividualProgress from './pages/Individual/IndividualProgress';
+import IndividualPractice from './pages/Individual/IndividualPractice';
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route path="/dashboard"                          element={<SessionDashboard />} />
           <Route path="/practice"                          element={<SessionDashboard />} />
+          <Route path="/practice/start"                    element={<IndividualPractice />} />
           <Route path="/practice/buddy"                    element={<IndividualBuddy />} />
           <Route path="/practice/notes"                    element={<IndividualNotes />} />
           <Route path="/practice/planner"                  element={<IndividualPlanner />} />

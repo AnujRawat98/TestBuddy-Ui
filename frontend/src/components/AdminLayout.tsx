@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarDays,
   ChevronDown,
+  Dumbbell,
   FileText,
   FolderKanban,
   LayoutDashboard,
@@ -56,15 +57,11 @@ const AdminLayout: React.FC = () => {
 
   useEffect(() => {
     if (isIndividual) {
-      const allowedPaths = new Set([
-        '/dashboard',
-        '/practice',
-        '/practice/buddy',
-        '/practice/notes',
-        '/practice/planner',
-        '/practice/analytics',
-      ]);
-      if (!allowedPaths.has(location.pathname)) {
+      const allowed =
+        location.pathname === '/dashboard' ||
+        location.pathname === '/practice' ||
+        location.pathname.startsWith('/practice/');
+      if (!allowed) {
         navigate('/practice', { replace: true });
       }
     }
@@ -169,11 +166,17 @@ const AdminLayout: React.FC = () => {
           </NavLink>
         ) : isIndividual ? (
           <>
-            <NavLink to="/practice" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <NavLink to="/practice" end className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <span className="nav-icon">
                 <LayoutDashboard size={18} />
               </span>
               <span className="nav-label">Practice Hub</span>
+            </NavLink>
+            <NavLink to="/practice/start" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <span className="nav-icon">
+                <Dumbbell size={18} />
+              </span>
+              <span className="nav-label">Practice Questions</span>
             </NavLink>
             <NavLink to="/practice/buddy" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <span className="nav-icon">

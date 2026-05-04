@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
 import { Bot, MessageSquare, Plus, Send } from 'lucide-react';
 import { individualApi } from '../../services/api';
 import { shellCard, shellSub, shellTitle } from './IndividualShared';
@@ -89,7 +88,7 @@ export default function IndividualBuddy() {
     }
   }
 
-  async function handleSend(e: FormEvent) {
+  async function handleSend(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!draft.trim()) return;
     setSending(true);
@@ -122,7 +121,7 @@ export default function IndividualBuddy() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className={shellTitle}>AI Teacher</h1>
-            <p className={shellSub}>Start a focused learning conversation and keep the history in your own schema.</p>
+            <p className={shellSub}>Start a focused learning conversation and keep the history in your own workspace.</p>
           </div>
           <Bot className="text-cyan-600" size={22} />
         </div>
@@ -137,7 +136,7 @@ export default function IndividualBuddy() {
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value)}
-            className="min-h-[46px] rounded-2xl border border-slate-200 px-4 outline-none focus:border-cyan-400"
+            className="min-h-11.5 rounded-2xl border border-slate-200 px-4 outline-none focus:border-cyan-400"
           >
             {modes.map((item) => (
               <option key={item} value={item}>
@@ -182,7 +181,7 @@ export default function IndividualBuddy() {
         </div>
       </section>
 
-      <section className={`${shellCard} flex min-h-[620px] flex-col`}>
+      <section className={`${shellCard} flex min-h-155 flex-col`}>
         <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
           <MessageSquare className="text-cyan-600" size={20} />
           <div>
@@ -218,12 +217,12 @@ export default function IndividualBuddy() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Ask the AI teacher to explain, quiz, or guide you..."
-            className="min-h-[48px] flex-1 rounded-2xl border border-slate-200 px-4 outline-none focus:border-cyan-400"
+            className="min-h-12 flex-1 rounded-2xl border border-slate-200 px-4 outline-none focus:border-cyan-400"
           />
           <button
             type="submit"
             disabled={sending || !draft.trim()}
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Send size={16} />
             Send
